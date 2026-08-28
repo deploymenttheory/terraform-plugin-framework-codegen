@@ -218,14 +218,14 @@ func inventory(staging, root, outAbs, source string) ([]manifest.Entry, error) {
 		if err != nil {
 			return err
 		}
-		sum := sha256.Sum256(data)
+		summary := sha256.Sum256(data)
 		rel, err := filepath.Rel(staging, path)
 		if err != nil {
 			return err
 		}
 		entries = append(entries, manifest.Entry{
 			Path:   filepath.ToSlash(filepath.Join(relOut, rel)),
-			SHA256: hex.EncodeToString(sum[:]),
+			SHA256: hex.EncodeToString(summary[:]),
 			Source: source,
 			Origin: manifest.OriginSDK,
 		})

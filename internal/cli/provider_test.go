@@ -25,11 +25,11 @@ func providerRepo(t *testing.T) string {
 	}
 	root := t.TempDir()
 
-	doc, err := os.ReadFile(filepath.Join(fixture, "openapi.yaml"))
+	document, err := os.ReadFile(filepath.Join(fixture, "openapi.yaml"))
 	if err != nil {
 		t.Fatalf("reading the curated document: %v", err)
 	}
-	if _, err := store.Import(filepath.Join(root, "spec"), doc, "testdata/curated/openapi.yaml"); err != nil {
+	if _, err := store.Import(filepath.Join(root, "spec"), document, "testdata/curated/openapi.yaml"); err != nil {
 		t.Fatalf("spec import: %v", err)
 	}
 	if _, err := revise.Materialize(filepath.Join(root, "spec")); err != nil {
@@ -39,11 +39,11 @@ func providerRepo(t *testing.T) string {
 	if err := copyDir(filepath.Join(fixture, "kiota", "sdk"), filepath.Join(root, "internal", "sdk")); err != nil {
 		t.Fatalf("standing the stub SDK: %v", err)
 	}
-	cfg, err := os.ReadFile(filepath.Join(fixture, "kiota", "tfpfgen.yaml"))
+	configuration, err := os.ReadFile(filepath.Join(fixture, "kiota", "tfpfgen.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "tfpfgen.yaml"), cfg, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "tfpfgen.yaml"), configuration, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,16 +53,16 @@ func providerRepo(t *testing.T) string {
 
 // copyDir copies every regular file under src to the same relative path
 // under dst.
-func copyDir(src, dst string) error {
-	return filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
+func copyDir(source, destination string) error {
+	return filepath.WalkDir(source, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		rel, rerr := filepath.Rel(src, p)
+		rel, rerr := filepath.Rel(source, p)
 		if rerr != nil {
 			return rerr
 		}
-		target := filepath.Join(dst, rel)
+		target := filepath.Join(destination, rel)
 		if d.IsDir() {
 			return os.MkdirAll(target, 0o750)
 		}

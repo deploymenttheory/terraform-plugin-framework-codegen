@@ -97,10 +97,10 @@ func TestUnit_EnvWithBuildVCSOff(t *testing.T) {
 		{"an existing GOFLAGS keeps its flags", []string{"GOFLAGS=-mod=vendor"}, "-mod=vendor " + flag},
 		{"an existing buildvcs is left alone", []string{"GOFLAGS=-buildvcs=true"}, "-buildvcs=true"},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := get(envWithBuildVCSOff(tc.in)); got != tc.want {
-				t.Errorf("GOFLAGS = %q, want %q", got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := get(envWithBuildVCSOff(testCase.in)); got != testCase.want {
+				t.Errorf("GOFLAGS = %q, want %q", got, testCase.want)
 			}
 		})
 	}

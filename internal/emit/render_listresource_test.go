@@ -179,7 +179,7 @@ func TestUnit_ListResource_PublishesAnIdentityKeyedTheAPIsWay(t *testing.T) {
 	for _, f := range lb.Fields {
 		if f.Attr == "id" {
 			f.Wire = "httpServerId"
-			f.Access = readOnly(kAccess("HttpServerId", "*string", "FromPtrString", "", ""))
+			f.Access = readOnly(kiotaAccess("HttpServerId", "*string", "FromPtrString", "", ""))
 		}
 		fields = append(fields, f)
 	}
@@ -218,7 +218,7 @@ func TestUnit_ListResource_RefusalNamesWhatTheElementCarries(t *testing.T) {
 	for _, f := range lb.Fields {
 		if f.Attr == "id" {
 			f.Attr, f.Wire = "server_uid", "serverUid"
-			f.Access = readOnly(kAccess("ServerUid", "*string", "FromPtrString", "", ""))
+			f.Access = readOnly(kiotaAccess("ServerUid", "*string", "FromPtrString", "", ""))
 		}
 		fields = append(fields, f)
 	}

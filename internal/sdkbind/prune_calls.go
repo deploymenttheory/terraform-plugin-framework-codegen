@@ -189,11 +189,11 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 	if err != nil {
 		return "", "", unwrapDetail(err)
 	}
-	pkg := named.Obj().Pkg()
-	if pkg == nil {
+	goPackage := named.Obj().Pkg()
+	if goPackage == nil {
 		return "", "", fmt.Sprintf("%s is not declared by the SDK", requestType)
 	}
-	qualifier := pkg.Name()
+	qualifier := goPackage.Name()
 	name := named.Obj().Name()
 
 	if _, isInterface := named.Underlying().(*types.Interface); isInterface {
@@ -202,15 +202,15 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 			// An SDK runtime interface constructs through a companion of
 			// its own name rather than through a concrete type: the
 			// interface is the model.
-			if p.l.functionExists(pkg.Path(), "New"+name) {
+			if p.l.functionExists(goPackage.Path(), "New"+name) {
 				return qualifier + "." + name, qualifier + ".New" + name + "()", ""
 			}
 			return "", "", fmt.Sprintf("%s.%s is an interface with no constructible model behind it", qualifier, name)
 		}
-		if _, err := p.l.lookupType(pkg.Path(), base); err != nil {
+		if _, err := p.l.lookupType(goPackage.Path(), base); err != nil {
 			return "", "", fmt.Sprintf("%s.%s names no concrete %s to construct", qualifier, name, base)
 		}
-		if !p.l.functionExists(pkg.Path(), "New"+base) {
+		if !p.l.functionExists(goPackage.Path(), "New"+base) {
 			return "", "", fmt.Sprintf("the SDK declares no constructor New%s for %s.%s", base, qualifier, base)
 		}
 		return qualifier + "." + base, qualifier + ".New" + base + "()", ""
@@ -219,7 +219,7 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 	if _, err := structUnder(named); err != nil {
 		return "", "", fmt.Sprintf("%s.%s is not a struct a body could be built as", qualifier, name)
 	}
-	if p.l.functionExists(pkg.Path(), "New"+name+"WithDefaults") {
+	if p.l.functionExists(goPackage.Path(), "New"+name+"WithDefaults") {
 		return qualifier + "." + name, qualifier + ".New" + name + "WithDefaults()", ""
 	}
 	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", ""
@@ -316,8 +316,8 @@ func (p *pruner) recordTypePackage(t types.Type) {
 		case *types.Slice:
 			t = shaped.Elem()
 		case *types.Named:
-			if pkg := shaped.Obj().Pkg(); pkg != nil {
-				p.bindings.recordPackage(pkg.Name(), pkg.Path())
+			if goPackage := shaped.Obj().Pkg(); goPackage != nil {
+				p.bindings.recordPackage(goPackage.Name(), goPackage.Path())
 			}
 			return
 		default:

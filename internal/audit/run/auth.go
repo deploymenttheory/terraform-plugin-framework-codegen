@@ -20,7 +20,7 @@ import (
 // first request is sent.
 type authenticator interface {
 	// apply sets the request's credentials. It may itself fetch a token.
-	apply(ctx context.Context, req *http.Request) error
+	apply(ctx context.Context, request *http.Request) error
 	// secretValues lists every value redaction must remove: the
 	// configured secrets plus anything fetched, such as an access token.
 	secretValues() []string
@@ -73,8 +73,8 @@ type headerAuth struct {
 	secret string
 }
 
-func (h *headerAuth) apply(_ context.Context, req *http.Request) error {
-	req.Header.Set(h.header, h.value)
+func (h *headerAuth) apply(_ context.Context, request *http.Request) error {
+	request.Header.Set(h.header, h.value)
 	return nil
 }
 
@@ -86,8 +86,8 @@ type basicAuth struct {
 	password string
 }
 
-func (b *basicAuth) apply(_ context.Context, req *http.Request) error {
-	req.SetBasicAuth(b.username, b.password)
+func (b *basicAuth) apply(_ context.Context, request *http.Request) error {
+	request.SetBasicAuth(b.username, b.password)
 	return nil
 }
 
@@ -115,12 +115,12 @@ type oauth2Auth struct {
 // expiry, so a request never sails out with a token about to die mid-air.
 const tokenRefreshMargin = 30 * time.Second
 
-func (o *oauth2Auth) apply(ctx context.Context, req *http.Request) error {
+func (o *oauth2Auth) apply(ctx context.Context, request *http.Request) error {
 	tok, err := o.currentToken(ctx)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+tok)
+	request.Header.Set("Authorization", "Bearer "+tok)
 	return nil
 }
 
@@ -136,25 +136,25 @@ func (o *oauth2Auth) currentToken(ctx context.Context) (string, error) {
 		"client_id":     {o.clientID},
 		"client_secret": {o.clientSecret},
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, o.tokenURL, strings.NewReader(form.Encode()))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, o.tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", fmt.Errorf("audit run: building the token request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := o.client.Do(req)
+	response, err := o.client.Do(request)
 	if err != nil {
 		return "", fmt.Errorf("audit run: fetching a token from %s: %w", o.tokenURL, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	defer func() { _ = response.Body.Close() }()
+	raw, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 	if err != nil {
 		return "", fmt.Errorf("audit run: reading the token response: %w", err)
 	}
-	if resp.StatusCode >= 400 {
+	if response.StatusCode >= 400 {
 		// The body is not quoted: a token endpoint's error can echo the
 		// client id, and this message may end up in CI logs.
-		return "", fmt.Errorf("audit run: the token endpoint answered %d", resp.StatusCode)
+		return "", fmt.Errorf("audit run: the token endpoint answered %d", response.StatusCode)
 	}
 
 	var body struct {
@@ -162,7 +162,7 @@ func (o *oauth2Auth) currentToken(ctx context.Context) (string, error) {
 		ExpiresIn   int    `json:"expires_in"`
 	}
 	if err := json.Unmarshal(raw, &body); err != nil || body.AccessToken == "" {
-		return "", fmt.Errorf("audit run: the token endpoint answered %d without an access_token", resp.StatusCode)
+		return "", fmt.Errorf("audit run: the token endpoint answered %d without an access_token", response.StatusCode)
 	}
 
 	o.token = body.AccessToken

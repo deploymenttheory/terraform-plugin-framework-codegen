@@ -79,13 +79,13 @@ func Verify(_ context.Context, opts Options) (Report, error) {
 	for _, p := range postcheckOwned {
 		finalized[p] = true
 	}
-	for path, sum := range want {
+	for path, summary := range want {
 		switch haveSum, there, err := fileDigest(opts.Root, path); {
 		case err != nil:
 			return Report{}, err
 		case !there:
 			rep.Drifts = append(rep.Drifts, sdkgen.Drift{Kind: sdkgen.DriftMissing, Path: path})
-		case haveSum != sum:
+		case haveSum != summary:
 			// The toolchain-finalised files legitimately differ from a bare
 			// regeneration — postcheck's `go mod tidy` rewrote them after
 			// install. They are held to the digests the manifest re-recorded
@@ -140,6 +140,6 @@ func fileDigest(root, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	sum := sha256.Sum256(data)
-	return hex.EncodeToString(sum[:]), true, nil
+	summary := sha256.Sum256(data)
+	return hex.EncodeToString(summary[:]), true, nil
 }

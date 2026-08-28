@@ -44,8 +44,8 @@ type openAPIGeneratorBackend struct{}
 
 func (openAPIGeneratorBackend) Name() string { return config.BackendOpenAPIGenerator }
 
-func (openAPIGeneratorBackend) RequiredVersion(cfg *config.Config) string {
-	return cfg.SDK.BackendVersion
+func (openAPIGeneratorBackend) RequiredVersion(configuration *config.Config) string {
+	return configuration.SDK.BackendVersion
 }
 
 // tool reports which of the accepted binary names is on PATH.
@@ -60,7 +60,7 @@ func (openAPIGeneratorBackend) tool() (string, error) {
 		strings.Join(openAPIGeneratorTools, " nor "))
 }
 
-func (b openAPIGeneratorBackend) CheckTool(ctx context.Context, cfg *config.Config) error {
+func (b openAPIGeneratorBackend) CheckTool(ctx context.Context, configuration *config.Config) error {
 	name, err := b.tool()
 	if err != nil {
 		return err
@@ -69,10 +69,10 @@ func (b openAPIGeneratorBackend) CheckTool(ctx context.Context, cfg *config.Conf
 	if err != nil {
 		return err
 	}
-	return refuseVersionMismatch(name, have, b.RequiredVersion(cfg))
+	return refuseVersionMismatch(name, have, b.RequiredVersion(configuration))
 }
 
-func (b openAPIGeneratorBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *config.Config, outDir string) error {
+func (b openAPIGeneratorBackend) Generate(ctx context.Context, revisedSpecPath string, configuration *config.Config, outDir string) error {
 	name, err := b.tool()
 	if err != nil {
 		return err
@@ -82,12 +82,12 @@ func (b openAPIGeneratorBackend) Generate(ctx context.Context, revisedSpecPath s
 	// honoured by filtering the document itself — the same globs, the same
 	// meaning kiota's flags give them.
 	specPath := revisedSpecPath
-	if len(cfg.SDK.IncludePaths)+len(cfg.SDK.ExcludePaths) > 0 {
-		doc, err := os.ReadFile(revisedSpecPath) //nolint:gosec // the pre-normalized copy this run wrote
+	if len(configuration.SDK.IncludePaths)+len(configuration.SDK.ExcludePaths) > 0 {
+		document, err := os.ReadFile(revisedSpecPath) //nolint:gosec // the pre-normalized copy this run wrote
 		if err != nil {
 			return err
 		}
-		filtered, err := FilterPaths(doc, cfg.SDK.IncludePaths, cfg.SDK.ExcludePaths)
+		filtered, err := FilterPaths(document, configuration.SDK.IncludePaths, configuration.SDK.ExcludePaths)
 		if err != nil {
 			return err
 		}

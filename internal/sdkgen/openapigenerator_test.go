@@ -11,8 +11,8 @@ import (
 )
 
 func TestUnit_OpenAPIGeneratorCheckTool_AcceptsEitherBinaryName(t *testing.T) {
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
-	backend, err := For(cfg)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	backend, err := For(configuration)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestUnit_OpenAPIGeneratorCheckTool_AcceptsEitherBinaryName(t *testing.T) {
 	for _, name := range []string{"openapi-generator-cli", "openapi-generator"} {
 		t.Run(name, func(t *testing.T) {
 			installStub(t, name, openAPIGeneratorStub, "1.2.3")
-			if err := backend.CheckTool(context.Background(), cfg); err != nil {
+			if err := backend.CheckTool(context.Background(), configuration); err != nil {
 				t.Fatalf("a matching %s should pass the gate: %v", name, err)
 			}
 		})
@@ -29,10 +29,10 @@ func TestUnit_OpenAPIGeneratorCheckTool_AcceptsEitherBinaryName(t *testing.T) {
 
 func TestUnit_OpenAPIGeneratorCheckTool_RefusesAMismatchNamingBothVersions(t *testing.T) {
 	installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "7.6.0")
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.CheckTool(context.Background(), cfg)
+	backend, _ := For(configuration)
+	err := backend.CheckTool(context.Background(), configuration)
 	if err == nil {
 		t.Fatal("a mismatched version must refuse")
 	}
@@ -45,10 +45,10 @@ func TestUnit_OpenAPIGeneratorCheckTool_RefusesAMismatchNamingBothVersions(t *te
 
 func TestUnit_OpenAPIGeneratorCheckTool_RefusesWhenNeitherBinaryExists(t *testing.T) {
 	emptyPath(t)
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.CheckTool(context.Background(), cfg)
+	backend, _ := For(configuration)
+	err := backend.CheckTool(context.Background(), configuration)
 	if err == nil {
 		t.Fatal("a missing tool must refuse")
 	}
@@ -61,15 +61,15 @@ func TestUnit_OpenAPIGeneratorCheckTool_RefusesWhenNeitherBinaryExists(t *testin
 
 func TestUnit_OpenAPIGeneratorGenerate_PassesTheDocumentedFlagsAndWritesTheIgnoreFile(t *testing.T) {
 	argsFile := installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 	out := filepath.Join(t.TempDir(), "sdk")
 	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	backend, _ := For(cfg)
-	if err := backend.Generate(context.Background(), spec, cfg, out); err != nil {
+	backend, _ := For(configuration)
+	if err := backend.Generate(context.Background(), spec, configuration, out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -100,15 +100,15 @@ func TestUnit_OpenAPIGeneratorGenerate_PassesTheDocumentedFlagsAndWritesTheIgnor
 
 func TestUnit_OpenAPIGeneratorGenerate_FiltersTheDocumentForPathGlobs(t *testing.T) {
 	argsFile := installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
-	cfg := testConfig(config.BackendOpenAPIGenerator, []string{"/widgets/**", "/widgets"}, []string{"/widgets/{id}"})
+	configuration := testConfig(config.BackendOpenAPIGenerator, []string{"/widgets/**", "/widgets"}, []string{"/widgets/{id}"})
 	out := filepath.Join(t.TempDir(), "sdk")
 	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	backend, _ := For(cfg)
-	if err := backend.Generate(context.Background(), spec, cfg, out); err != nil {
+	backend, _ := For(configuration)
+	if err := backend.Generate(context.Background(), spec, configuration, out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -140,14 +140,14 @@ func TestUnit_OpenAPIGeneratorGenerate_FiltersTheDocumentForPathGlobs(t *testing
 
 func TestUnit_OpenAPIGeneratorGenerate_RefusesAFilterThatKeepsNothing(t *testing.T) {
 	installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
-	cfg := testConfig(config.BackendOpenAPIGenerator, []string{"/nothing/**"}, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, []string{"/nothing/**"}, nil)
 	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	backend, _ := For(cfg)
-	err := backend.Generate(context.Background(), spec, cfg, filepath.Join(t.TempDir(), "sdk"))
+	backend, _ := For(configuration)
+	err := backend.Generate(context.Background(), spec, configuration, filepath.Join(t.TempDir(), "sdk"))
 	if err == nil || !strings.Contains(err.Error(), "no paths") {
 		t.Fatalf("an all-filtering config should refuse, got %v", err)
 	}
@@ -155,14 +155,14 @@ func TestUnit_OpenAPIGeneratorGenerate_RefusesAFilterThatKeepsNothing(t *testing
 
 func TestUnit_OpenAPIGeneratorNormalize_SortsFILESAndDeletesScaffolding(t *testing.T) {
 	installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 	out := filepath.Join(t.TempDir(), "sdk")
 	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	backend, _ := For(cfg)
-	if err := backend.Generate(context.Background(), spec, cfg, out); err != nil {
+	backend, _ := For(configuration)
+	if err := backend.Generate(context.Background(), spec, configuration, out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -185,12 +185,12 @@ func TestUnit_OpenAPIGeneratorNormalize_SortsFILESAndDeletesScaffolding(t *testi
 		t.Errorf("the VERSION evidence must survive: %v", err)
 	}
 
-	src, err := os.ReadFile(filepath.Join(out, "client.go"))
+	source, err := os.ReadFile(filepath.Join(out, "client.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(src), "2026-01-02") {
-		t.Errorf("the dated header line should be scrubbed:\n%s", src)
+	if strings.Contains(string(source), "2026-01-02") {
+		t.Errorf("the dated header line should be scrubbed:\n%s", source)
 	}
 }
 

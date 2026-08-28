@@ -67,11 +67,11 @@ func TestUnit_Plan_ParseInputsStrictness(t *testing.T) {
 		{"bare env reference", `{"tag": {"parentRefs": {"projectId": "${}"}}}`, "parentRefs.projectId"},
 		{"values not an object", `{"tag": {"values": 3}}`, `entity "tag"`},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := ParseInputs([]byte(tc.data))
-			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("ParseInputs = %v, want an error containing %q", err, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := ParseInputs([]byte(testCase.data))
+			if err == nil || !strings.Contains(err.Error(), testCase.want) {
+				t.Fatalf("ParseInputs = %v, want an error containing %q", err, testCase.want)
 			}
 		})
 	}

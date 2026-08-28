@@ -130,15 +130,15 @@ func Parse(raw []byte, path string) (*Config, error) {
 
 // finish strictly unmarshals and semantically validates a read config.
 func finish(v *viper.Viper, path string) (*Config, error) {
-	var cfg Config
-	if err := v.UnmarshalExact(&cfg); err != nil {
+	var configuration Config
+	if err := v.UnmarshalExact(&configuration); err != nil {
 		return nil, fmt.Errorf("%s: %s", path, describeDecodeError(err))
 	}
-	if problems := cfg.problems(); len(problems) > 0 {
+	if problems := configuration.problems(); len(problems) > 0 {
 		return nil, fmt.Errorf("%s is not a valid tfpfgen.yaml:\n  - %s",
 			path, strings.Join(problems, "\n  - "))
 	}
-	return &cfg, nil
+	return &configuration, nil
 }
 
 // invalidKeys matches mapstructure's unknown-key report, e.g.
@@ -194,10 +194,10 @@ func nearestKey(got string) string {
 
 // levenshtein is the standard two-row edit distance.
 func levenshtein(a, b string) int {
-	prev := make([]int, len(b)+1)
+	previous := make([]int, len(b)+1)
 	curr := make([]int, len(b)+1)
-	for j := range prev {
-		prev[j] = j
+	for j := range previous {
+		previous[j] = j
 	}
 	for i := 1; i <= len(a); i++ {
 		curr[0] = i
@@ -206,9 +206,9 @@ func levenshtein(a, b string) int {
 			if a[i-1] == b[j-1] {
 				cost = 0
 			}
-			curr[j] = min(prev[j]+1, min(curr[j-1]+1, prev[j-1]+cost))
+			curr[j] = min(previous[j]+1, min(curr[j-1]+1, previous[j-1]+cost))
 		}
-		prev, curr = curr, prev
+		previous, curr = curr, previous
 	}
-	return prev[len(b)]
+	return previous[len(b)]
 }

@@ -221,17 +221,17 @@ func TestUnit_Plan_UpdateVariantsMoveEveryScalar(t *testing.T) {
 }
 
 func TestUnit_Plan_CapsBoundWideSchemas(t *testing.T) {
-	var props, required strings.Builder
+	var properties, required strings.Builder
 	for i := 0; i < 10; i++ {
 		fmt.Fprintf(&required, "r%d, ", i)
-		fmt.Fprintf(&props, "        r%d:\n          type: string\n", i)
+		fmt.Fprintf(&properties, "        r%d:\n          type: string\n", i)
 	}
 	for i := 0; i < 10; i++ {
-		fmt.Fprintf(&props, "        o%d:\n          type: string\n", i)
+		fmt.Fprintf(&properties, "        o%d:\n          type: string\n", i)
 	}
-	props.WriteString("        pick:\n          type: string\n          enum: [e0, e1, e2, e3, e4, e5, e6, e7, e8, e9]\n")
+	properties.WriteString("        pick:\n          type: string\n          enum: [e0, e1, e2, e3, e4, e5, e6, e7, e8, e9]\n")
 
-	spec := resourceSpec(strings.TrimSuffix(required.String(), ", "), props.String())
+	spec := resourceSpec(strings.TrimSuffix(required.String(), ", "), properties.String())
 	p := mustDerive(t, loadDoc(t, spec), testConfig(), nil)
 	steps := entityByKey(t, p, "thing").Steps
 

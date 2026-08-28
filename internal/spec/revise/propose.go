@@ -220,7 +220,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		corr := correction.Correction{
 			Justification: res.justification,
 			Evidence:      "audit/observations/" + o.Entity + observe.FileSuffix + "#" + o.ID,
-			Operations:    res.ops,
+			Operations:    res.operations,
 		}
 		// Later compilations see this correction's effect, so two
 		// observations touching the same schema compose instead of
@@ -413,12 +413,12 @@ func revisedState(dir, correctionsDir string) ([]byte, map[string]specmodel.Clas
 		return nil, nil, err
 	}
 
-	doc, err := specmodel.Load(state)
+	document, err := specmodel.Load(state)
 	if err != nil {
 		return nil, nil, fmt.Errorf("the revised document is not loadable, so observations cannot be placed: %w", err)
 	}
 	entities := map[string]specmodel.Classification{}
-	for _, c := range specmodel.Classify(doc).Entities {
+	for _, c := range specmodel.Classify(document).Entities {
 		entities[c.Key] = c
 	}
 	return state, entities, nil
@@ -525,8 +525,8 @@ func autoFileFor(correctionsDir, evidence string) (string, bool, error) {
 		if err != nil {
 			return "", false, err
 		}
-		var prev correction.Correction
-		if json.Unmarshal(raw, &prev) == nil && prev.Evidence == evidence {
+		var previous correction.Correction
+		if json.Unmarshal(raw, &previous) == nil && previous.Evidence == evidence {
 			return path, true, nil
 		}
 	}
@@ -539,12 +539,12 @@ func writeCorrection(path string, corr correction.Correction) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(corr); err != nil {
 		return fmt.Errorf("encoding %s: %w", path, err)
 	}
-	return os.WriteFile(path, buf.Bytes(), 0o600)
+	return os.WriteFile(path, buffer.Bytes(), 0o600)
 }

@@ -55,19 +55,19 @@ func monitorEvidence() Evidence {
 	}
 }
 
-func find(obs []observe.Observation, attr string, kind observe.Kind) *observe.Observation {
+func find(obs []observe.Observation, attribute string, kind observe.Kind) *observe.Observation {
 	for i := range obs {
-		if obs[i].Attribute == attr && obs[i].Kind == kind {
+		if obs[i].Attribute == attribute && obs[i].Kind == kind {
 			return &obs[i]
 		}
 	}
 	return nil
 }
 
-func findWhen(obs []observe.Observation, attr string, kind observe.Kind, gateVal string) *observe.Observation {
+func findWhen(obs []observe.Observation, attribute string, kind observe.Kind, gateVal string) *observe.Observation {
 	for i := range obs {
 		o := &obs[i]
-		if o.Attribute == attr && o.Kind == kind && o.Condition != nil && o.Condition.Equals == gateVal {
+		if o.Attribute == attribute && o.Kind == kind && o.Condition != nil && o.Condition.Equals == gateVal {
 			return o
 		}
 	}
@@ -97,18 +97,18 @@ func TestUnit_Infer_MonitorConvergentEdges(t *testing.T) {
 		t.Errorf("validConfiguration values = %s, want the three gate values", got)
 	}
 
-	for _, tc := range []struct{ field, gate string }{
+	for _, testCase := range []struct{ field, gate string }{
 		{"target_host", "ping"}, {"web", "web"}, {"domain", "dns"}, {"dnssec", "dns"},
 	} {
-		o := findWhen(obs, tc.field, observe.KindValidWhen, tc.gate)
+		o := findWhen(obs, testCase.field, observe.KindValidWhen, testCase.gate)
 		if o == nil || o.Outcome != observe.OutcomeConfirmed || o.Value != true {
-			t.Errorf("validWhen(%s, kind=%s) = %+v, want confirmed true", tc.field, tc.gate, o)
+			t.Errorf("validWhen(%s, kind=%s) = %+v, want confirmed true", testCase.field, testCase.gate, o)
 		}
 		if o != nil && o.Condition.Attribute != "kind" {
-			t.Errorf("validWhen(%s) condition attribute = %q, want kind", tc.field, o.Condition.Attribute)
+			t.Errorf("validWhen(%s) condition attribute = %q, want kind", testCase.field, o.Condition.Attribute)
 		}
 		if o != nil && o.Provenance != observe.ProvenanceDerived {
-			t.Errorf("validWhen(%s) provenance = %q, want derived", tc.field, o.Provenance)
+			t.Errorf("validWhen(%s) provenance = %q, want derived", testCase.field, o.Provenance)
 		}
 	}
 
@@ -117,9 +117,9 @@ func TestUnit_Infer_MonitorConvergentEdges(t *testing.T) {
 		t.Fatalf("dependsOn(dnssec) = %+v, want confirmed value domain", dep)
 	}
 
-	req := find(obs, "interval", observe.KindRequiredByAPI)
-	if req == nil || req.Value != true {
-		t.Errorf("requiredByAPI(interval) = %+v, want true", req)
+	request := find(obs, "interval", observe.KindRequiredByAPI)
+	if request == nil || request.Value != true {
+		t.Errorf("requiredByAPI(interval) = %+v, want true", request)
 	}
 	rw := findWhen(obs, "target_host", observe.KindRequiredWhen, "ping")
 	if rw == nil || rw.Value != true {
@@ -383,8 +383,8 @@ func TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive(t *testing.T) {
 	}
 	obs := Infer(Evidence{Entity: "e"}, compiled)
 	want := []struct {
-		attr string
-		kind observe.Kind
+		attribute string
+		kind      observe.Kind
 	}{
 		{"a", observe.KindRequiredWhen},
 		{"c", observe.KindDependsOn},
@@ -392,9 +392,9 @@ func TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive(t *testing.T) {
 		{"h", observe.KindValidWhen},
 	}
 	for _, w := range want {
-		o := find(obs, w.attr, w.kind)
+		o := find(obs, w.attribute, w.kind)
 		if o == nil || o.Outcome != observe.OutcomeInconclusive {
-			t.Errorf("%s.%s = %+v, want inconclusive", w.attr, w.kind, o)
+			t.Errorf("%s.%s = %+v, want inconclusive", w.attribute, w.kind, o)
 		}
 	}
 }
@@ -417,11 +417,11 @@ func TestUnit_Infer_ListShapeVariants(t *testing.T) {
 		{"ambiguous", `{"a":[],"b":[]}`, nil},
 		{"not-a-list", `{"id":"1"}`, nil},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := listShapeOf([][]byte{[]byte(tc.body)})
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("listShapeOf(%s) = %+v, want %+v", tc.body, got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := listShapeOf([][]byte{[]byte(testCase.body)})
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("listShapeOf(%s) = %+v, want %+v", testCase.body, got, testCase.want)
 			}
 		})
 	}

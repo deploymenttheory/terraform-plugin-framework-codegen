@@ -38,7 +38,7 @@ const (
 // compiled is one observation's compilation: either operations plus the
 // justification they carry, or a category and reason explaining why not.
 type compiled struct {
-	ops           []correction.Operation
+	operations    []correction.Operation
 	justification string
 	category      category
 	reason        string
@@ -141,13 +141,13 @@ func (c *compiler) property(loc *locator, cls specmodel.Classification, o observ
 	if o.Attribute == "" {
 		return propertyLocation{}, unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind)), false
 	}
-	if node, ptr, ok := loc.requestSchema(cls.Create); ok {
-		if site, ok := loc.findProperty(node, ptr, o.Attribute); ok {
+	if node, pointer, ok := loc.requestSchema(cls.Create); ok {
+		if site, ok := loc.findProperty(node, pointer, o.Attribute); ok {
 			return site, compiled{}, true
 		}
 	}
-	if node, ptr, ok := loc.responseSchema(cls.Read); ok {
-		if site, ok := loc.findProperty(node, ptr, o.Attribute); ok {
+	if node, pointer, ok := loc.responseSchema(cls.Read); ok {
+		if site, ok := loc.findProperty(node, pointer, o.Attribute); ok {
 			return site, compiled{}, true
 		}
 	}
@@ -167,7 +167,7 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 	}
 	// readOnly must sit on a concrete schema: beside a $ref it is ignored,
 	// so the declaration the reference resolves to is the correctable spot.
-	target, targetPtr, ok := loc.followSchemaRefs(site.prop, site.propPtr)
+	target, targetPtr, ok := loc.followSchemaRefs(site.property, site.propPtr)
 	if !ok {
 		return unplaceable(fmt.Sprintf("the schema of %s.%s resolves outside the document", o.Entity, o.Attribute))
 	}
@@ -175,7 +175,7 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 		return stated("the document already declares the property readOnly")
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: targetPtr + "/readOnly", Value: true}},
+		operations: []correction.Operation{{Op: "add", Path: targetPtr + "/readOnly", Value: true}},
 		justification: fmt.Sprintf("the audit confirmed a writable observation on %s.%s: "+
 			"the live API accepts the value and never stores it, so the property is readOnly", o.Entity, o.Attribute),
 	}
@@ -191,11 +191,11 @@ func (c *compiler) propertyFlag(loc *locator, cls specmodel.Classification, o ob
 	if !ok {
 		return why
 	}
-	if ext := loc.extensionNode(site.prop, site.propPtr, key); ext != nil && ext.Value == "true" {
+	if extension := loc.extensionNode(site.property, site.propPtr, key); extension != nil && extension.Value == "true" {
 		return stated(fmt.Sprintf("the document already declares %s", key))
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + key, Value: true}},
+		operations: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + key, Value: true}},
 		justification: fmt.Sprintf("the audit confirmed %s %s observation on %s.%s: %s (%s)",
 			article(o.Kind), o.Kind, o.Entity, o.Attribute, finding, key),
 	}
@@ -223,19 +223,19 @@ func (c *compiler) requiredByAPI(loc *locator, cls specmodel.Classification, o o
 	}
 	// The check spans the whole entity schema — the attribute may already be
 	// required by another allOf branch than the one declaring it.
-	if node, ptr, ok := loc.requestSchema(cls.Create); ok && loc.requiredHas(node, ptr, o.Attribute) {
+	if node, pointer, ok := loc.requestSchema(cls.Create); ok && loc.requiredHas(node, pointer, o.Attribute) {
 		return stated("the document already requires the property")
 	}
 	if loc.requiredHas(site.declaration, site.declarationPointer, o.Attribute) {
 		return stated("the document already requires the property")
 	}
 
-	op := correction.Operation{Op: "add", Path: site.declarationPointer + "/required", Value: []any{o.Attribute}}
-	if req := mapValue(site.declaration, "required"); req != nil {
-		op = correction.Operation{Op: "add", Path: site.declarationPointer + "/required/-", Value: o.Attribute}
+	operation := correction.Operation{Op: "add", Path: site.declarationPointer + "/required", Value: []any{o.Attribute}}
+	if request := mapValue(site.declaration, "required"); request != nil {
+		operation = correction.Operation{Op: "add", Path: site.declarationPointer + "/required/-", Value: o.Attribute}
 	}
 	return compiled{
-		ops: []correction.Operation{op},
+		operations: []correction.Operation{operation},
 		justification: fmt.Sprintf("the audit confirmed a requiredByAPI observation on %s.%s: "+
 			"a create omitting the property is rejected whatever the document declares", o.Entity, o.Attribute),
 	}
@@ -252,14 +252,14 @@ func (c *compiler) requiredWhen(loc *locator, cls specmodel.Classification, o ob
 		return why
 	}
 	equals := literalSpelling(o.Condition.Equals)
-	if ext := loc.extensionNode(site.prop, site.propPtr, specmodel.ExtRequiredWhen); ext != nil {
-		if p, e := mapValue(ext, "property"), mapValue(ext, "equals"); p != nil && e != nil &&
+	if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtRequiredWhen); extension != nil {
+		if p, e := mapValue(extension, "property"), mapValue(extension, "equals"); p != nil && e != nil &&
 			p.Value == o.Condition.Attribute && e.Value == equals {
 			return stated("the document already declares this conditional requirement")
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op:   "add",
 			Path: site.propPtr + "/" + specmodel.ExtRequiredWhen,
 			Value: map[string]string{
@@ -293,14 +293,14 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 	// in the document. And `default` says what the document declares, which
 	// nothing in the generation path reads — the attribute's presence is
 	// decided from writability and from this extension.
-	if ext := loc.extensionNode(site.prop, site.propPtr, specmodel.ExtServerDefault); ext != nil {
+	if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtServerDefault); extension != nil {
 		var current any
-		if ext.Decode(&current) == nil && jsonEqual(current, o.Value) {
+		if extension.Decode(&current) == nil && jsonEqual(current, o.Value) {
 			return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtServerDefault))
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
+		operations: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
 		justification: fmt.Sprintf("the audit confirmed a serverDefault observation on %s.%s: omitting the "+
 			"property stores %s, so the generated attribute is Optional and Computed (%s)",
 			o.Entity, o.Attribute, literalSpelling(o.Value), specmodel.ExtServerDefault),
@@ -312,10 +312,10 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 // accepted-but-undocumented values join it, and an open set becomes
 // x-tfpfgen-values-open on the property.
 func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
-	var vals observe.Values
+	var values observe.Values
 	raw, err := json.Marshal(o.Value)
 	if err == nil {
-		err = json.Unmarshal(raw, &vals)
+		err = json.Unmarshal(raw, &values)
 	}
 	if err != nil {
 		return compiled{}, fmt.Errorf("observation %s: its value is not a values record: %w", o.ID, err)
@@ -325,7 +325,7 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 	if !ok {
 		return why, nil
 	}
-	enumDeclaration, enumPtr, hasEnum := loc.enumSite(site.prop, site.propPtr)
+	enumDeclaration, enumPtr, hasEnum := loc.enumSite(site.property, site.propPtr)
 	if !hasEnum {
 		return stated("the document declares no enum for the property; there is nothing to correct"), nil
 	}
@@ -353,37 +353,37 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		return -1
 	}
 
-	var ops []correction.Operation
+	var operations []correction.Operation
 	var parts []string
 
-	rejected := append([]string(nil), vals.Rejected...)
+	rejected := append([]string(nil), values.Rejected...)
 	sort.Strings(rejected)
 	var removed []string
 	for _, r := range rejected {
-		idx := indexOf(r)
-		if idx < 0 {
+		index := indexOf(r)
+		if index < 0 {
 			continue
 		}
-		at := enumPtr + "/enum/" + strconv.Itoa(idx)
-		ops = append(ops,
-			correction.Operation{Op: "test", Path: at, Value: sim[idx].value},
+		at := enumPtr + "/enum/" + strconv.Itoa(index)
+		operations = append(operations,
+			correction.Operation{Op: "test", Path: at, Value: sim[index].value},
 			correction.Operation{Op: "remove", Path: at},
 		)
-		sim = append(sim[:idx], sim[idx+1:]...)
+		sim = append(sim[:index], sim[index+1:]...)
 		removed = append(removed, r)
 	}
 	if len(removed) > 0 {
 		parts = append(parts, fmt.Sprintf("rejects the documented value(s) %s", strings.Join(removed, ", ")))
 	}
 
-	accepted := append([]string(nil), vals.Accepted...)
+	accepted := append([]string(nil), values.Accepted...)
 	sort.Strings(accepted)
 	var added []string
 	for _, a := range accepted {
 		if indexOf(a) >= 0 {
 			continue
 		}
-		ops = append(ops, correction.Operation{Op: "add", Path: enumPtr + "/enum/-", Value: a})
+		operations = append(operations, correction.Operation{Op: "add", Path: enumPtr + "/enum/-", Value: a})
 		sim = append(sim, entry{text: a, value: a})
 		added = append(added, a)
 	}
@@ -391,18 +391,18 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		parts = append(parts, fmt.Sprintf("accepts the undocumented value(s) %s", strings.Join(added, ", ")))
 	}
 
-	if vals.Closed != nil && !*vals.Closed {
-		if ext := loc.extensionNode(site.prop, site.propPtr, specmodel.ExtValuesOpen); ext == nil || ext.Value != "true" {
-			ops = append(ops, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValuesOpen, Value: true})
+	if values.Closed != nil && !*values.Closed {
+		if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtValuesOpen); extension == nil || extension.Value != "true" {
+			operations = append(operations, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValuesOpen, Value: true})
 			parts = append(parts, fmt.Sprintf("accepts values beyond the documented set (%s)", specmodel.ExtValuesOpen))
 		}
 	}
 
-	if len(ops) == 0 {
+	if len(operations) == 0 {
 		return stated("the document already agrees with the observed value set"), nil
 	}
 	return compiled{
-		ops: ops,
+		operations: operations,
 		justification: fmt.Sprintf("the audit confirmed a values observation on %s.%s: the live API %s",
 			o.Entity, o.Attribute, strings.Join(parts, "; ")),
 	}, nil
@@ -434,7 +434,7 @@ func (c *compiler) undocumentedField(loc *locator, cls specmodel.Classification,
 		value["items"] = map[string]any{}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: sitePtr + "/properties/" + escapeToken(o.Attribute), Value: value,
 		}},
 		justification: fmt.Sprintf("the audit confirmed an undocumentedFieldInSpec observation on %s.%s: "+
@@ -446,10 +446,10 @@ func (c *compiler) undocumentedField(loc *locator, cls specmodel.Classification,
 // properties mapping: the read operation's response schema first, the
 // create operation's request schema as the fallback.
 func propertiesSite(loc *locator, read, create *specmodel.OperationReference) (string, bool) {
-	find := func(node *yaml.Node, ptr string) (string, bool) {
+	find := func(node *yaml.Node, pointer string) (string, bool) {
 		var sitePtr string
-		loc.walkSchemaWithPtr(node, ptr, map[string]bool{}, func(n *yaml.Node, p string) bool {
-			if props := mapValue(n, "properties"); props != nil && props.Kind == yaml.MappingNode {
+		loc.walkSchemaWithPtr(node, pointer, map[string]bool{}, func(n *yaml.Node, p string) bool {
+			if properties := mapValue(n, "properties"); properties != nil && properties.Kind == yaml.MappingNode {
 				sitePtr = p
 				return true
 			}
@@ -457,13 +457,13 @@ func propertiesSite(loc *locator, read, create *specmodel.OperationReference) (s
 		})
 		return sitePtr, sitePtr != ""
 	}
-	if node, ptr, ok := loc.responseSchema(read); ok {
-		if sitePtr, found := find(node, ptr); found {
+	if node, pointer, ok := loc.responseSchema(read); ok {
+		if sitePtr, found := find(node, pointer); found {
 			return sitePtr, true
 		}
 	}
-	if node, ptr, ok := loc.requestSchema(create); ok {
-		if sitePtr, found := find(node, ptr); found {
+	if node, pointer, ok := loc.requestSchema(create); ok {
+		if sitePtr, found := find(node, pointer); found {
 			return sitePtr, true
 		}
 	}
@@ -477,11 +477,11 @@ func (c *compiler) updateStyle(loc *locator, cls specmodel.Classification, o obs
 	}
 	style, _ := o.Value.(string)
 	opNode := loc.nodeAt(opPointer(cls.Update))
-	if ext := mapValue(opNode, specmodel.ExtUpdateStyle); ext != nil && ext.Value == style {
+	if extension := mapValue(opNode, specmodel.ExtUpdateStyle); extension != nil && extension.Value == style {
 		return stated("the document already declares this update style")
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPointer(cls.Update) + "/" + specmodel.ExtUpdateStyle, Value: style,
 		}},
 		justification: fmt.Sprintf("the audit confirmed an updateStyle observation on %s: "+
@@ -498,11 +498,11 @@ func (c *compiler) deleteNotFoundOK(loc *locator, cls specmodel.Classification, 
 		return unplaceable(fmt.Sprintf("entity %s has no delete operation to annotate", o.Entity))
 	}
 	opNode := loc.nodeAt(opPointer(cls.Delete))
-	if ext := mapValue(opNode, specmodel.ExtDeleteNotFoundOK); ext != nil && ext.Value == "true" {
+	if extension := mapValue(opNode, specmodel.ExtDeleteNotFoundOK); extension != nil && extension.Value == "true" {
 		return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtDeleteNotFoundOK))
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPointer(cls.Delete) + "/" + specmodel.ExtDeleteNotFoundOK, Value: true,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a deleteNotFoundOK observation on %s: "+
@@ -532,18 +532,18 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 		return stated(fmt.Sprintf(
 			"the measured read-after-write lag is %s: reads never lagged a write, so there is nothing to declare", lag))
 	}
-	for _, op := range []*specmodel.OperationReference{cls.Create, cls.Read, cls.Update, cls.Delete} {
-		if op == nil {
+	for _, operation := range []*specmodel.OperationReference{cls.Create, cls.Read, cls.Update, cls.Delete} {
+		if operation == nil {
 			continue
 		}
-		if ext := mapValue(loc.nodeAt(opPointer(op)), specmodel.ExtEventualConsistency); ext != nil {
-			if existing, err := time.ParseDuration(ext.Value); err == nil && existing >= observed {
+		if extension := mapValue(loc.nodeAt(opPointer(operation)), specmodel.ExtEventualConsistency); extension != nil {
+			if existing, err := time.ParseDuration(extension.Value); err == nil && existing >= observed {
 				return stated("the document already declares a read-after-write lag at least this long")
 			}
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPointer(cls.Read) + "/" + specmodel.ExtEventualConsistency, Value: lag,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a readAfterWrite observation on %s: "+
@@ -605,11 +605,11 @@ func (c *compiler) listResponseShape(loc *locator, cls specmodel.Classification,
 	}
 
 	opPtr := opPointer(cls.List)
-	if ext := mapValue(loc.nodeAt(opPtr), specmodel.ExtListResponseShape); ext != nil && shapeStated(ext, value) {
+	if extension := mapValue(loc.nodeAt(opPtr), specmodel.ExtListResponseShape); extension != nil && shapeStated(extension, value) {
 		return stated("the document already declares this list response shape"), nil
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPtr + "/" + specmodel.ExtListResponseShape, Value: value,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a listResponseShape observation on %s: %s (%s)",
@@ -633,22 +633,22 @@ func (c *compiler) identifierProperty(loc *locator, cls specmodel.Classification
 	}
 	// The property must exist on what the read answers, or the correction
 	// would name a field nothing can read.
-	node, ptr, ok := loc.responseSchema(cls.Read)
+	node, pointer, ok := loc.responseSchema(cls.Read)
 	if !ok {
 		return unplaceable(fmt.Sprintf("entity %s has no read response schema to check %q against",
 			o.Entity, property)), nil
 	}
-	if _, found := loc.findProperty(node, ptr, property); !found {
+	if _, found := loc.findProperty(node, pointer, property); !found {
 		return unplaceable(fmt.Sprintf("the read response of %s declares no %q to identify it by",
 			o.Entity, property)), nil
 	}
 
 	opPtr := opPointer(cls.Read)
-	if ext := mapValue(loc.nodeAt(opPtr), specmodel.ExtIdentifierProperty); ext != nil && ext.Value == property {
+	if extension := mapValue(loc.nodeAt(opPtr), specmodel.ExtIdentifierProperty); extension != nil && extension.Value == property {
 		return stated("the document already names this identifying property"), nil
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPtr + "/" + specmodel.ExtIdentifierProperty, Value: property,
 		}},
 		justification: fmt.Sprintf("the audit confirmed an identifierProperty observation on %s: "+
@@ -660,13 +660,13 @@ func (c *compiler) identifierProperty(loc *locator, cls specmodel.Classification
 // shapeStated reports whether an existing x-tfpfgen-list-response-shape node
 // already says exactly what the compiled value would say — key for key, so a
 // re-audit of an unchanged API proposes nothing.
-func shapeStated(ext *yaml.Node, value map[string]string) bool {
-	if ext.Kind != yaml.MappingNode {
+func shapeStated(extension *yaml.Node, value map[string]string) bool {
+	if extension.Kind != yaml.MappingNode {
 		return false
 	}
 	declared := map[string]string{}
-	for i := 0; i+1 < len(ext.Content); i += 2 {
-		declared[ext.Content[i].Value] = ext.Content[i+1].Value
+	for i := 0; i+1 < len(extension.Content); i += 2 {
+		declared[extension.Content[i].Value] = extension.Content[i+1].Value
 	}
 	// An absent pagination reads as "none", the same default the document
 	// model applies, so the two spellings converge rather than oscillate.

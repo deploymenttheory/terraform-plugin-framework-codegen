@@ -243,12 +243,12 @@ func strategyConfig() *config.Config {
 // program with each entity's compiled strategy.
 func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Options {
 	t.Helper()
-	doc, err := specmodel.Load([]byte(shapesSpec))
+	document, err := specmodel.Load([]byte(shapesSpec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := strategyConfig()
-	p, err := plan.Derive(doc, cfg, nil)
+	configuration := strategyConfig()
+	p, err := plan.Derive(document, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -258,8 +258,8 @@ func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Op
 	}
 	return Options{
 		Plan:         p,
-		Doc:          doc,
-		Config:       cfg,
+		Doc:          document,
+		Config:       configuration,
 		BaseURL:      s.BaseURL(),
 		Auth:         Auth{Method: config.AuthBearerToken},
 		NamePrefix:   "tfpfgen",
@@ -276,20 +276,20 @@ func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Op
 // holds, for asserting cleanup.
 func collectionCount(t *testing.T, base, path, key string) int {
 	t.Helper()
-	resp, err := http.Get(base + path) //nolint:gosec,noctx // test-local server
+	response, err := http.Get(base + path) //nolint:gosec,noctx // test-local server
 	if err != nil {
 		t.Fatalf("GET %s: %v", path, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = response.Body.Close() }()
 	var env map[string][]any
-	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
+	if err := json.NewDecoder(response.Body).Decode(&env); err != nil {
 		t.Fatalf("decode %s: %v", path, err)
 	}
 	return len(env[key])
 }
 
-func hasAdjustment(sum Summary, entity string, action infer.AdjustAction, field string) bool {
-	for _, a := range sum.Adjustments {
+func hasAdjustment(summary Summary, entity string, action infer.AdjustAction, field string) bool {
+	for _, a := range summary.Adjustments {
 		if a.Entity == entity && a.Action == action && a.Field == field {
 			return true
 		}
@@ -306,9 +306,9 @@ func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
-	obs, sum := mustRun(t, strategyOptions(t, s, nil))
+	obs, summary := mustRun(t, strategyOptions(t, s, nil))
 
-	got := entityStatus(t, sum, "monitor")
+	got := entityStatus(t, summary, "monitor")
 	if got.Status == StatusBlocked {
 		t.Fatalf("monitor blocked despite the self-heal: %+v", got)
 	}
@@ -316,8 +316,8 @@ func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 	if o == nil || o.Outcome != observe.OutcomeConfirmed || o.Value != true {
 		t.Fatalf("requiredByAPI(interval) = %+v, want a confirmed true", o)
 	}
-	if !hasAdjustment(sum, "monitor", infer.AdjustAdd, "interval") {
-		t.Errorf("no add adjustment recorded for interval: %+v", sum.Adjustments)
+	if !hasAdjustment(summary, "monitor", infer.AdjustAdd, "interval") {
+		t.Errorf("no add adjustment recorded for interval: %+v", summary.Adjustments)
 	}
 	if collectionCount(t, s.BaseURL(), "/monitors", "monitors") != 0 {
 		t.Errorf("monitors remain after the run: cleanup did not level the tenant")
@@ -331,16 +331,16 @@ func TestUnit_Adaptive_AssignmentBorrowsARealAgentID(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
-	_, sum := mustRun(t, strategyOptions(t, s, nil))
+	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
-	got := entityStatus(t, sum, "assignment")
+	got := entityStatus(t, summary, "assignment")
 	if got.Status == StatusBlocked {
 		t.Fatalf("assignment blocked; the borrow did not satisfy agent_id: %+v", got)
 	}
-	if !hasAdjustment(sum, "assignment", infer.AdjustBorrow, "agent_id") {
-		t.Fatalf("no borrow adjustment recorded for agent_id: %+v", sum.Adjustments)
+	if !hasAdjustment(summary, "assignment", infer.AdjustBorrow, "agent_id") {
+		t.Fatalf("no borrow adjustment recorded for agent_id: %+v", summary.Adjustments)
 	}
-	if sum.ObjectsCreated == 0 {
+	if summary.ObjectsCreated == 0 {
 		t.Error("nothing was created; the borrowed reference did not yield an object")
 	}
 	if collectionCount(t, s.BaseURL(), "/assignments", "assignments") != 0 {
@@ -355,16 +355,16 @@ func TestUnit_Adaptive_MaximalRemovesWrongVariantFields(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
-	_, sum := mustRun(t, strategyOptions(t, s, nil))
+	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	removed := false
-	for _, a := range sum.Adjustments {
+	for _, a := range summary.Adjustments {
 		if a.Entity == "monitor" && a.Action == infer.AdjustRemove {
 			removed = true
 		}
 	}
 	if !removed {
-		t.Fatalf("no remove adjustment recorded; the wrong-variant fields were never rejected: %+v", sum.Adjustments)
+		t.Fatalf("no remove adjustment recorded; the wrong-variant fields were never rejected: %+v", summary.Adjustments)
 	}
 }
 
@@ -392,13 +392,13 @@ func TestUnit_Adaptive_RequiresFieldIsAdded(t *testing.T) {
 	}
 	opts := testOptions(t, s, p, testEnv(), nil)
 
-	_, sum := mustRun(t, opts)
+	_, summary := mustRun(t, opts)
 
-	if got := entityStatus(t, sum, "monitor"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "monitor"); got.Status != StatusAudited {
 		t.Fatalf("monitor = %+v, want audited via the added domain", got)
 	}
-	if !hasAdjustment(sum, "monitor", infer.AdjustRequires, "domain") {
-		t.Fatalf("no requires adjustment recorded for domain: %+v", sum.Adjustments)
+	if !hasAdjustment(summary, "monitor", infer.AdjustRequires, "domain") {
+		t.Fatalf("no requires adjustment recorded for domain: %+v", summary.Adjustments)
 	}
 	if collectionCount(t, s.BaseURL(), "/monitors", "monitors") != 0 {
 		t.Errorf("the dns monitor was not cleaned up")
@@ -439,20 +439,20 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 	}
 
 	before := s.Requests()
-	obs, sum, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
+	obs, summary, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
 	if err != nil {
 		t.Fatalf("an unhealable refusal blocks the entity, not the run: %v", err)
 	}
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusBlocked {
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusBlocked {
 		t.Fatalf("thing = %+v, want blocked on the unintelligible refusal", got)
 	}
-	if got := entityStatus(t, sum, "gadget"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "gadget"); got.Status != StatusAudited {
 		t.Fatalf("gadget = %+v, want audited after the blocked entity", got)
 	}
 	// The block carries the API's own words and names what the search asked
 	// for: a status alone cannot be acted on, and an entity that produced no
 	// request body leaves no other trace of either.
-	blocked := entityStatus(t, sum, "thing")
+	blocked := entityStatus(t, summary, "thing")
 	if blocked.Refusal == nil || blocked.Refusal.Status != 400 {
 		t.Errorf("thing = %+v, want the refusal behind the block", blocked)
 	}
@@ -474,7 +474,7 @@ func TestUnit_Adaptive_RedactionHoldsEndToEnd(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
 	var logs bytes.Buffer
-	obs, sum := mustRun(t, strategyOptions(t, s, &logs))
+	obs, summary := mustRun(t, strategyOptions(t, s, &logs))
 
 	outDir := t.TempDir()
 	if err := observe.Write(outDir, obs); err != nil {
@@ -496,7 +496,7 @@ func TestUnit_Adaptive_RedactionHoldsEndToEnd(t *testing.T) {
 	if strings.Contains(logs.String(), testToken) {
 		t.Fatal("the debug log contains the bearer token")
 	}
-	if raw, _ := json.Marshal(sum); bytes.Contains(raw, []byte(testToken)) {
+	if raw, _ := json.Marshal(summary); bytes.Contains(raw, []byte(testToken)) {
 		t.Fatal("the summary contains the bearer token")
 	}
 	// The run's activity ledger must not carry it either.
@@ -536,10 +536,10 @@ func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 		Budget: plan.RunBudget{Requests: 300, Objects: 10, Duration: "1m"},
 	}
 
-	_, sum := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+	_, summary := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
 	var recorded *observe.AcceptedRequestBody
-	for _, b := range sum.RequestBodies {
+	for _, b := range summary.RequestBodies {
 		if b.Entity == "thing" {
 			recorded = b.Maximal
 		}
@@ -567,16 +567,16 @@ func TestUnit_Adaptive_AnOperatorValueReachesTheWire(t *testing.T) {
 		"monitor": {Values: map[string]any{"interval": 42}},
 	}}
 
-	_, sum := mustRun(t, opts)
+	_, summary := mustRun(t, opts)
 
 	var sent map[string]any
-	for _, b := range sum.RequestBodies {
+	for _, b := range summary.RequestBodies {
 		if b.Entity == "monitor" && b.Minimal != nil {
 			sent = b.Minimal.Request
 		}
 	}
 	if sent == nil {
-		t.Fatalf("no accepted create was recorded for monitor: %+v", sum.Entities)
+		t.Fatalf("no accepted create was recorded for monitor: %+v", summary.Entities)
 	}
 	if got := sent["interval"]; got != 42 {
 		t.Errorf("interval = %#v, want the operator's value on the wire", got)

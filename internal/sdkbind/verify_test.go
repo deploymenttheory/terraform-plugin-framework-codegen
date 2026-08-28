@@ -158,20 +158,20 @@ func TestVerifyFailuresNameTheCulprit(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			b, _ := prunedKiota(t)
-			tc.corrupt(b)
+			testCase.corrupt(b)
 			r, err := Verify(b, testdataDir(t, "kiotasdk"))
 			if err != nil {
 				t.Fatalf("Verify: %v", err)
 			}
-			p, ok := problemAt(r, tc.wantKind, tc.wantKey, tc.wantPath)
+			p, ok := problemAt(r, testCase.wantKind, testCase.wantKey, testCase.wantPath)
 			if !ok {
-				t.Fatalf("no problem at %s %s %s; got %v", tc.wantKind, tc.wantKey, tc.wantPath, r.Problems)
+				t.Fatalf("no problem at %s %s %s; got %v", testCase.wantKind, testCase.wantKey, testCase.wantPath, r.Problems)
 			}
-			if !strings.Contains(p.Detail, tc.wantDetail) {
-				t.Errorf("detail = %q, want it to contain %q", p.Detail, tc.wantDetail)
+			if !strings.Contains(p.Detail, testCase.wantDetail) {
+				t.Errorf("detail = %q, want it to contain %q", p.Detail, testCase.wantDetail)
 			}
 			if r.Err() == nil {
 				t.Error("Report.Err() is nil despite problems")

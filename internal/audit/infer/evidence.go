@@ -166,16 +166,16 @@ func gateOf(compiled *strategy.Strategy) gate {
 func acceptedUnder(requestBodies []map[string]any, gateField string) map[string]map[string]bool {
 	out := map[string]map[string]bool{}
 	for _, body := range requestBodies {
-		val := ""
+		value := ""
 		if gateField != "" {
 			if raw, ok := body[gateField]; ok {
-				val = fmt.Sprint(raw)
+				value = fmt.Sprint(raw)
 			}
 		}
-		set := out[val]
+		set := out[value]
 		if set == nil {
 			set = map[string]bool{}
-			out[val] = set
+			out[value] = set
 		}
 		for k := range body {
 			if k == gateField {

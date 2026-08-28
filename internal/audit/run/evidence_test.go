@@ -28,11 +28,11 @@ func TestUnit_Evidence_NormalisedForm(t *testing.T) {
 		{"non-string", 1, 2, "", false},
 		{"string became number", "1", float64(1), "", false},
 	}
-	for _, tc := range cases {
-		got, ok := normalisedForm(tc.sent, tc.got)
-		if ok != tc.recognised || got != tc.want {
+	for _, testCase := range cases {
+		got, ok := normalisedForm(testCase.sent, testCase.got)
+		if ok != testCase.recognised || got != testCase.want {
 			t.Errorf("%s: normalisedForm(%v, %v) = %q, %v; want %q, %v",
-				tc.name, tc.sent, tc.got, got, ok, tc.want, tc.recognised)
+				testCase.name, testCase.sent, testCase.got, got, ok, testCase.want, testCase.recognised)
 		}
 	}
 }
@@ -72,11 +72,11 @@ func evidenceRunner(t *testing.T) *runner {
 func TestUnit_Evidence_ServerForcedAndPresentNull(t *testing.T) {
 	t.Parallel()
 	r := evidenceRunner(t)
-	ent := &entityState{plan: &r.opts.Plan.Entities[0], ev: newEvidence()}
-	ent.ev.sent = map[string]any{"forced": "sent-value", "nulled": "sent-too"}
-	ent.ev.got = map[string]any{"forced": "server-picked", "nulled": nil}
+	entity := &entityState{plan: &r.opts.Plan.Entities[0], ev: newEvidence()}
+	entity.ev.sent = map[string]any{"forced": "sent-value", "nulled": "sent-too"}
+	entity.ev.got = map[string]any{"forced": "server-picked", "nulled": nil}
 
-	r.finalizeEvidence(ent)
+	r.finalizeEvidence(entity)
 	obs := r.finishObservations()
 
 	if o := wantConfirmed(t, obs, "thing", "forced", observe.KindServerForced); o.Value != true {
@@ -91,12 +91,12 @@ func TestUnit_Evidence_ServerForcedAndPresentNull(t *testing.T) {
 func TestUnit_Evidence_DerivedDefaultVetoesTheConstant(t *testing.T) {
 	t.Parallel()
 	r := evidenceRunner(t)
-	ent := &entityState{plan: &r.opts.Plan.Entities[0], ev: newEvidence()}
-	ent.ev.sent = map[string]any{"name": "x"}
-	ent.ev.got = map[string]any{"name": "x", "counter": "counter-1", "structured": map[string]any{"a": 1}}
-	ent.ev.omitted["counter"] = []any{"counter-1", "counter-2"}
+	entity := &entityState{plan: &r.opts.Plan.Entities[0], ev: newEvidence()}
+	entity.ev.sent = map[string]any{"name": "x"}
+	entity.ev.got = map[string]any{"name": "x", "counter": "counter-1", "structured": map[string]any{"a": 1}}
+	entity.ev.omitted["counter"] = []any{"counter-1", "counter-2"}
 
-	r.finalizeEvidence(ent)
+	r.finalizeEvidence(entity)
 	obs := r.finishObservations()
 
 	if o := wantConfirmed(t, obs, "thing", "counter", observe.KindDerivedDefault); o.Value != true {
@@ -136,9 +136,9 @@ func TestUnit_Evidence_StepClaims(t *testing.T) {
 	t.Parallel()
 	cond := &observe.Condition{Attribute: "mode", Equals: "advanced"}
 	cases := []struct {
-		step plan.Step
-		kind observe.Kind
-		attr string
+		step      plan.Step
+		kind      observe.Kind
+		attribute string
 	}{
 		{plan.Step{Kind: plan.StepReadWithRetry}, observe.KindReadAfterWrite, ""},
 		{plan.Step{Kind: plan.StepUpdateField, Attribute: "a"}, observe.KindImmutable, "a"},
@@ -148,10 +148,10 @@ func TestUnit_Evidence_StepClaims(t *testing.T) {
 		{plan.Step{Kind: plan.StepCreatePerEnumValue, Attribute: "q", Condition: cond}, observe.KindRequiredWhen, "q"},
 		{plan.Step{Kind: plan.StepCreatePerEnumValue, Attribute: "mode", Condition: cond}, observe.KindValues, "mode"},
 	}
-	for _, tc := range cases {
-		claims := stepClaims(&tc.step)
-		if len(claims) != 1 || claims[0].kind != tc.kind || claims[0].attr != tc.attr {
-			t.Errorf("stepClaims(%s %s) = %+v, want one %s claim on %q", tc.step.Kind, tc.step.Attribute, claims, tc.kind, tc.attr)
+	for _, testCase := range cases {
+		claims := stepClaims(&testCase.step)
+		if len(claims) != 1 || claims[0].kind != testCase.kind || claims[0].attribute != testCase.attribute {
+			t.Errorf("stepClaims(%s %s) = %+v, want one %s claim on %q", testCase.step.Kind, testCase.step.Attribute, claims, testCase.kind, testCase.attribute)
 		}
 	}
 	for _, silent := range []plan.StepKind{plan.StepCreateMinimal, plan.StepCreateMaximal, plan.StepRead, plan.StepReadConsecutive, plan.StepCleanupDelete, plan.StepUndeclaredSpecField} {

@@ -11,12 +11,12 @@ import (
 
 func TestUnit_SpecStore_RetrieveReadsALocalFile(t *testing.T) {
 	path := writeSample(t, sampleYAML)
-	doc, err := Retrieve(path)
+	document, err := Retrieve(path)
 	if err != nil {
 		t.Fatalf("Retrieve: %v", err)
 	}
-	if string(doc) != sampleYAML {
-		t.Fatalf("doc = %q", doc)
+	if string(document) != sampleYAML {
+		t.Fatalf("doc = %q", document)
 	}
 }
 
@@ -44,12 +44,12 @@ func TestUnit_SpecStore_RetrieveDownloadsOverHTTP(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	doc, err := Retrieve(srv.URL + "/openapi.yaml")
+	document, err := Retrieve(srv.URL + "/openapi.yaml")
 	if err != nil {
 		t.Fatalf("Retrieve: %v", err)
 	}
-	if string(doc) != sampleYAML {
-		t.Fatalf("doc = %q", doc)
+	if string(document) != sampleYAML {
+		t.Fatalf("doc = %q", document)
 	}
 }
 

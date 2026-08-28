@@ -103,14 +103,14 @@ func canonicalValue(v any) any {
 // encodeFile renders one entity document: two-space indented, trailing
 // newline, HTML escaping off so excerpts read as written.
 func encodeFile(f entityFile) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(f); err != nil {
 		return nil, fmt.Errorf("encoding observations for %s: %w", f.Entity, err)
 	}
-	return buf.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 // Read loads every entity's observations from dir. A missing directory is

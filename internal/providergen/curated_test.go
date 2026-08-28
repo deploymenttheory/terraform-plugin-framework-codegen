@@ -44,12 +44,12 @@ func curatedRepo(t *testing.T, dialect string) (string, Options) {
 	fixture := curatedDir(t)
 	root := t.TempDir()
 
-	doc, err := os.ReadFile(filepath.Join(fixture, "openapi.yaml"))
+	document, err := os.ReadFile(filepath.Join(fixture, "openapi.yaml"))
 	if err != nil {
 		t.Fatalf("reading the curated document: %v", err)
 	}
 	specDir := filepath.Join(root, "spec")
-	if _, err := store.Import(specDir, doc, "testdata/curated/openapi.yaml"); err != nil {
+	if _, err := store.Import(specDir, document, "testdata/curated/openapi.yaml"); err != nil {
 		t.Fatalf("spec import: %v", err)
 	}
 	if _, err := revise.Materialize(specDir); err != nil {
@@ -60,13 +60,13 @@ func curatedRepo(t *testing.T, dialect string) (string, Options) {
 		t.Fatalf("standing the stub SDK: %v", err)
 	}
 
-	cfg, err := config.Load(filepath.Join(fixture, dialect, "tfpfgen.yaml"))
+	configuration, err := config.Load(filepath.Join(fixture, dialect, "tfpfgen.yaml"))
 	if err != nil {
 		t.Fatalf("loading the fixture config: %v", err)
 	}
 
 	return root, Options{
-		Config:  cfg,
+		Config:  configuration,
 		SpecDir: specDir,
 		SDKDir:  "internal/sdk",
 		Root:    root,
@@ -202,11 +202,11 @@ func TestUnit_Run_CuratedFixtureIsDeterministic(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for path, sum := range a {
+			for path, summary := range a {
 				switch other, there := b[path]; {
 				case !there:
 					t.Errorf("only the first run produced %s", path)
-				case other != sum:
+				case other != summary:
 					t.Errorf("%s differs between runs", path)
 				}
 			}
@@ -269,8 +269,8 @@ func digestTree(root string) (map[string]string, error) {
 		if rerr != nil {
 			return rerr
 		}
-		sum := sha256.Sum256(data)
-		out[filepath.ToSlash(rel)] = hex.EncodeToString(sum[:])
+		summary := sha256.Sum256(data)
+		out[filepath.ToSlash(rel)] = hex.EncodeToString(summary[:])
 		return nil
 	})
 	return out, err

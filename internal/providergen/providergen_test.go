@@ -183,6 +183,6 @@ func TestUnit_Run_UnloadableSDKFails(t *testing.T) {
 
 // digestOf hashes bytes the way the manifest records them.
 func digestOf(data []byte) string {
-	sum := sha256.Sum256(data)
-	return hex.EncodeToString(sum[:])
+	summary := sha256.Sum256(data)
+	return hex.EncodeToString(summary[:])
 }

@@ -49,16 +49,16 @@ type SDKInfo struct {
 
 // InfoFor computes the SDKInfo for the configured backend and the import
 // path the provider module gives the generated SDK.
-func InfoFor(cfg *config.Config, importPath string) (SDKInfo, error) {
-	info := SDKInfo{ImportPath: importPath, ClientTypeName: cfg.SDK.ClientTypeName}
-	switch cfg.SDK.Backend {
+func InfoFor(configuration *config.Config, importPath string) (SDKInfo, error) {
+	info := SDKInfo{ImportPath: importPath, ClientTypeName: configuration.SDK.ClientTypeName}
+	switch configuration.SDK.Backend {
 	case config.BackendKiota:
 		info.ModelsImportPath = importPath + "/models"
 	case config.BackendOpenAPIGenerator:
 		info.ModelsImportPath = importPath
 	default:
 		return SDKInfo{}, fmt.Errorf("sdk.backend %q is not a supported backend (%s | %s)",
-			cfg.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
+			configuration.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
 	}
 	return info, nil
 }
@@ -74,15 +74,15 @@ type Binder interface {
 }
 
 // For returns the binder cfg selects, or an error naming the supported set.
-func For(cfg *config.Config) (Binder, error) {
-	switch cfg.SDK.Backend {
+func For(configuration *config.Config) (Binder, error) {
+	switch configuration.SDK.Backend {
 	case config.BackendKiota:
 		return kiotaBinder{}, nil
 	case config.BackendOpenAPIGenerator:
 		return openAPIGeneratorBinder{}, nil
 	default:
 		return nil, fmt.Errorf("sdk.backend %q is not a supported backend (%s | %s)",
-			cfg.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
+			configuration.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
 	}
 }
 

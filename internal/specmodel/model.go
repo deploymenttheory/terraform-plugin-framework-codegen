@@ -220,12 +220,12 @@ type Property struct {
 // revisit a node, and the visit guard stops there rather than looping.
 func (s *Schema) Resolved() *Schema {
 	seen := map[*Schema]bool{}
-	cur := s
-	for cur.resolved != nil && !seen[cur] {
-		seen[cur] = true
-		cur = cur.resolved
+	current := s
+	for current.resolved != nil && !seen[current] {
+		seen[current] = true
+		current = current.resolved
 	}
-	return cur
+	return current
 }
 
 // Property looks a property up by name on the resolved schema.

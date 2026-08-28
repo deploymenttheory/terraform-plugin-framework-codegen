@@ -35,7 +35,7 @@ func deriveVariants(createBody *specmodel.Schema, gates []Gate) []Variant {
 	}
 
 	branches := gatherBranches(createBody)
-	disc := createBody.Resolved().Discriminator
+	discriminator := createBody.Resolved().Discriminator
 
 	values := gate.Values
 	if len(values) > maxVariantValues {
@@ -45,7 +45,7 @@ func deriveVariants(createBody *specmodel.Schema, gates []Gate) []Variant {
 		// Branch matching and the variant's identity are textual; only the
 		// value the executor sends needs its declared type back.
 		label := stringifyScalar(value)
-		branch := matchBranch(gate.Field, label, branches, disc)
+		branch := matchBranch(gate.Field, label, branches, discriminator)
 		variants = append(variants, buildVariant(gate.Field, label, base, branch))
 	}
 	return variants
@@ -103,9 +103,9 @@ func gatherBranches(s *specmodel.Schema) []*specmodel.Schema {
 // discriminator mapping first (the branch whose reference name the mapping
 // names), then by the branch that constrains the gate field to the value
 // through its own enum. Nil when no branch matches.
-func matchBranch(gateField, value string, branches []*specmodel.Schema, disc *specmodel.Discriminator) *specmodel.Schema {
-	if disc != nil && disc.PropertyName == gateField {
-		if target, ok := disc.Mapping[value]; ok {
+func matchBranch(gateField, value string, branches []*specmodel.Schema, discriminator *specmodel.Discriminator) *specmodel.Schema {
+	if discriminator != nil && discriminator.PropertyName == gateField {
+		if target, ok := discriminator.Mapping[value]; ok {
 			for _, b := range branches {
 				if b.Ref == target || b.Resolved().Name == target {
 					return b
@@ -205,11 +205,11 @@ func dependentHypotheses(createBody *specmodel.Schema) []Hypothesis {
 		out = append(out, requiresFieldHypothesis(subjects, dr.Property))
 	}
 	for _, ds := range r.DependentSchemas {
-		req := ds.Schema.Resolved().Required
-		if len(req) == 0 {
+		request := ds.Schema.Resolved().Required
+		if len(request) == 0 {
 			continue
 		}
-		subjects := appendUnique(append([]string(nil), req...), ds.Property)
+		subjects := appendUnique(append([]string(nil), request...), ds.Property)
 		sort.Strings(subjects)
 		out = append(out, requiresFieldHypothesis(subjects, ds.Property))
 	}

@@ -136,8 +136,8 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		Package:        r.Names.Package,
 		PackagePath:    e.packagePath(kindResources, r.Names),
 		Key:            r.Names.Key,
-		Pascal:         r.Names.Pascal,
-		Type:           r.Names.Pascal + "Resource",
+		Pascal:         r.Names.PascalCase,
+		Type:           r.Names.PascalCase + "Resource",
 		TerraformType:  r.Names.TerraformType,
 		ClientType:     "*sdk." + e.bindings.SDK.ClientTypeName,
 		TimeoutCreate:  goDuration(int64(r.Timeouts.Create)),
@@ -241,7 +241,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 
 	byName := map[string]node{}
 	for _, n := range nodes {
-		byName[n.attr.Name] = n
+		byName[n.attribute.Name] = n
 	}
 	deps, err := dependencyMap(r.Schema, byName)
 	if err != nil {
@@ -396,7 +396,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	// address what was just made.
 	if !d.CreateMapsResponse && rb.CreateIDAccess != "" {
 		for _, n := range nodes {
-			if n.attr.Name != idAttributeName || n.fb == nil {
+			if n.attribute.Name != idAttributeName || n.fb == nil {
 				continue
 			}
 			fn, cerr := readConvert(n.fb)
@@ -507,12 +507,12 @@ func importAttr(r *ir.Resource, nodes []node) string {
 	}
 	p := r.Operations.Read.PathParameters[0]
 	for _, n := range nodes {
-		if n.attr.WireName == p.Name || n.attr.Name == ir.TerraformName(p.Name) {
-			return n.attr.Name
+		if n.attribute.WireName == p.Name || n.attribute.Name == ir.TerraformName(p.Name) {
+			return n.attribute.Name
 		}
 	}
 	for _, n := range nodes {
-		if n.attr.Name == "id" {
+		if n.attribute.Name == "id" {
 			return "id"
 		}
 	}
@@ -560,9 +560,9 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 
 // successStatus is an operation's declared success code, or the
 // conventional one.
-func successStatus(op *ir.Operation, fallback int) int {
-	if op != nil && op.SuccessCode > 0 {
-		return op.SuccessCode
+func successStatus(operation *ir.Operation, fallback int) int {
+	if operation != nil && operation.SuccessCode > 0 {
+		return operation.SuccessCode
 	}
 	return fallback
 }

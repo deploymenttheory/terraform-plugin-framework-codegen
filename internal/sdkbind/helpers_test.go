@@ -53,8 +53,8 @@ func TestGoTypeOf(t *testing.T) {
 }
 
 func TestDatasourceElementTree(t *testing.T) {
-	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{attr("name", "name", ir.TypeString, ir.Computed)}}
-	items := attr("items", "items", ir.TypeList, ir.Computed)
+	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{attribute("name", "name", ir.TypeString, ir.Computed)}}
+	items := attribute("items", "items", ir.TypeList, ir.Computed)
 	items.Nested = itemTree
 
 	lookup := ir.Datasource{LookupByKey: true, Schema: itemTree}
@@ -93,8 +93,8 @@ func TestRemovalString(t *testing.T) {
 	if got := whole.String(); got != "resource tags: gone" {
 		t.Errorf("String() = %q", got)
 	}
-	attr := Removal{Kind: "resource", Key: "tags", Attribute: "detail.note", Reason: "gone"}
-	if got := attr.String(); got != "resource tags.detail.note: gone" {
+	attribute := Removal{Kind: "resource", Key: "tags", Attribute: "detail.note", Reason: "gone"}
+	if got := attribute.String(); got != "resource tags.detail.note: gone" {
 		t.Errorf("String() = %q", got)
 	}
 }
@@ -139,7 +139,7 @@ func TestLoaderLookups(t *testing.T) {
 		t.Fatalf("loadSDK: %v", err)
 	}
 
-	if _, err := l.pkg("example.com/nope"); err == nil {
+	if _, err := l.goPackage("example.com/nope"); err == nil {
 		t.Error("pkg() found a package that is not there")
 	}
 	if _, err := l.lookupType("example.com/kiotasdk", "Nope"); err == nil {

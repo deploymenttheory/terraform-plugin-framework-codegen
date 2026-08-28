@@ -20,11 +20,11 @@ func TestUnit_Steps_RefusedMinimalCreateBlocksTheEntity(t *testing.T) {
 		RequiredButUndeclared: []string{"serial"},
 	})
 
-	obs, sum, err := Run(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	obs, summary, err := Run(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	got := entityStatus(t, sum, "thing")
+	got := entityStatus(t, summary, "thing")
 	if got.Status != StatusBlocked || !strings.Contains(got.Reason, "refused with status 400") {
 		t.Fatalf("thing = %+v, want blocked on the refused create", got)
 	}
@@ -47,11 +47,11 @@ func TestUnit_Steps_UnreadableObjectBlocksDownstream(t *testing.T) {
 	p := thingPlan(resourceSteps(), 60)
 	p.Entities[0].Steps[1].Poll = &plan.Poll{Interval: "10ms", Timeout: "50ms"}
 
-	obs, sum, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
+	obs, summary, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	got := entityStatus(t, sum, "thing")
+	got := entityStatus(t, summary, "thing")
 	if got.Status != StatusBlocked || !strings.Contains(got.Reason, "never became readable") {
 		t.Fatalf("thing = %+v", got)
 	}
@@ -77,15 +77,15 @@ func TestUnit_Steps_CleanupDeleteEndsTheEntityAtZero(t *testing.T) {
 			Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
 		{Kind: plan.StepCleanupDelete, Method: "DELETE", Path: "/things/{thingId}", PathValues: item},
 	}
-	_, sum := mustRun(t, testOptions(t, s, thingPlan(steps, 60), testEnv(), nil))
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	_, summary := mustRun(t, testOptions(t, s, thingPlan(steps, 60), testEnv(), nil))
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Fatalf("thing = %+v", got)
 	}
 	if len(s.Objects()) != 0 {
 		t.Fatalf("cleanupDelete left objects: %v", s.Objects())
 	}
-	if sum.CleanupEnd.LedgerDeletes+sum.CleanupEnd.PrefixDeletes != 0 {
-		t.Errorf("the boundary cleanup had to mop up after cleanupDelete: %+v", sum.CleanupEnd)
+	if summary.CleanupEnd.LedgerDeletes+summary.CleanupEnd.PrefixDeletes != 0 {
+		t.Errorf("the boundary cleanup had to mop up after cleanupDelete: %+v", summary.CleanupEnd)
 	}
 }
 
@@ -96,11 +96,11 @@ func TestUnit_Steps_FailingDeletesLeaveOrphansReported(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{DeleteFails: true})
 
-	obs, sum, err := Run(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	obs, summary, err := Run(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if len(sum.CleanupEnd.Orphans) == 0 {
+	if len(summary.CleanupEnd.Orphans) == 0 {
 		t.Fatal("failing deletes must surface as orphans")
 	}
 	if len(s.Objects()) == 0 {
@@ -127,11 +127,11 @@ func TestUnit_Steps_LookupReadOfAMissingKeyBlocks(t *testing.T) {
 	}}
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.RunsDir = ""
-	_, sum, err := Run(context.Background(), opts)
+	_, summary, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	got := entityStatus(t, sum, "thing")
+	got := entityStatus(t, summary, "thing")
 	if got.Status != StatusBlocked || !strings.Contains(got.Reason, "404") {
 		t.Fatalf("thing = %+v, want blocked with the status", got)
 	}
@@ -146,11 +146,11 @@ func TestUnit_Steps_UnknownStepKindBlocks(t *testing.T) {
 	p := thingPlan([]plan.Step{{Kind: plan.StepKind("teleport"), Method: "GET", Path: "/things"}}, 10)
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.RunsDir = ""
-	_, sum, err := Run(context.Background(), opts)
+	_, summary, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusBlocked || !strings.Contains(got.Reason, "teleport") {
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusBlocked || !strings.Contains(got.Reason, "teleport") {
 		t.Fatalf("thing = %+v", got)
 	}
 }
@@ -172,8 +172,8 @@ func TestUnit_Steps_UnknownFieldRejectionIsReported(t *testing.T) {
 			Body: map[string]any{"name": "tfpfgen-<runid>-thing-name-u", "tfpfgen_unknown_field": true}},
 		{Kind: plan.StepCleanupDelete, Method: "DELETE", Path: "/things/{thingId}", PathValues: item},
 	}
-	_, sum := mustRun(t, testOptions(t, s, thingPlan(steps, 60), testEnv(), nil))
-	if got, ok := sum.RejectsUnknownFields["thing"]; !ok || !got {
+	_, summary := mustRun(t, testOptions(t, s, thingPlan(steps, 60), testEnv(), nil))
+	if got, ok := summary.RejectsUnknownFields["thing"]; !ok || !got {
 		t.Fatalf("rejectsUnknownFields = %v (recorded %v), want true", got, ok)
 	}
 }

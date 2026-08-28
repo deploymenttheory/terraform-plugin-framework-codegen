@@ -34,13 +34,13 @@ func newSpecReviseCommand() *cobra.Command {
 				return err
 			}
 
-			props, err := revise.ProposeWith(dir, revise.Options{AutoAccept: autoAccept})
+			properties, err := revise.ProposeWith(dir, revise.Options{AutoAccept: autoAccept})
 			if err != nil {
 				return err
 			}
 			out := cmd.OutOrStdout()
-			if props.Observations > 0 || proposeOnly {
-				printProposals(out, props)
+			if properties.Observations > 0 || proposeOnly {
+				printProposals(out, properties)
 			}
 			if proposeOnly {
 				return nil
@@ -86,11 +86,11 @@ func autoAcceptKinds(cfgFile string, explicit bool) ([]string, error) {
 		}
 		return nil, nil
 	}
-	cfg, err := config.Load(cfgFile)
+	configuration, err := config.Load(cfgFile)
 	if err != nil {
 		return nil, err
 	}
-	return cfg.Audit.AutoAccept, nil
+	return configuration.Audit.AutoAccept, nil
 }
 
 // printProposals renders one Propose run's report: the summary counts, then

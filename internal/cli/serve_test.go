@@ -19,20 +19,20 @@ import (
 // syncWriter is a threadsafe buffer: the serving goroutine writes while the
 // test polls for the announced base URL.
 type syncWriter struct {
-	mu  sync.Mutex
-	buf bytes.Buffer
+	mu     sync.Mutex
+	buffer bytes.Buffer
 }
 
 func (w *syncWriter) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return w.buf.Write(p)
+	return w.buffer.Write(p)
 }
 
 func (w *syncWriter) String() string {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return w.buf.String()
+	return w.buffer.String()
 }
 
 var servingAt = regexp.MustCompile(`quirkserver serving at (http://\S+)`)
@@ -87,18 +87,18 @@ func TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel(t *testing.T)
 	tr := &http.Transport{}
 	t.Cleanup(tr.CloseIdleConnections)
 	client := &http.Client{Transport: tr}
-	resp, err := client.Post(base+"/things", "application/json", //nolint:noctx // a test
+	response, err := client.Post(base+"/things", "application/json", //nolint:noctx // a test
 		strings.NewReader(`{"name":"one","mode":"basic","code":"abc","notes":"n"}`))
 	if err != nil {
 		t.Fatalf("POST %s/things: %v", base, err)
 	}
 	var created map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
+	if err := json.NewDecoder(response.Body).Decode(&created); err != nil {
 		t.Fatalf("decoding the create response: %v", err)
 	}
-	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated || created["id"] == nil {
-		t.Fatalf("create answered %d %v, want 201 with an id", resp.StatusCode, created)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusCreated || created["id"] == nil {
+		t.Fatalf("create answered %d %v, want 201 with an id", response.StatusCode, created)
 	}
 
 	cancel()

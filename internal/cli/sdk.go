@@ -35,13 +35,13 @@ func newSDKGenerateCommand() *cobra.Command {
 		Short: "generate the SDK from the revised spec with the pinned backend",
 		Args:  exactArgs("tfpfgen sdk generate [--dir spec] [--out internal/sdk] [--config tfpfgen.yaml]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(cfgFile)
+			configuration, err := config.Load(cfgFile)
 			if err != nil {
 				return err
 			}
 
 			res, err := sdkgen.Run(cmd.Context(), sdkgen.Options{
-				Config:  cfg,
+				Config:  configuration,
 				SpecDir: dir,
 				Out:     out,
 				Root:    ".",

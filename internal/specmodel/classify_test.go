@@ -228,13 +228,13 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			doc, err := Load([]byte(specWith(tc.paths)))
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			document, err := Load([]byte(specWith(testCase.paths)))
 			if err != nil {
 				t.Fatalf("Load: %v", err)
 			}
-			got := Classify(doc)
+			got := Classify(document)
 
 			classified := map[string]Classification{}
 			for _, c := range got.Entities {
@@ -245,7 +245,7 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 				excluded[e.Key] = e
 			}
 
-			for key, want := range tc.wantKinds {
+			for key, want := range testCase.wantKinds {
 				c, ok := classified[key]
 				if !ok {
 					t.Fatalf("entity %q did not classify; excluded = %+v", key, got.Excluded)
@@ -254,17 +254,17 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 					t.Errorf("entity %q kinds = %s, want %s", key, kinds(c), want)
 				}
 			}
-			for key, want := range tc.missingUpdate {
+			for key, want := range testCase.missingUpdate {
 				if c := classified[key]; c.MissingUpdate != want {
 					t.Errorf("entity %q MissingUpdate = %v, want %v", key, c.MissingUpdate, want)
 				}
 			}
-			for key, want := range tc.lookupByKey {
+			for key, want := range testCase.lookupByKey {
 				if c := classified[key]; c.LookupByKey != want {
 					t.Errorf("entity %q LookupByKey = %v, want %v", key, c.LookupByKey, want)
 				}
 			}
-			for key, want := range tc.wantExcluded {
+			for key, want := range testCase.wantExcluded {
 				e, ok := excluded[key]
 				if !ok {
 					t.Fatalf("entity %q was not excluded; entities = %+v", key, got.Entities)
@@ -273,23 +273,23 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 					t.Errorf("entity %q reason = %q, want it to contain %q", key, e.Reason, want)
 				}
 			}
-			if len(tc.wantKinds) != len(got.Entities) {
-				t.Errorf("classified %d entities, want %d: %+v", len(got.Entities), len(tc.wantKinds), got.Entities)
+			if len(testCase.wantKinds) != len(got.Entities) {
+				t.Errorf("classified %d entities, want %d: %+v", len(got.Entities), len(testCase.wantKinds), got.Entities)
 			}
-			if len(tc.wantExcluded) != len(got.Excluded) {
-				t.Errorf("excluded %d entities, want %d: %+v", len(got.Excluded), len(tc.wantExcluded), got.Excluded)
+			if len(testCase.wantExcluded) != len(got.Excluded) {
+				t.Errorf("excluded %d entities, want %d: %+v", len(got.Excluded), len(testCase.wantExcluded), got.Excluded)
 			}
 		})
 	}
 }
 
 func TestUnit_Specmodel_ClassificationCarriesTheOperations(t *testing.T) {
-	doc, err := Load([]byte(specWith(
+	document, err := Load([]byte(specWith(
 		crud("/tags", "get!", "post!") + crud("/tags/{tagId}", "get!", "patch!", "delete"))))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	got := Classify(doc)
+	got := Classify(document)
 	if len(got.Entities) != 1 {
 		t.Fatalf("entities = %+v", got.Entities)
 	}
@@ -334,14 +334,14 @@ func TestUnit_Specmodel_SurplusOperationsLandInExtra(t *testing.T) {
       operationId: bulkCreate
 ` + withBody + withResponse
 
-	doc, err := Load([]byte(specWith(paths + `  /tags/{tagId}/clone:
+	document, err := Load([]byte(specWith(paths + `  /tags/{tagId}/clone:
     post:
       operationId: cloneTag
 ` + withBody + withResponse)))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	got := Classify(doc)
+	got := Classify(document)
 
 	// /tags/bulk and /tags/{tagId}/clone are their own collections by the
 	// path convention, and both are post-only, so both come out actions.
@@ -381,7 +381,7 @@ func TestUnit_Specmodel_SurplusOperationsLandInExtra(t *testing.T) {
 // A path that is nothing but a parameter is its own collection: there is no
 // prefix to pair it with, so it gets the fallback key.
 func TestUnit_Specmodel_ABareParameterPathIsItsOwnEntity(t *testing.T) {
-	doc, err := Load([]byte(specWith(`  /{id}:
+	document, err := Load([]byte(specWith(`  /{id}:
     get:
       operationId: get_id
       responses:
@@ -396,7 +396,7 @@ func TestUnit_Specmodel_ABareParameterPathIsItsOwnEntity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	got := Classify(doc)
+	got := Classify(document)
 	if len(got.Entities) != 1 || got.Entities[0].Key != "root" ||
 		kinds(got.Entities[0]) != "datasource" {
 		t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
@@ -405,12 +405,12 @@ func TestUnit_Specmodel_ABareParameterPathIsItsOwnEntity(t *testing.T) {
 
 func TestUnit_Specmodel_ClassificationIsDeterministic(t *testing.T) {
 	paths := crud("/zebras", "get!") + crud("/apples", "get!") + crud("/bears", "get!")
-	doc, err := Load([]byte(specWith(paths)))
+	document, err := Load([]byte(specWith(paths)))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 	var keys []string
-	for _, c := range Classify(doc).Entities {
+	for _, c := range Classify(document).Entities {
 		keys = append(keys, c.Key)
 	}
 	if want := []string{"apple", "bear", "zebra"}; !reflect.DeepEqual(keys, want) {
@@ -421,7 +421,7 @@ func TestUnit_Specmodel_ClassificationIsDeterministic(t *testing.T) {
 // A "default" response schema counts as a success schema when no 2xx
 // declares one.
 func TestUnit_Specmodel_DefaultResponseBacksSuccess(t *testing.T) {
-	doc, err := Load([]byte(specWith(`  /flags:
+	document, err := Load([]byte(specWith(`  /flags:
     get:
       operationId: listFlags
       responses:
@@ -436,7 +436,7 @@ func TestUnit_Specmodel_DefaultResponseBacksSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	got := Classify(doc)
+	got := Classify(document)
 	if len(got.Entities) != 1 || kinds(got.Entities[0]) != "datasource" {
 		t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
 	}
@@ -455,9 +455,9 @@ func TestUnit_Specmodel_KeyDerivation(t *testing.T) {
 		{"/agents/{agentId}/restart", "agents_restart"},
 		{"/", "root"},
 	}
-	for _, tc := range cases {
-		if got := keyForPath(tc.path); got != tc.want {
-			t.Errorf("keyForPath(%q) = %q, want %q", tc.path, got, tc.want)
+	for _, testCase := range cases {
+		if got := keyForPath(testCase.path); got != testCase.want {
+			t.Errorf("keyForPath(%q) = %q, want %q", testCase.path, got, testCase.want)
 		}
 	}
 }
@@ -466,7 +466,7 @@ func TestUnit_Specmodel_KeyDerivation(t *testing.T) {
 // is a singleton, and a writable one is a resource with no create and no
 // delete.
 func TestUnit_Specmodel_AWritableSingletonIsAResource(t *testing.T) {
-	doc, err := Load([]byte(specWith(`  /account-preferences:
+	document, err := Load([]byte(specWith(`  /account-preferences:
     get:
       operationId: getPreferences
       responses:
@@ -493,7 +493,7 @@ func TestUnit_Specmodel_AWritableSingletonIsAResource(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	got := Classify(doc)
+	got := Classify(document)
 	if len(got.Entities) != 1 {
 		t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
 	}
@@ -518,7 +518,7 @@ func TestUnit_Specmodel_AWritableSingletonIsAResource(t *testing.T) {
 // An action's operation sits in the create slot whichever method the
 // document spelled it with, so a consumer finds it in one place.
 func TestUnit_Specmodel_ALoneWriteInvokesFromTheCreateSlot(t *testing.T) {
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name, paths, wantMethod, wantKey string
 	}{
 		{"collection put", crud("/rotate-keys", "put!"), "PUT", "rotate_key"},
@@ -526,25 +526,25 @@ func TestUnit_Specmodel_ALoneWriteInvokesFromTheCreateSlot(t *testing.T) {
 		{"item put", crud("/knobs/{knobId}", "put!"), "PUT", "knob"},
 		{"item patch", crud("/knobs/{knobId}", "patch!"), "PATCH", "knob"},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			doc, err := Load([]byte(specWith(tc.paths)))
+		t.Run(testCase.name, func(t *testing.T) {
+			document, err := Load([]byte(specWith(testCase.paths)))
 			if err != nil {
 				t.Fatalf("Load: %v", err)
 			}
 
-			got := Classify(doc)
+			got := Classify(document)
 			if len(got.Entities) != 1 {
 				t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
 			}
 			c := got.Entities[0]
-			if c.Key != tc.wantKey {
-				t.Fatalf("key = %q, want %q", c.Key, tc.wantKey)
+			if c.Key != testCase.wantKey {
+				t.Fatalf("key = %q, want %q", c.Key, testCase.wantKey)
 			}
 			if kinds(c) != "action" {
 				t.Fatalf("kinds = %q, want action", kinds(c))
 			}
-			if c.Create == nil || c.Create.Method != tc.wantMethod {
-				t.Fatalf("the invocation must be in the create slot as %s, got %+v", tc.wantMethod, c.Create)
+			if c.Create == nil || c.Create.Method != testCase.wantMethod {
+				t.Fatalf("the invocation must be in the create slot as %s, got %+v", testCase.wantMethod, c.Create)
 			}
 			if c.Read != nil || c.Update != nil || c.Delete != nil || c.List != nil {
 				t.Fatalf("an action fills no other role: %+v", c)
@@ -559,7 +559,7 @@ func TestUnit_Specmodel_ALoneWriteInvokesFromTheCreateSlot(t *testing.T) {
 func TestUnit_Specmodel_AReadOnlySingletonIsNotAResource(t *testing.T) {
 	// Nothing writes it, so there is no resource to own. It is excluded
 	// rather than emitted as a list of one.
-	doc, err := Load([]byte(specWith(`  /health:
+	document, err := Load([]byte(specWith(`  /health:
     get:
       operationId: getHealth
       responses:
@@ -572,7 +572,7 @@ func TestUnit_Specmodel_AReadOnlySingletonIsNotAResource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	got := Classify(doc)
+	got := Classify(document)
 	if len(got.Entities) != 0 {
 		t.Fatalf("a read-only singleton must not classify: %+v", got.Entities)
 	}
@@ -580,7 +580,7 @@ func TestUnit_Specmodel_AReadOnlySingletonIsNotAResource(t *testing.T) {
 
 func TestUnit_CarriesCollection_SeparatesACollectionFromASingleton(t *testing.T) {
 	element := &Schema{Type: "object"}
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name string
 		in   *Schema
 		want bool
@@ -598,8 +598,8 @@ func TestUnit_CarriesCollection_SeparatesACollectionFromASingleton(t *testing.T)
 		}}, false},
 		{"nothing", nil, false},
 	} {
-		if got := carriesCollection(tc.in); got != tc.want {
-			t.Errorf("%s: carriesCollection = %v, want %v", tc.name, got, tc.want)
+		if got := carriesCollection(testCase.in); got != testCase.want {
+			t.Errorf("%s: carriesCollection = %v, want %v", testCase.name, got, testCase.want)
 		}
 	}
 }

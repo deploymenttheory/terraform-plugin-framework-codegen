@@ -9,8 +9,8 @@ import (
 
 func i64(v int64) *int64     { return &v }
 func f64(v float64) *float64 { return &v }
-func constraintDeclaration(attr ir.Attribute) string {
-	return declarationOf(schemaResource, attr)
+func constraintDeclaration(attribute ir.Attribute) string {
+	return declarationOf(schemaResource, attribute)
 }
 
 // TestUnit_ConstraintValidators_RenderTheDeclaredBounds proves each declared
@@ -18,9 +18,9 @@ func constraintDeclaration(attr ir.Attribute) string {
 // its own package uses.
 func TestUnit_ConstraintValidators_RenderTheDeclaredBounds(t *testing.T) {
 	for _, testCase := range []struct {
-		name string
-		attr ir.Attribute
-		want string
+		name      string
+		attribute ir.Attribute
+		want      string
 	}{
 		{
 			"a string with both length bounds",
@@ -68,7 +68,7 @@ func TestUnit_ConstraintValidators_RenderTheDeclaredBounds(t *testing.T) {
 			"stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z]+$`), \"must match ^[a-z]+$\")",
 		},
 	} {
-		if declaration := constraintDeclaration(testCase.attr); !strings.Contains(declaration, testCase.want) {
+		if declaration := constraintDeclaration(testCase.attribute); !strings.Contains(declaration, testCase.want) {
 			t.Errorf("%s: does not carry %q:\n%s", testCase.name, testCase.want, declaration)
 		}
 	}
@@ -140,7 +140,7 @@ func TestUnit_ConstraintValidators_LeaveANestedObjectAlone(t *testing.T) {
 // a file whose import block forgot it.
 func TestUnit_ConstraintValidators_DeclareTheirOwnImports(t *testing.T) {
 	sb := &schemaBuilder{kind: schemaResource, imports: newImportSet("example.com/m")}
-	sb.attributeDeclaration(node{attr: ir.Attribute{
+	sb.attributeDeclaration(node{attribute: ir.Attribute{
 		Name: "n", Kind: ir.TypeString, MaxLength: i64(64), Pattern: `^[a-z]+$`,
 	}}, 0)
 

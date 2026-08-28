@@ -21,20 +21,20 @@ func TestUnit_Borrow_BorrowsCachesAndReportsEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ent := &entityState{plan: &plan.EntityPlan{Entity: "assignment", Budget: plan.Budget{Requests: 20}}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "assignment", Budget: plan.Budget{Requests: 20}}}
 
-	id, ok := r.borrow(context.Background(), ent, "agent")
+	id, ok := r.borrow(context.Background(), entity, "agent")
 	if !ok || id == "" {
 		t.Fatalf("borrow(agent) = %q, %v; want a real id", id, ok)
 	}
 	before := r.reqTotal
-	if id2, ok := r.borrow(context.Background(), ent, "agent"); !ok || id2 != id {
+	if id2, ok := r.borrow(context.Background(), entity, "agent"); !ok || id2 != id {
 		t.Errorf("cached borrow = %q, %v; want the same id", id2, ok)
 	}
 	if r.reqTotal != before {
 		t.Errorf("a cached borrow spent %d requests, want none", r.reqTotal-before)
 	}
-	if _, ok := r.borrow(context.Background(), ent, "widget"); ok {
+	if _, ok := r.borrow(context.Background(), entity, "widget"); ok {
 		t.Error("borrow of a collection the server does not serve must report false")
 	}
 }
@@ -114,27 +114,27 @@ func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 			`{"detail":"the field interval is required"}`,
 			actAdd, "interval", ""},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			act := classifyRefusal(&httpResult{body: []byte(tc.body)})
-			if act.kind != tc.kind {
-				t.Fatalf("kind = %v, want %v", act.kind, tc.kind)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			act := classifyRefusal(&httpResult{body: []byte(testCase.body)})
+			if act.kind != testCase.kind {
+				t.Fatalf("kind = %v, want %v", act.kind, testCase.kind)
 			}
-			if act.field != tc.field {
-				t.Errorf("field = %q, want %q", act.field, tc.field)
+			if act.field != testCase.field {
+				t.Errorf("field = %q, want %q", act.field, testCase.field)
 			}
-			switch tc.kind {
+			switch testCase.kind {
 			case actBorrow:
-				if act.collection != tc.extra {
-					t.Errorf("collection = %q, want %q", act.collection, tc.extra)
+				if act.collection != testCase.extra {
+					t.Errorf("collection = %q, want %q", act.collection, testCase.extra)
 				}
 			case actRequires:
-				if act.trigger != tc.extra {
-					t.Errorf("trigger = %q, want %q", act.trigger, tc.extra)
+				if act.trigger != testCase.extra {
+					t.Errorf("trigger = %q, want %q", act.trigger, testCase.extra)
 				}
 			case actAdd, actRemove:
-				if act.condVal != tc.extra {
-					t.Errorf("condVal = %q, want %q", act.condVal, tc.extra)
+				if act.condVal != testCase.extra {
+					t.Errorf("condVal = %q, want %q", act.condVal, testCase.extra)
 				}
 			}
 		})
@@ -182,14 +182,14 @@ func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	if v := synthValue(h(strategy.SynthHint{Field: "x", Format: "email"}), "e", "p"); v == nil {
 		t.Error("format not used")
 	}
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		typ  string
 		want any
 	}{
 		{"boolean", true}, {"integer", 1}, {"number", 1.5},
 	} {
-		if v := synthValue(strategy.SynthHint{Field: "x", Type: tc.typ}, "e", "p"); v != tc.want {
-			t.Errorf("type %s = %v, want %v", tc.typ, v, tc.want)
+		if v := synthValue(strategy.SynthHint{Field: "x", Type: testCase.typ}, "e", "p"); v != testCase.want {
+			t.Errorf("type %s = %v, want %v", testCase.typ, v, testCase.want)
 		}
 	}
 	if v := synthValue(strategy.SynthHint{Field: "label", Type: "string"}, "ent", "tfpfgen"); v != "tfpfgen-<runid>-ent-label" {
@@ -293,10 +293,10 @@ func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
 		`{"detail":"There are invalid or missing fields","errors":[{"field":"testName","message":"must not be null"}]}`)}
 
 	r := &runner{opts: Options{NamePrefix: "tfpfgen"}}
-	ent := &entityState{plan: &plan.EntityPlan{Entity: "scheduled_test"}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "scheduled_test"}}
 	body := map[string]any{}
 
-	added, ok := r.applyAdjustment(context.Background(), ent, body, refusal, map[string]bool{}, false)
+	added, ok := r.applyAdjustment(context.Background(), entity, body, refusal, map[string]bool{}, false)
 	if !ok {
 		t.Fatal("a listed field complaint did not heal the body")
 	}
@@ -337,10 +337,10 @@ func TestUnit_Evidence_TheIdentifyingPropertyIsFoundByValue(t *testing.T) {
 		{"no property carries it",
 			map[string]any{"name": "x"}, "9", ""},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := identifyingProperty(tc.got, tc.id); got != tc.want {
-				t.Errorf("identifyingProperty = %q, want %q", got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := identifyingProperty(testCase.got, testCase.id); got != testCase.want {
+				t.Errorf("identifyingProperty = %q, want %q", got, testCase.want)
 			}
 		})
 	}
@@ -362,11 +362,11 @@ func TestUnit_Search_CandidatesAreOrderedCheapestSignalFirst(t *testing.T) {
 			"nested":      {Field: "nested", Type: "object"},
 		},
 	}}
-	ent := &entityState{plan: &plan.EntityPlan{Entity: "widget"}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "widget"}}
 	body := map[string]any{"alreadySent": "v"}
 	refusal := &httpResult{body: []byte(`{"detail":"zNamed is wrong somehow"}`)}
 
-	got := r.searchCandidates(ent, body, refusal)
+	got := r.searchCandidates(entity, body, refusal)
 	want := []string{"zNamed", "withEnum", "aPlain", "bPlain", "nested"}
 	if len(got) != len(want) {
 		t.Fatalf("candidates = %v, want %v", got, want)

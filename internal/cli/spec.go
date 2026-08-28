@@ -30,12 +30,12 @@ func newSpecImportCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			source := args[0]
 
-			doc, err := store.Retrieve(source)
+			document, err := store.Retrieve(source)
 			if err != nil {
 				return err
 			}
 
-			res, err := store.Import(dir, doc, source)
+			res, err := store.Import(dir, document, source)
 			if err != nil {
 				return err
 			}

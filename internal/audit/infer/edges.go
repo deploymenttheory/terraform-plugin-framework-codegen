@@ -48,13 +48,13 @@ func dedup(obs []observe.Observation) []observe.Observation {
 			best[o.ID] = i
 		}
 	}
-	idx := make([]int, 0, len(best))
+	index := make([]int, 0, len(best))
 	for _, i := range best {
-		idx = append(idx, i)
+		index = append(index, i)
 	}
-	sort.Ints(idx)
-	out := make([]observe.Observation, 0, len(idx))
-	for _, i := range idx {
+	sort.Ints(index)
+	out := make([]observe.Observation, 0, len(index))
+	for _, i := range index {
 		out = append(out, obs[i])
 	}
 	observe.Sort(out)

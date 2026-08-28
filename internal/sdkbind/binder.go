@@ -11,7 +11,7 @@ import (
 // drafts. Everything a dialect returns is finished strings; the walk in
 // bindModel is the only structure.
 type dialect interface {
-	call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call
+	call(operation *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call
 	access(a ir.Attribute, mode accessMode) FieldAccess
 	// models drafts the entity's read model, write model and write
 	// constructor. Drafts, because the document-derived name and the
@@ -234,12 +234,12 @@ func goTypeOf(k ir.AttributeType) string {
 
 // callParameters renders an operation's path parameters as call locals, in
 // path-template order — the order every expression takes them.
-func callParameters(op *ir.Operation) []CallParameter {
-	if len(op.PathParameters) == 0 {
+func callParameters(operation *ir.Operation) []CallParameter {
+	if len(operation.PathParameters) == 0 {
 		return nil
 	}
-	out := make([]CallParameter, 0, len(op.PathParameters))
-	for _, p := range op.PathParameters {
+	out := make([]CallParameter, 0, len(operation.PathParameters))
+	for _, p := range operation.PathParameters {
 		out = append(out, CallParameter{Local: localFor(p.Name), GoType: goTypeOf(p.Type), Wire: p.Name})
 	}
 	return out

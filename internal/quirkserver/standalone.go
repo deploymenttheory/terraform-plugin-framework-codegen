@@ -8,19 +8,19 @@ import (
 	"net/http/httptest"
 )
 
-// specDoc is the OpenAPI 3 document the quirk server implements — the
+// embeddedDocument is the OpenAPI 3 document the quirk server implements — the
 // /things surface, described the way a vendor would describe it. It lives
 // under testdata because it is fixture data, not machinery.
 //
 //go:embed testdata/openapi.yaml
-var specDoc []byte
+var embeddedDocument []byte
 
 // Spec returns the OpenAPI 3 document describing the surface this server
 // serves, for a pipeline that needs an upstream document to import. The
 // returned slice is the caller's to keep.
 func Spec() []byte {
-	out := make([]byte, len(specDoc))
-	copy(out, specDoc)
+	out := make([]byte, len(embeddedDocument))
+	copy(out, embeddedDocument)
 	return out
 }
 

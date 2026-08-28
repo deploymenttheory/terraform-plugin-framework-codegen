@@ -86,8 +86,8 @@ func (p *pruner) resolveType(expr string) (*types.Named, error) {
 	if err != nil {
 		return nil, err
 	}
-	if pkg := named.Obj().Pkg(); pkg != nil {
-		p.bindings.recordPackage(pkg.Name(), importPath)
+	if goPackage := named.Obj().Pkg(); goPackage != nil {
+		p.bindings.recordPackage(goPackage.Name(), importPath)
 	}
 	return named, nil
 }
@@ -280,12 +280,12 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 
 	var element types.Type
 	if db.List != nil {
-		elem, why := p.resolveListElement(db.List, &db.ElementType, &db.CollectionAccess, db.ListWrapperKey)
+		resolved, why := p.resolveListElement(db.List, &db.ElementType, &db.CollectionAccess, db.ListWrapperKey)
 		if why != "" {
 			p.remove(kind, db.Key, "", why)
 			return false
 		}
-		element = elem
+		element = resolved
 	}
 
 	model := element

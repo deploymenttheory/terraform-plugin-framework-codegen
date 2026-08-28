@@ -75,11 +75,11 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		Package:       lr.Names.Package,
 		PackagePath:   e.packagePath(kindListResources, lr.Names),
 		Key:           lr.Names.Key,
-		Pascal:        lr.Names.Pascal,
-		Type:          lr.Names.Pascal + "ListResource",
+		Pascal:        lr.Names.PascalCase,
+		Type:          lr.Names.PascalCase + "ListResource",
 		TerraformType: lr.Names.TerraformType,
 		ClientType:    "*sdk." + e.bindings.SDK.ClientTypeName,
-		ResourceCtor:  resourcePackageAlias + ".New" + lr.Names.Pascal + "Resource()",
+		ResourceCtor:  resourcePackageAlias + ".New" + lr.Names.PascalCase + "Resource()",
 		AuthGitHubApp: e.pc.AuthGitHubApp,
 		ProviderName:  e.pc.ProviderName,
 	}
@@ -134,7 +134,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	d.Imports = imports.render()
 
 	if len(configNodes) > 0 {
-		d.ConfigModel = renderModelDeclarations(buildModels(listConfigModelName, lr.Names.Pascal+"ListConfig", configNodes, nil))
+		d.ConfigModel = renderModelDeclarations(buildModels(listConfigModelName, lr.Names.PascalCase+"ListConfig", configNodes, nil))
 	}
 
 	listImports := newImportSet(e.pc.Module)
@@ -244,7 +244,7 @@ func listResultLines(nodes []node, identity []identityAttribute, config []node) 
 
 	configured := map[string]bool{}
 	for _, n := range config {
-		configured[n.attr.Name] = true
+		configured[n.attribute.Name] = true
 	}
 	fields := make([]string, 0, len(identity))
 	for _, attribute := range identity {
@@ -269,7 +269,7 @@ func listResultLines(nodes []node, identity []identityAttribute, config []node) 
 
 	var b strings.Builder
 	b.WriteString(readStringLocal("id", idNode))
-	if displayNode.attr.Name != idNode.attr.Name {
+	if displayNode.attribute.Name != idNode.attribute.Name {
 		b.WriteString(readStringLocal("displayName", displayNode))
 		b.WriteString("\t\t\tresult.DisplayName = displayName\n")
 	} else {
@@ -287,16 +287,16 @@ func listResultLines(nodes []node, identity []identityAttribute, config []node) 
 func identityCandidates(nodes []node) string {
 	var found []string
 	for _, n := range nodes {
-		if n.attr.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
+		if n.attribute.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
 			continue
 		}
-		switch n.attr.Kind {
+		switch n.attribute.Kind {
 		case ir.TypeString, ir.TypeInt64, ir.TypeFloat64:
 		default:
 			continue
 		}
-		if strings.HasSuffix(n.attr.Name, "id") {
-			found = append(found, n.attr.WireName)
+		if strings.HasSuffix(n.attribute.Name, "id") {
+			found = append(found, n.attribute.WireName)
 		}
 	}
 	if len(found) == 0 {
@@ -309,7 +309,7 @@ func identityCandidates(nodes []node) string {
 // findStringNode finds a plain string attribute by name.
 func findStringNode(nodes []node, name string) (node, bool) {
 	for _, n := range nodes {
-		if n.attr.Name == name && n.attr.Kind == ir.TypeString && n.attr.Nested == nil && n.fb != nil && n.fb.Access.Get != "" {
+		if n.attribute.Name == name && n.attribute.Kind == ir.TypeString && n.attribute.Nested == nil && n.fb != nil && n.fb.Access.Get != "" {
 			return n, true
 		}
 	}
@@ -323,10 +323,10 @@ func findStringNode(nodes []node, name string) (node, bool) {
 // repositories, issues and organizations among them.
 func findIdentityNode(nodes []node) (node, bool) {
 	for _, n := range nodes {
-		if n.attr.Name != idAttributeName || n.attr.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
+		if n.attribute.Name != idAttributeName || n.attribute.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
 			continue
 		}
-		switch n.attr.Kind {
+		switch n.attribute.Kind {
 		case ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool:
 			return n, true
 		}

@@ -205,7 +205,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 			NestedWriteModel:  "models.Inner",
 			NestedConstructor: "models.NewInner()",
 			Nested: []sdkbind.FieldBinding{{Attr: "x", Wire: "x", Kind: ir.TypeString,
-				Access: kAccess("X", "*string", "FromPtrString", "ToPtrString", "")}},
+				Access: kiotaAccess("X", "*string", "FromPtrString", "ToPtrString", "")}},
 		}}
 	}
 	b.Resources["http_server"].Fields = append(b.Resources["http_server"].Fields,
@@ -259,9 +259,9 @@ func TestUnit_Emit_ValidatorHelperSpellings(t *testing.T) {
 		{[]string{"a", "b"}, `"a" or "b"`},
 		{[]string{"a", "b", "c"}, `"a", "b" or "c"`},
 	}
-	for _, tc := range orLists {
-		if got := orList(tc.in); got != tc.want {
-			t.Fatalf("orList(%v) = %q, want %q", tc.in, got, tc.want)
+	for _, testCase := range orLists {
+		if got := orList(testCase.in); got != testCase.want {
+			t.Fatalf("orList(%v) = %q, want %q", testCase.in, got, testCase.want)
 		}
 	}
 
@@ -418,13 +418,13 @@ func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) 
 		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Kind: ir.TypeString,
-		Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
+		Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
 
 	nodes := joinTree(tree, bound, map[string]bool{"owner": true})
 
 	got := map[string]bool{}
 	for _, n := range nodes {
-		got[n.attr.Name] = true
+		got[n.attribute.Name] = true
 	}
 	for _, want := range []string{"owner", "id", "name"} {
 		if !got[want] {
@@ -466,7 +466,7 @@ func TestUnit_ParamNode_RefusesAnObjectOfTheSameName(t *testing.T) {
 	// that is an object is a different thing the document spells the same
 	// way, and reading a value out of it does not compile.
 	nodes := []node{
-		{attr: ir.Attribute{Name: "owner", WireName: "owner", Kind: ir.TypeObject,
+		{attribute: ir.Attribute{Name: "owner", WireName: "owner", Kind: ir.TypeObject,
 			Nested: &ir.AttributeTree{}}},
 	}
 	if _, err := parameterNode(sdkbind.CallParameter{Local: "owner", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
@@ -478,14 +478,14 @@ func TestUnit_ParamNode_TakesTheLastParameterAsTheID(t *testing.T) {
 	// An item path with a parent takes two parameters, and its key is the
 	// last one — whatever the response happens to call its own id.
 	nodes := []node{
-		{attr: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
 	}
 	got, err := parameterNode(sdkbind.CallParameter{Local: "cfg", Wire: "configuration_id", GoType: "string"}, nodes, true)
 	if err != nil {
 		t.Fatalf("the last path parameter must fall back to the id: %v", err)
 	}
-	if got.attr.Name != "id" {
-		t.Fatalf("want the id attribute, got %q", got.attr.Name)
+	if got.attribute.Name != "id" {
+		t.Fatalf("want the id attribute, got %q", got.attribute.Name)
 	}
 	if _, err := parameterNode(sdkbind.CallParameter{Local: "o", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
 		t.Fatal("a parent parameter must not fall back to the id")
@@ -496,19 +496,19 @@ func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
 	// An action schema has no Computed: the framework's action package does
 	// not declare the field, so a computed attribute does not compile.
 	nodes := []node{
-		{attr: ir.Attribute{Name: "kept", ComputedOptionalRequired: ir.Required}},
-		{attr: ir.Attribute{Name: "dropped", ComputedOptionalRequired: ir.Computed}},
-		{attr: ir.Attribute{Name: "block", ComputedOptionalRequired: ir.Optional, Nested: &ir.AttributeTree{}},
+		{attribute: ir.Attribute{Name: "kept", ComputedOptionalRequired: ir.Required}},
+		{attribute: ir.Attribute{Name: "dropped", ComputedOptionalRequired: ir.Computed}},
+		{attribute: ir.Attribute{Name: "block", ComputedOptionalRequired: ir.Optional, Nested: &ir.AttributeTree{}},
 			children: []node{
-				{attr: ir.Attribute{Name: "inner_kept", ComputedOptionalRequired: ir.Optional}},
-				{attr: ir.Attribute{Name: "inner_dropped", ComputedOptionalRequired: ir.Computed}},
+				{attribute: ir.Attribute{Name: "inner_kept", ComputedOptionalRequired: ir.Optional}},
+				{attribute: ir.Attribute{Name: "inner_dropped", ComputedOptionalRequired: ir.Computed}},
 			}},
 	}
 	got := invocable(nodes)
-	if len(got) != 2 || got[0].attr.Name != "kept" || got[1].attr.Name != "block" {
+	if len(got) != 2 || got[0].attribute.Name != "kept" || got[1].attribute.Name != "block" {
 		t.Fatalf("want kept and block, got %+v", got)
 	}
-	if len(got[1].children) != 1 || got[1].children[0].attr.Name != "inner_kept" {
+	if len(got[1].children) != 1 || got[1].children[0].attribute.Name != "inner_kept" {
 		t.Fatalf("a nested computed argument must go too, got %+v", got[1].children)
 	}
 }
@@ -516,14 +516,14 @@ func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
 func TestUnit_ComputedOptionalRequiredLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
 	for _, participation := range []ir.ComputedOptionalRequired{ir.Computed, ir.ComputedOptional} {
 		sb := &schemaBuilder{kind: schemaAction, imports: newImportSet("example.com/mod")}
-		got := sb.computedOptionalRequiredLines(node{attr: ir.Attribute{Name: "x", ComputedOptionalRequired: participation}}, "")
+		got := sb.computedOptionalRequiredLines(node{attribute: ir.Attribute{Name: "x", ComputedOptionalRequired: participation}}, "")
 		if strings.Contains(got, "Computed") {
 			t.Fatalf("%s rendered %q in an action schema", participation, got)
 		}
 	}
 	// A datasource still computes.
 	sb := &schemaBuilder{kind: schemaDatasource, imports: newImportSet("example.com/mod")}
-	if got := sb.computedOptionalRequiredLines(node{attr: ir.Attribute{Name: "x", ComputedOptionalRequired: ir.Computed}}, ""); !strings.Contains(got, "Computed") {
+	if got := sb.computedOptionalRequiredLines(node{attribute: ir.Attribute{Name: "x", ComputedOptionalRequired: ir.Computed}}, ""); !strings.Contains(got, "Computed") {
 		t.Fatalf("a datasource must still render Computed, got %q", got)
 	}
 }
@@ -545,8 +545,8 @@ func TestUnit_FindIdentityNode_AcceptsAnIdentityTheAPIDidNotSpellAsAString(t *te
 	// with a numeric id.
 	for _, kind := range []ir.AttributeType{ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool} {
 		nodes := []node{{
-			attr: ir.Attribute{Name: "id", WireName: "id", Kind: kind},
-			fb:   &sdkbind.FieldBinding{Attr: "id", Wire: "id", Kind: kind, Access: sdkbind.FieldAccess{Get: "GetId"}},
+			attribute: ir.Attribute{Name: "id", WireName: "id", Kind: kind},
+			fb:        &sdkbind.FieldBinding{Attr: "id", Wire: "id", Kind: kind, Access: sdkbind.FieldAccess{Get: "GetId"}},
 		}}
 		if _, ok := findIdentityNode(nodes); !ok {
 			t.Fatalf("a %s id must serve as the list identity", kind)
@@ -555,21 +555,21 @@ func TestUnit_FindIdentityNode_AcceptsAnIdentityTheAPIDidNotSpellAsAString(t *te
 
 	// An object of that name is not an identity, and neither is an unbound one.
 	nested := []node{{
-		attr: ir.Attribute{Name: "id", Kind: ir.TypeObject, Nested: &ir.AttributeTree{}},
-		fb:   &sdkbind.FieldBinding{Attr: "id", Access: sdkbind.FieldAccess{Get: "GetId"}},
+		attribute: ir.Attribute{Name: "id", Kind: ir.TypeObject, Nested: &ir.AttributeTree{}},
+		fb:        &sdkbind.FieldBinding{Attr: "id", Access: sdkbind.FieldAccess{Get: "GetId"}},
 	}}
 	if _, ok := findIdentityNode(nested); ok {
 		t.Fatal("an object must not serve as the list identity")
 	}
-	if _, ok := findIdentityNode([]node{{attr: ir.Attribute{Name: "id", Kind: ir.TypeString}}}); ok {
+	if _, ok := findIdentityNode([]node{{attribute: ir.Attribute{Name: "id", Kind: ir.TypeString}}}); ok {
 		t.Fatal("an unbound attribute cannot be read for the identity")
 	}
 }
 
 func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) {
 	numeric := node{
-		attr: ir.Attribute{Name: "id", Kind: ir.TypeInt64},
-		fb:   &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*int64"}},
+		attribute: ir.Attribute{Name: "id", Kind: ir.TypeInt64},
+		fb:        &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*int64"}},
 	}
 	got := readStringLocal("id", numeric)
 	if !strings.Contains(got, "fmt.Sprintf") {
@@ -577,8 +577,8 @@ func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) 
 	}
 
 	text := node{
-		attr: ir.Attribute{Name: "id", Kind: ir.TypeString},
-		fb:   &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*string"}},
+		attribute: ir.Attribute{Name: "id", Kind: ir.TypeString},
+		fb:        &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*string"}},
 	}
 	if got := readStringLocal("id", text); strings.Contains(got, "fmt.Sprintf") {
 		t.Fatalf("a string identity needs no conversion:\n%s", got)

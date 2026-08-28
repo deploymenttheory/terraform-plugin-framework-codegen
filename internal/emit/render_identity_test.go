@@ -22,7 +22,7 @@ func identityNames(identity []identityAttribute) []string {
 // the identity would otherwise require the same value under two names, of
 // every import and of every list result.
 func TestUnit_ResourceIdentity_TheItemKeyIsTheIDAndNotAlsoAddressing(t *testing.T) {
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name string
 		read *ir.Operation
 		tree *ir.AttributeTree
@@ -55,13 +55,13 @@ func TestUnit_ResourceIdentity_TheItemKeyIsTheIDAndNotAlsoAddressing(t *testing.
 			want: []string{"owner", "id"},
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(testCase.name, func(t *testing.T) {
 			got := identityNames(resourceIdentity(&ir.Resource{
-				Schema:     tc.tree,
-				Operations: ir.Operations{Read: tc.read},
+				Schema:     testCase.tree,
+				Operations: ir.Operations{Read: testCase.read},
 			}))
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("identity = %v, want %v", got, tc.want)
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("identity = %v, want %v", got, testCase.want)
 			}
 		})
 	}

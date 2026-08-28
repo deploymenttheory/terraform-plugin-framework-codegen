@@ -59,31 +59,31 @@ func newAuditRunCommand() *cobra.Command {
 			"responsibility.",
 		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--force-api-audit]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, doc, inputs, lock, err := auditPlan(dir, cfgFile)
+			configuration, p, document, inputs, lock, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
-			base, err := auditBaseURL(baseURL, cfg, dir)
+			base, err := auditBaseURL(baseURL, configuration, dir)
 			if err != nil {
 				return err
 			}
-			if missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv); len(missing) > 0 {
-				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", cfg.Auth.Method, missing)
+			if missing := config.MissingSecrets(configuration.Auth.Method, os.LookupEnv); len(missing) > 0 {
+				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", configuration.Auth.Method, missing)
 			}
 
-			obs, sum, runErr := auditrun.Run(cmd.Context(), auditrun.Options{
+			obs, summary, runErr := auditrun.Run(cmd.Context(), auditrun.Options{
 				Plan:    p,
-				Doc:     doc,
-				Config:  cfg,
+				Doc:     document,
+				Config:  configuration,
 				Inputs:  inputs,
 				BaseURL: base,
 				Auth: auditrun.Auth{
-					Method:       cfg.Auth.Method,
-					APIKeyHeader: cfg.Auth.APIKeyHeader,
-					TokenURL:     cfg.Auth.TokenURL,
+					Method:       configuration.Auth.Method,
+					APIKeyHeader: configuration.Auth.APIKeyHeader,
+					TokenURL:     configuration.Auth.TokenURL,
 				},
-				NamePrefix:    cfg.Audit.NamePrefix,
-				RateLimitRPS:  cfg.Audit.RateLimitRPS,
+				NamePrefix:    configuration.Audit.NamePrefix,
+				RateLimitRPS:  configuration.Audit.RateLimitRPS,
 				RunsDir:       auditRunsDir,
 				SpecHash:      lock.SHA256,
 				ForceAPIAudit: forceAPIAudit,
@@ -104,9 +104,9 @@ func newAuditRunCommand() *cobra.Command {
 			// The accepted request bodies sit beside the observations: an observation
 			// says something about a property, these say what a whole create
 			// looked like when the API took it.
-			if len(sum.RequestBodies) > 0 {
+			if len(summary.RequestBodies) > 0 {
 				requestBodiesDir := filepath.Join(filepath.Dir(out), "request_bodies")
-				if writeErr := observe.WriteRequestBodies(requestBodiesDir, sum.RequestBodies); writeErr != nil {
+				if writeErr := observe.WriteRequestBodies(requestBodiesDir, summary.RequestBodies); writeErr != nil {
 					if runErr != nil {
 						return fmt.Errorf("%v; additionally %w", runErr, writeErr)
 					}
@@ -119,13 +119,13 @@ func newAuditRunCommand() *cobra.Command {
 			// did, because a run where every entity blocked is exactly the
 			// run whose reasons are worth keeping.
 			summaryPath := filepath.Join(filepath.Dir(out), auditrun.SummaryFile)
-			if writeErr := auditrun.WriteSummary(summaryPath, sum); writeErr != nil {
+			if writeErr := auditrun.WriteSummary(summaryPath, summary); writeErr != nil {
 				if runErr != nil {
 					return fmt.Errorf("%v; additionally %w", runErr, writeErr)
 				}
 				return writeErr
 			}
-			printSummary(cmd.OutOrStdout(), out, len(obs), sum)
+			printSummary(cmd.OutOrStdout(), out, len(obs), summary)
 			return runErr
 		},
 	}
@@ -153,39 +153,39 @@ func newAuditCleanupCommand() *cobra.Command {
 		Short: "delete the live test objects a previous audit left behind",
 		Args:  exactArgs("tfpfgen audit cleanup [--dir spec] [--config tfpfgen.yaml] [--base-url URL] [--prefix NAME]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, _, _, _, err := auditPlan(dir, cfgFile)
+			configuration, p, _, _, _, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
-			base, err := auditBaseURL(baseURL, cfg, dir)
+			base, err := auditBaseURL(baseURL, configuration, dir)
 			if err != nil {
 				return err
 			}
 			if prefix == "" {
-				prefix = cfg.Audit.NamePrefix
+				prefix = configuration.Audit.NamePrefix
 			}
-			if missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv); len(missing) > 0 {
-				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", cfg.Auth.Method, missing)
+			if missing := config.MissingSecrets(configuration.Auth.Method, os.LookupEnv); len(missing) > 0 {
+				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", configuration.Auth.Method, missing)
 			}
 
-			sum, err := auditrun.Cleanup(cmd.Context(), auditrun.Options{
+			summary, err := auditrun.Cleanup(cmd.Context(), auditrun.Options{
 				Plan:    p,
 				BaseURL: base,
 				Auth: auditrun.Auth{
-					Method:       cfg.Auth.Method,
-					APIKeyHeader: cfg.Auth.APIKeyHeader,
-					TokenURL:     cfg.Auth.TokenURL,
+					Method:       configuration.Auth.Method,
+					APIKeyHeader: configuration.Auth.APIKeyHeader,
+					TokenURL:     configuration.Auth.TokenURL,
 				},
 				NamePrefix:   prefix,
-				RateLimitRPS: cfg.Audit.RateLimitRPS,
+				RateLimitRPS: configuration.Audit.RateLimitRPS,
 				RunsDir:      auditRunsDir,
 				Logger:       auditLogger(cmd.ErrOrStderr()),
 			})
 
 			w := cmd.OutOrStdout()
 			fmt.Fprintf(w, "cleanup: %d deleted from ledgers, %d deleted by prefix %q\n",
-				sum.LedgerDeletes, sum.PrefixDeletes, prefix)
-			for _, o := range sum.Orphans {
+				summary.LedgerDeletes, summary.PrefixDeletes, prefix)
+			for _, o := range summary.Orphans {
 				fmt.Fprintf(w, "  orphan: %s\n", o)
 			}
 			return err
@@ -206,11 +206,11 @@ func newAuditCleanupCommand() *cobra.Command {
 // skip from them, and their values reach the wire only through the run, which
 // rebuilds every body the plan derived.
 func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, *plan.Inputs, store.Lock, error) {
-	cfg, err := config.Load(cfgFile)
+	configuration, err := config.Load(cfgFile)
 	if err != nil {
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
-	if !cfg.Audit.Enabled {
+	if !configuration.Audit.Enabled {
 		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
 	}
 
@@ -218,7 +218,7 @@ func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Docu
 	if err != nil {
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
-	doc, err := specmodel.Load(data)
+	document, err := specmodel.Load(data)
 	if err != nil {
 		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", srcPath, err)
 	}
@@ -237,25 +237,25 @@ func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Docu
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
 
-	p, err := plan.Derive(doc, cfg, inputs)
+	p, err := plan.Derive(document, configuration, inputs)
 	if err != nil {
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
-	return cfg, p, doc, inputs, lock, nil
+	return configuration, p, document, inputs, lock, nil
 }
 
 // auditBaseURL picks the audited API's root: the flag, then the config
 // override, then the document's first declared server.
-func auditBaseURL(flag string, cfg *config.Config, dir string) (string, error) {
+func auditBaseURL(flag string, configuration *config.Config, dir string) (string, error) {
 	if flag != "" {
 		return flag, nil
 	}
-	if cfg.Audit.BaseURLOverride != "" {
-		return cfg.Audit.BaseURLOverride, nil
+	if configuration.Audit.BaseURLOverride != "" {
+		return configuration.Audit.BaseURLOverride, nil
 	}
 	if data, _, err := auditSpecBytes(dir); err == nil {
-		if doc, err := specmodel.Load(data); err == nil && len(doc.Servers) > 0 && doc.Servers[0].URL != "" {
-			return doc.Servers[0].URL, nil
+		if document, err := specmodel.Load(data); err == nil && len(document.Servers) > 0 && document.Servers[0].URL != "" {
+			return document.Servers[0].URL, nil
 		}
 	}
 	return "", fmt.Errorf("no base URL: the document declares no servers; pass --base-url or set audit.base_url_override")
@@ -345,59 +345,59 @@ func printSkipped(w io.Writer, skipped []plan.Skipped) {
 }
 
 // printSummary renders the run's table.
-func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
+func printSummary(w io.Writer, out string, obsCount int, summary auditrun.Summary) {
 	fmt.Fprintf(w, "audit run %s: %d audited, %d blocked, %d exhausted, %d skipped by the plan\n",
-		sum.RunID, sum.Audited, sum.Blocked, sum.TimedOut, sum.Skipped)
-	for _, e := range sum.Entities {
+		summary.RunID, summary.Audited, summary.Blocked, summary.TimedOut, summary.Skipped)
+	for _, e := range summary.Entities {
 		if e.Status == auditrun.StatusAudited {
 			fmt.Fprintf(w, "  %-12s %s\n", e.Status, e.Entity)
 			continue
 		}
 		fmt.Fprintf(w, "  %-12s %s: %s\n", e.Status, e.Entity, e.Reason)
 	}
-	printSkipped(w, sum.SkippedEntities)
+	printSkipped(w, summary.SkippedEntities)
 
 	fmt.Fprintf(w, "observations: %d written to %s\n", obsCount, out)
-	kinds := make([]string, 0, len(sum.ByKind))
-	for k := range sum.ByKind {
+	kinds := make([]string, 0, len(summary.ByKind))
+	for k := range summary.ByKind {
 		kinds = append(kinds, string(k))
 	}
 	sort.Strings(kinds)
 	for _, k := range kinds {
-		fmt.Fprintf(w, "  %-20s %d\n", k, sum.ByKind[observe.Kind(k)])
+		fmt.Fprintf(w, "  %-20s %d\n", k, summary.ByKind[observe.Kind(k)])
 	}
 
 	fmt.Fprintf(w, "budget: %d/%d requests, %d objects created (ceiling %d), %s of %s\n",
-		sum.Requests, sum.RequestBudget, sum.ObjectsCreated, sum.ObjectBudget,
-		sum.Elapsed.Round(time.Millisecond), sum.DurationBudget)
+		summary.Requests, summary.RequestBudget, summary.ObjectsCreated, summary.ObjectBudget,
+		summary.Elapsed.Round(time.Millisecond), summary.DurationBudget)
 	// A throttled run says so. Findings gathered while the API was refusing
 	// traffic are thinner than the same findings off a quiet one, and nothing
 	// in the counts above shows the difference.
-	if sum.RateLimited > 0 {
+	if summary.RateLimited > 0 {
 		fmt.Fprintf(w, "rate limits: %d refusals, %d slowdowns, finished at %d rps\n",
-			sum.RateLimited, sum.Slowdowns, sum.RateLimitRPS)
+			summary.RateLimited, summary.Slowdowns, summary.RateLimitRPS)
 	}
 	fmt.Fprintf(w, "cleanup: %d+%d removed at start, %d+%d at end (ledger+prefix)\n",
-		sum.CleanupStart.LedgerDeletes, sum.CleanupStart.PrefixDeletes,
-		sum.CleanupEnd.LedgerDeletes, sum.CleanupEnd.PrefixDeletes)
-	for _, o := range append(append([]string{}, sum.CleanupStart.Orphans...), sum.CleanupEnd.Orphans...) {
+		summary.CleanupStart.LedgerDeletes, summary.CleanupStart.PrefixDeletes,
+		summary.CleanupEnd.LedgerDeletes, summary.CleanupEnd.PrefixDeletes)
+	for _, o := range append(append([]string{}, summary.CleanupStart.Orphans...), summary.CleanupEnd.Orphans...) {
 		fmt.Fprintf(w, "  orphan: %s\n", o)
 	}
 
-	entities := make([]string, 0, len(sum.RejectsUnknownFields))
-	for e := range sum.RejectsUnknownFields {
+	entities := make([]string, 0, len(summary.RejectsUnknownFields))
+	for e := range summary.RejectsUnknownFields {
 		entities = append(entities, e)
 	}
 	sort.Strings(entities)
 	for _, e := range entities {
-		if sum.RejectsUnknownFields[e] {
+		if summary.RejectsUnknownFields[e] {
 			fmt.Fprintf(w, "rejectsUnknownFields: %s true — this entity's refusal-based findings need caution\n", e)
 			continue
 		}
 		fmt.Fprintf(w, "rejectsUnknownFields: %s false\n", e)
 	}
 
-	for _, a := range sum.Adjustments {
+	for _, a := range summary.Adjustments {
 		gate := ""
 		if a.GateField != "" {
 			gate = fmt.Sprintf(" (gate %s=%s)", a.GateField, a.GateValue)
@@ -405,7 +405,7 @@ func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 		fmt.Fprintf(w, "adjustment: %s %s.%s%s\n", a.Action, a.Entity, a.Field, gate)
 	}
 
-	if sum.EdgesConfirmed > 0 || sum.EdgesInconclusive > 0 {
-		fmt.Fprintf(w, "edges: %d confirmed, %d inconclusive\n", sum.EdgesConfirmed, sum.EdgesInconclusive)
+	if summary.EdgesConfirmed > 0 || summary.EdgesInconclusive > 0 {
+		fmt.Fprintf(w, "edges: %d confirmed, %d inconclusive\n", summary.EdgesConfirmed, summary.EdgesInconclusive)
 	}
 }

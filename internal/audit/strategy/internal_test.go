@@ -144,11 +144,11 @@ components:
 `
 
 func TestDeriveVariantsFromAnyOf(t *testing.T) {
-	doc, err := specmodel.Load([]byte(anyOfSchema))
+	document, err := specmodel.Load([]byte(anyOfSchema))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	body := doc.Schemas["Body"]
+	body := document.Schemas["Body"]
 	gates := detectGates(body)
 	if len(gates) != 1 || gates[0].Field != "kind" {
 		t.Fatalf("gates=%+v, want one on kind", gates)
@@ -183,11 +183,11 @@ components:
         only: {type: string, enum: [solo]}
         name: {type: string}
 `
-	doc, err := specmodel.Load([]byte(spec))
+	document, err := specmodel.Load([]byte(spec))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if g := detectGates(doc.Schemas["Body"]); len(g) != 0 {
+	if g := detectGates(document.Schemas["Body"]); len(g) != 0 {
 		t.Fatalf("gates=%+v, want none (single-value enum is not a gate)", g)
 	}
 }

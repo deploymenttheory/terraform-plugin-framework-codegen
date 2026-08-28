@@ -269,20 +269,20 @@ func TestPruneErrors(t *testing.T) {
 	}
 }
 
-func findField(t *testing.T, fbs []FieldBinding, attr string) FieldBinding {
+func findField(t *testing.T, fbs []FieldBinding, attribute string) FieldBinding {
 	t.Helper()
 	for _, fb := range fbs {
-		if fb.Attr == attr {
+		if fb.Attr == attribute {
 			return fb
 		}
 	}
-	t.Fatalf("no field binding for %q (have %v)", attr, fieldAttrs(fbs))
+	t.Fatalf("no field binding for %q (have %v)", attribute, fieldAttrs(fbs))
 	return FieldBinding{}
 }
 
-func fieldNamed(fbs []FieldBinding, attr string) bool {
+func fieldNamed(fbs []FieldBinding, attribute string) bool {
 	for _, fb := range fbs {
-		if fb.Attr == attr {
+		if fb.Attr == attribute {
 			return true
 		}
 	}
@@ -313,31 +313,31 @@ func findRemoval(t *testing.T, removed []Removal, kind, key, attribute string) R
 // collection builder's by-identifier hop.
 func indexerReceiver(t *testing.T, methods ...string) types.Type {
 	t.Helper()
-	pkg := types.NewPackage("example.com/sdk/things", "things")
+	goPackage := types.NewPackage("example.com/sdk/things", "things")
 	named := types.NewNamed(
-		types.NewTypeName(token.NoPos, pkg, "ThingsRequestBuilder", nil),
+		types.NewTypeName(token.NoPos, goPackage, "ThingsRequestBuilder", nil),
 		types.NewStruct(nil, nil), nil)
 
 	result := types.NewNamed(
-		types.NewTypeName(token.NoPos, pkg, "ItemRequestBuilder", nil),
+		types.NewTypeName(token.NoPos, goPackage, "ItemRequestBuilder", nil),
 		types.NewStruct(nil, nil), nil)
 
 	for _, name := range methods {
 		sig := types.NewSignatureType(
-			types.NewVar(token.NoPos, pkg, "m", types.NewPointer(named)), nil, nil,
-			types.NewTuple(types.NewVar(token.NoPos, pkg, "id", types.Typ[types.String])),
-			types.NewTuple(types.NewVar(token.NoPos, pkg, "", types.NewPointer(result))),
+			types.NewVar(token.NoPos, goPackage, "m", types.NewPointer(named)), nil, nil,
+			types.NewTuple(types.NewVar(token.NoPos, goPackage, "id", types.Typ[types.String])),
+			types.NewTuple(types.NewVar(token.NoPos, goPackage, "", types.NewPointer(result))),
 			false)
-		named.AddMethod(types.NewFunc(token.NoPos, pkg, name, sig))
+		named.AddMethod(types.NewFunc(token.NoPos, goPackage, name, sig))
 	}
 	// Every generated builder also carries hops that are not indexers; they
 	// must not be considered, whatever their arity.
 	getSig := types.NewSignatureType(
-		types.NewVar(token.NoPos, pkg, "m", types.NewPointer(named)), nil, nil,
-		types.NewTuple(types.NewVar(token.NoPos, pkg, "id", types.Typ[types.String])),
-		types.NewTuple(types.NewVar(token.NoPos, pkg, "", types.NewPointer(result))),
+		types.NewVar(token.NoPos, goPackage, "m", types.NewPointer(named)), nil, nil,
+		types.NewTuple(types.NewVar(token.NoPos, goPackage, "id", types.Typ[types.String])),
+		types.NewTuple(types.NewVar(token.NoPos, goPackage, "", types.NewPointer(result))),
 		false)
-	named.AddMethod(types.NewFunc(token.NoPos, pkg, "Get", getSig))
+	named.AddMethod(types.NewFunc(token.NoPos, goPackage, "Get", getSig))
 
 	return types.NewPointer(named)
 }

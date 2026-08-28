@@ -76,12 +76,12 @@ func (h *httpResult) mentions(attribute string) bool {
 // do sends one request: substitution, budget spend, host allowlist, rate
 // limit, auth, per-request timeout, logging. ent may be nil for requests
 // outside any entity (cleanup passes).
-func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpResult, error) {
-	if err := r.spend(ent); err != nil {
+func (r *runner) do(ctx context.Context, entity *entityState, spec reqSpec) (*httpResult, error) {
+	if err := r.spend(entity); err != nil {
 		return nil, err
 	}
 
-	path, err := r.resolvePath(ctx, ent, spec.path, spec.pathValues)
+	path, err := r.resolvePath(ctx, entity, spec.path, spec.pathValues)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpR
 
 	var rawBody []byte
 	if spec.body != nil {
-		resolved, err := r.resolveBody(ctx, ent, spec.body)
+		resolved, err := r.resolveBody(ctx, entity, spec.body)
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +118,7 @@ func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpR
 	var res *httpResult
 	for attempt := 1; ; attempt++ {
 		if attempt > 1 {
-			if err := r.spend(ent); err != nil {
+			if err := r.spend(entity); err != nil {
 				return res, nil
 			}
 		}
@@ -170,43 +170,43 @@ func (r *runner) send(ctx context.Context, u url.URL, spec reqSpec, rawBody []by
 
 	reqCtx, cancel := context.WithTimeout(ctx, r.opts.RequestTimeoutOrDefault())
 	defer cancel()
-	req, err := http.NewRequestWithContext(reqCtx, strings.ToUpper(spec.method), u.String(), bodyReader)
+	request, err := http.NewRequestWithContext(reqCtx, strings.ToUpper(spec.method), u.String(), bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("audit run: building %s %s: %w", spec.method, spec.path, err)
 	}
 	if rawBody != nil {
-		req.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set("Accept", "application/json")
-	if err := r.auth.apply(reqCtx, req); err != nil {
+	request.Header.Set("Accept", "application/json")
+	if err := r.auth.apply(reqCtx, request); err != nil {
 		return nil, err
 	}
 
 	if r.opts.beforeSend != nil {
-		r.opts.beforeSend(req)
+		r.opts.beforeSend(request)
 	}
 
 	start := time.Now()
-	resp, err := r.client.Do(req)
+	response, err := r.client.Do(request)
 	if err != nil {
-		r.log.Debug().Str("method", req.Method).Str("path", spec.path).Err(errRedacted(err, r.secretsNow())).Msg("request failed")
+		r.log.Debug().Str("method", request.Method).Str("path", spec.path).Err(errRedacted(err, r.secretsNow())).Msg("request failed")
 		return nil, fmt.Errorf("audit run: %s %s: %w", spec.method, spec.path, errRedacted(err, r.secretsNow()))
 	}
-	defer func() { _ = resp.Body.Close() }()
-	body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	defer func() { _ = response.Body.Close() }()
+	body, readErr := io.ReadAll(io.LimitReader(response.Body, 4<<20))
 	if readErr != nil {
 		return nil, fmt.Errorf("audit run: reading the %s %s response: %w", spec.method, spec.path, readErr)
 	}
 
 	res := &httpResult{
-		status:  resp.StatusCode,
+		status:  response.StatusCode,
 		body:    body,
-		header:  resp.Header.Clone(),
+		header:  response.Header.Clone(),
 		elapsed: time.Since(start),
 		excerpt: observe.Excerpt{
 			Method:           strings.ToUpper(spec.method),
 			PathTemplate:     spec.path,
-			Status:           resp.StatusCode,
+			Status:           response.StatusCode,
 			RequestFragment:  fragment(rawBody),
 			ResponseFragment: fragment(body),
 		},
@@ -234,7 +234,7 @@ func (r *runner) secretsNow() []string { return r.auth.secretValues() }
 // spend charges one request against the budgets, refusing before the
 // request is made. Boundary cleanups are exempt — they spend from their
 // own time allowance instead.
-func (r *runner) spend(ent *entityState) error {
+func (r *runner) spend(entity *entityState) error {
 	if r.inCleanup {
 		return nil
 	}
@@ -247,12 +247,12 @@ func (r *runner) spend(ent *entityState) error {
 	case r.reqTotal >= r.budget.Requests:
 		r.runOut = fmt.Sprintf("the run's request budget (%d) is exhausted", r.budget.Requests)
 		return budgetError{reason: r.runOut}
-	case ent != nil && ent.requests >= ent.plan.Budget.Requests:
-		return budgetError{reason: fmt.Sprintf("the entity's request budget (%d) is exhausted", ent.plan.Budget.Requests)}
+	case entity != nil && entity.requests >= entity.plan.Budget.Requests:
+		return budgetError{reason: fmt.Sprintf("the entity's request budget (%d) is exhausted", entity.plan.Budget.Requests)}
 	}
 	r.reqTotal++
-	if ent != nil {
-		ent.requests++
+	if entity != nil {
+		entity.requests++
 	}
 	return nil
 }
@@ -270,10 +270,10 @@ func (r *runner) guardMutation(u *url.URL) error {
 // resolvePath substitutes every path parameter and returns the concrete
 // path. Missing environment variables and unresolvable created-object
 // references surface as blockedError.
-func (r *runner) resolvePath(ctx context.Context, ent *entityState, path string, values map[string]string) (string, error) {
+func (r *runner) resolvePath(ctx context.Context, entity *entityState, path string, values map[string]string) (string, error) {
 	out := path
 	for parameter, v := range values {
-		resolved, err := r.resolveValue(ctx, ent, v)
+		resolved, err := r.resolveValue(ctx, entity, v)
 		if err != nil {
 			return "", err
 		}
@@ -287,28 +287,28 @@ func (r *runner) resolvePath(ctx context.Context, ent *entityState, path string,
 
 // resolveValue resolves one token: <runid>, ${VAR}, $created:<entity>, or
 // a literal.
-func (r *runner) resolveValue(ctx context.Context, ent *entityState, v string) (string, error) {
+func (r *runner) resolveValue(ctx context.Context, entity *entityState, v string) (string, error) {
 	v = strings.ReplaceAll(v, plan.RunIDToken, r.runID)
 	if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
 		name := v[2 : len(v)-1]
-		val, ok := r.opts.Lookup(name)
-		if !ok || val == "" {
+		value, ok := r.opts.Lookup(name)
+		if !ok || value == "" {
 			return "", blockedError{reason: fmt.Sprintf("the environment variable %s named by %s is not set", name, plan.InputsPath)}
 		}
-		return val, nil
+		return value, nil
 	}
-	if entity, ok := strings.CutPrefix(v, "$created:"); ok {
-		return r.resolveCreated(ctx, ent, entity)
+	if entityKey, ok := strings.CutPrefix(v, "$created:"); ok {
+		return r.resolveCreated(ctx, entity, entityKey)
 	}
 	return v, nil
 }
 
 // resolveBody substitutes tokens through the body's string values.
-func (r *runner) resolveBody(ctx context.Context, ent *entityState, body map[string]any) (map[string]any, error) {
+func (r *runner) resolveBody(ctx context.Context, entity *entityState, body map[string]any) (map[string]any, error) {
 	out := make(map[string]any, len(body))
 	for k, v := range body {
 		if s, ok := v.(string); ok {
-			resolved, err := r.resolveValue(ctx, ent, s)
+			resolved, err := r.resolveValue(ctx, entity, s)
 			if err != nil {
 				return nil, err
 			}
@@ -348,13 +348,13 @@ func rawOrNull(raw json.RawMessage) json.RawMessage {
 // errRedacted removes secret values from an error's text — a URL error
 // can embed the full request URL.
 func errRedacted(err error, secrets []string) error {
-	msg := err.Error()
+	message := err.Error()
 	for _, s := range secrets {
 		if s != "" {
-			msg = strings.ReplaceAll(msg, s, "[redacted]")
+			message = strings.ReplaceAll(message, s, "[redacted]")
 		}
 	}
-	return fmt.Errorf("%s", msg)
+	return fmt.Errorf("%s", message)
 }
 
 // items digs the object list out of a collection response: a bare array,

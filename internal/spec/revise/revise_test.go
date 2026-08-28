@@ -33,10 +33,10 @@ const upstreamJSON = `{"openapi":"3.0.3","info":{"title":"sample","version":"1.2
 	`"components":{"schemas":{"RepeatType":{"type":"string","enum":["day","week"]}}}}`
 
 // pinned imports doc into a fresh spec directory and returns it.
-func pinned(t *testing.T, doc string) string {
+func pinned(t *testing.T, document string) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "spec")
-	if _, err := store.Import(dir, []byte(doc), "published.yaml"); err != nil {
+	if _, err := store.Import(dir, []byte(document), "published.yaml"); err != nil {
 		t.Fatalf("Import: %v", err)
 	}
 	return dir
@@ -70,11 +70,11 @@ func revisedEnum(t *testing.T, dir string) []any {
 	if err != nil {
 		t.Fatalf("reading %s: %v", OutputName, err)
 	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(data, &doc); err != nil {
+	var document map[string]any
+	if err := yaml.Unmarshal(data, &document); err != nil {
 		t.Fatalf("%s is not usable YAML: %v", OutputName, err)
 	}
-	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+	schemas := document["components"].(map[string]any)["schemas"].(map[string]any)
 	return schemas["RepeatType"].(map[string]any)["enum"].([]any)
 }
 

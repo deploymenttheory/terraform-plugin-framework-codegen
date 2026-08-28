@@ -34,10 +34,10 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	})
 
 	p := derivedPlan(t)
-	obs, sum := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+	obs, summary := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
 	// The lifecycle completed and left nothing behind.
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Fatalf("thing status = %+v, want audited", got)
 	}
 	if left := s.Objects(); len(left) != 0 {
@@ -121,7 +121,7 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	}
 	// The unknown-field probe's finding landed on the summary: this API
 	// accepts and ignores a body field no schema declares.
-	if got, ok := sum.RejectsUnknownFields["thing"]; !ok || got {
+	if got, ok := summary.RejectsUnknownFields["thing"]; !ok || got {
 		t.Errorf("rejectsUnknownFields = %v (recorded %v), want false", got, ok)
 	}
 	// VolatileFields("etag") is also a field thingSpec never declares: the
@@ -136,10 +136,10 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	}
 
 	// Budgets were respected and reported.
-	if sum.Requests == 0 || sum.Requests > sum.RequestBudget {
-		t.Errorf("requests = %d of %d", sum.Requests, sum.RequestBudget)
+	if summary.Requests == 0 || summary.Requests > summary.RequestBudget {
+		t.Errorf("requests = %d of %d", summary.Requests, summary.RequestBudget)
 	}
-	if sum.ObjectsCreated == 0 {
+	if summary.ObjectsCreated == 0 {
 		t.Error("no objects were created by a full lifecycle run")
 	}
 	// Every observation carries the run's stamps.
@@ -161,9 +161,9 @@ func TestUnit_Run_EventuallyConsistentReadsMeasureTheLag(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{EventuallyConsistentReads: 2})
 
-	obs, sum := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	obs, summary := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Fatalf("thing status = %+v, want audited", got)
 	}
 	ra := wantConfirmed(t, obs, "thing", "", observe.KindReadAfterWrite)
@@ -190,7 +190,7 @@ func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 	})
 
 	p := derivedPlan(t)
-	obs, sum := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+	obs, summary := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
 	values := findObs(obs, "thing", "color", observe.KindValues)
 	if values == nil || values.Outcome != observe.OutcomeConfirmed {
@@ -205,7 +205,7 @@ func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 	if left := s.Objects(); len(left) != 0 {
 		t.Errorf("bisection left objects behind: %v", left)
 	}
-	_ = sum
+	_ = summary
 }
 
 // TestUnit_Run_PutFullReplaceIsObserved drives the full-replace footgun:
@@ -235,7 +235,7 @@ func TestUnit_Run_RedactionHoldsEndToEnd(t *testing.T) {
 	})
 
 	var logs bytes.Buffer
-	obs, sum := mustRun(t, testOptions(t, s, derivedPlan(t), testEnv(), &logs))
+	obs, summary := mustRun(t, testOptions(t, s, derivedPlan(t), testEnv(), &logs))
 
 	outDir := t.TempDir()
 	if err := observe.Write(outDir, obs); err != nil {
@@ -257,7 +257,7 @@ func TestUnit_Run_RedactionHoldsEndToEnd(t *testing.T) {
 	if strings.Contains(logs.String(), testToken) {
 		t.Fatal("the debug log contains the bearer token")
 	}
-	if raw, _ := json.Marshal(sum); bytes.Contains(raw, []byte(testToken)) {
+	if raw, _ := json.Marshal(summary); bytes.Contains(raw, []byte(testToken)) {
 		t.Fatal("the summary contains the bearer token")
 	}
 }
@@ -283,14 +283,14 @@ func TestUnit_Run_MissingEnvVarBlocksTheEntityAndTheRunContinues(t *testing.T) {
 	})
 	_ = seeded
 
-	obs, sum, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
+	obs, summary, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
 	if err != nil {
 		t.Fatalf("a blocked entity must not fail the run: %v", err)
 	}
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Errorf("thing status = %+v, want audited", got)
 	}
-	blocked := entityStatus(t, sum, "gadget")
+	blocked := entityStatus(t, summary, "gadget")
 	if blocked.Status != StatusBlocked || !strings.Contains(blocked.Reason, "TFPFGEN_TEST_UNSET_VAR") {
 		t.Errorf("gadget = %+v, want blocked naming the variable", blocked)
 	}
@@ -317,13 +317,13 @@ func TestUnit_Run_CreatedChainingRecreatesTheParent(t *testing.T) {
 		}},
 	})
 
-	_, sum := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+	_, summary := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
-	if got := entityStatus(t, sum, "gadget"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "gadget"); got.Status != StatusAudited {
 		t.Fatalf("gadget = %+v, want audited via a re-created parent", got)
 	}
-	if sum.ObjectsCreated < 2 {
-		t.Errorf("objects created = %d, want at least 2 (the original and the re-creation)", sum.ObjectsCreated)
+	if summary.ObjectsCreated < 2 {
+		t.Errorf("objects created = %d, want at least 2 (the original and the re-creation)", summary.ObjectsCreated)
 	}
 	if left := s.Objects(); len(left) != 0 {
 		t.Errorf("the re-created parent was not removed: %v", left)
@@ -349,11 +349,11 @@ func TestUnit_Run_BudgetExhaustionRecordsAndMovesOn(t *testing.T) {
 		}},
 	})
 
-	obs, sum, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
+	obs, summary, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
 	if err != nil {
 		t.Fatalf("budget exhaustion must not fail the run: %v", err)
 	}
-	exhausted := entityStatus(t, sum, "thing")
+	exhausted := entityStatus(t, summary, "thing")
 	if exhausted.Status != StatusTimeoutExhausted {
 		t.Fatalf("thing = %+v, want timeoutExhausted", exhausted)
 	}
@@ -361,7 +361,7 @@ func TestUnit_Run_BudgetExhaustionRecordsAndMovesOn(t *testing.T) {
 	if o == nil || o.Outcome != observe.OutcomeTimeoutExhausted {
 		t.Errorf("deleteNotFoundOK = %+v, want a timeoutExhausted record", o)
 	}
-	if got := entityStatus(t, sum, "gadget"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "gadget"); got.Status != StatusAudited {
 		t.Errorf("gadget = %+v, want audited after the exhausted entity", got)
 	}
 	// The end-of-run cleanup still removed the object the exhausted

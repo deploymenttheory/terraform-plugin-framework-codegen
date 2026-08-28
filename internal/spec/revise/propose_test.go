@@ -392,37 +392,37 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(revised, &doc); err != nil {
+	var document map[string]any
+	if err := yaml.Unmarshal(revised, &document); err != nil {
 		t.Fatalf("revised.yaml is not usable YAML: %v", err)
 	}
 
-	tag := doc["components"].(map[string]any)["schemas"].(map[string]any)["Tag"].(map[string]any)
-	props := tag["properties"].(map[string]any)
-	if req, ok := tag["required"].([]any); !ok || len(req) != 1 || req[0] != "name" {
+	tag := document["components"].(map[string]any)["schemas"].(map[string]any)["Tag"].(map[string]any)
+	properties := tag["properties"].(map[string]any)
+	if request, ok := tag["required"].([]any); !ok || len(request) != 1 || request[0] != "name" {
 		t.Errorf("required = %v, want [name]", tag["required"])
 	}
-	if ro := props["size"].(map[string]any)["readOnly"]; ro != true {
+	if ro := properties["size"].(map[string]any)["readOnly"]; ro != true {
 		t.Errorf("size.readOnly = %v, want true", ro)
 	}
-	if co := props["name"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
+	if co := properties["name"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
 		t.Errorf("name create-only = %v, want true", co)
 	}
-	if def := props["mode"].(map[string]any)["x-tfpfgen-server-default"]; def != "auto" {
+	if def := properties["mode"].(map[string]any)["x-tfpfgen-server-default"]; def != "auto" {
 		t.Errorf("mode server-default = %v, want auto", def)
 	}
-	rw, ok := props["port"].(map[string]any)["x-tfpfgen-required-when"].(map[string]any)
+	rw, ok := properties["port"].(map[string]any)["x-tfpfgen-required-when"].(map[string]any)
 	if !ok || rw["property"] != "protocol" || rw["equals"] != "tcp" {
-		t.Errorf("port required-when = %v, want protocol=tcp", props["port"])
+		t.Errorf("port required-when = %v, want protocol=tcp", properties["port"])
 	}
-	color := props["color"].(map[string]any)
+	color := properties["color"].(map[string]any)
 	if enum, ok := color["enum"].([]any); !ok || len(enum) != 2 || enum[0] != "red" || enum[1] != "green" {
 		t.Errorf("color.enum = %v, want [red green]", color["enum"])
 	}
 	if open := color["x-tfpfgen-values-open"]; open != true {
 		t.Errorf("color values-open = %v, want true", open)
 	}
-	item := doc["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)
+	item := document["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)
 	if style := item["put"].(map[string]any)["x-tfpfgen-update-style"]; style != "put-full" {
 		t.Errorf("update style = %v, want put-full", style)
 	}

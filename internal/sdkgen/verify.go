@@ -104,11 +104,11 @@ func Verify(ctx context.Context, opts Options) (Report, error) {
 	}
 
 	display := displayPath(opts.Root, outAbs)
-	for rel, sum := range want {
+	for rel, summary := range want {
 		switch haveSum, there := have[rel]; {
 		case !there:
 			rep.Drifts = append(rep.Drifts, Drift{Kind: DriftMissing, Path: path.Join(display, rel)})
-		case haveSum != sum:
+		case haveSum != summary:
 			rep.Drifts = append(rep.Drifts, Drift{Kind: DriftChanged, Path: path.Join(display, rel)})
 		}
 	}
@@ -156,8 +156,8 @@ func treeDigests(dir string) (map[string]string, error) {
 		if err != nil {
 			return err
 		}
-		sum := sha256.Sum256(data)
-		out[filepath.ToSlash(rel)] = hex.EncodeToString(sum[:])
+		summary := sha256.Sum256(data)
+		out[filepath.ToSlash(rel)] = hex.EncodeToString(summary[:])
 		return nil
 	})
 	if err != nil {
@@ -204,8 +204,8 @@ func manifestMismatches(root string) ([]Drift, error) {
 		if err != nil {
 			return nil, err
 		}
-		sum := sha256.Sum256(data)
-		if hex.EncodeToString(sum[:]) != e.SHA256 {
+		summary := sha256.Sum256(data)
+		if hex.EncodeToString(summary[:]) != e.SHA256 {
 			out = append(out, Drift{Kind: DriftHandEdited, Path: e.Path})
 		}
 	}

@@ -100,7 +100,7 @@ func parseEntityInputs(entity string, raw json.RawMessage) (EntityInputs, error)
 	}
 	sort.Strings(parameters)
 	for _, parameter := range parameters {
-		if val := ei.ParentRefs[parameter]; val == "" || val == envRefOpen+envRefClose {
+		if value := ei.ParentRefs[parameter]; value == "" || value == envRefOpen+envRefClose {
 			return EntityInputs{}, fmt.Errorf("%s: entity %q: parentRefs.%s: must be a literal or ${VAR} naming an environment variable",
 				InputsPath, entity, parameter)
 		}

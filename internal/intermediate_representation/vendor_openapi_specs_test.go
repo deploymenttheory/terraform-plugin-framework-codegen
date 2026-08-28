@@ -14,12 +14,12 @@ import (
 // The inline fixtures prove each rule in isolation; this proves derivation
 // against a real vendor document, where the shapes were not chosen to pass.
 func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *testing.T) {
-	doc, err := specmodel.Load(vendor_openapi_specs.ThousandEyes())
+	document, err := specmodel.Load(vendor_openapi_specs.ThousandEyes())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 
-	m, err := Derive(doc, testConfig())
+	m, err := Derive(document, testConfig())
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *
 
 	// Purity at scale: a second derivation of the same loaded document is
 	// equal in value and in bytes.
-	again, err := Derive(doc, testConfig())
+	again, err := Derive(document, testConfig())
 	if err != nil {
 		t.Fatalf("second Derive: %v", err)
 	}

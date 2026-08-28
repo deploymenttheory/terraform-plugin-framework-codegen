@@ -222,11 +222,11 @@ components:
 
 func loadDoc(t *testing.T, spec string) *specmodel.Document {
 	t.Helper()
-	doc, err := specmodel.Load([]byte(spec))
+	document, err := specmodel.Load([]byte(spec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	return doc
+	return document
 }
 
 func testConfig() *config.Config {
@@ -245,9 +245,9 @@ func widgetInputs(t *testing.T) *Inputs {
 	return in
 }
 
-func mustDerive(t *testing.T, doc *specmodel.Document, cfg *config.Config, in *Inputs) *Plan {
+func mustDerive(t *testing.T, document *specmodel.Document, configuration *config.Config, in *Inputs) *Plan {
 	t.Helper()
-	p, err := Derive(doc, cfg, in)
+	p, err := Derive(document, configuration, in)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -282,9 +282,9 @@ func kinds(steps []Step) []StepKind {
 }
 
 func TestUnit_Plan_DeriveIsDeterministic(t *testing.T) {
-	cfg := testConfig()
-	p1 := mustDerive(t, loadDoc(t, fixtureSpec), cfg, widgetInputs(t))
-	p2 := mustDerive(t, loadDoc(t, fixtureSpec), cfg, widgetInputs(t))
+	configuration := testConfig()
+	p1 := mustDerive(t, loadDoc(t, fixtureSpec), configuration, widgetInputs(t))
+	p2 := mustDerive(t, loadDoc(t, fixtureSpec), configuration, widgetInputs(t))
 
 	if !reflect.DeepEqual(p1, p2) {
 		t.Fatal("two derivations of the same inputs are not DeepEqual")
@@ -525,9 +525,9 @@ func TestUnit_Plan_SkipHandling(t *testing.T) {
 	}
 
 	// services.exclude does the same from config.
-	cfg := testConfig()
-	cfg.Services.Exclude = []string{"project"}
-	p = mustDerive(t, loadDoc(t, fixtureSpec), cfg, nil)
+	configuration := testConfig()
+	configuration.Services.Exclude = []string{"project"}
+	p = mustDerive(t, loadDoc(t, fixtureSpec), configuration, nil)
 	found := false
 	for _, s := range p.Skipped {
 		found = found || (s.Entity == "project" && strings.Contains(s.Reason, "services.exclude"))
@@ -580,7 +580,7 @@ func TestUnit_Plan_RunBudget(t *testing.T) {
 // live run: a resource whose create slot is empty because it is written
 // through its update call. One entity is refused; the rest of the run stands.
 func TestUnit_Plan_ASingletonIsRefusedNotPanicked(t *testing.T) {
-	doc := loadDoc(t, `
+	document := loadDoc(t, `
 openapi: 3.0.1
 info: {title: t, version: "1"}
 paths:
@@ -602,7 +602,7 @@ paths:
             application/json:
               schema: {type: object, properties: {name: {type: string}}}
 `)
-	p, err := Derive(doc, testConfig(), &Inputs{})
+	p, err := Derive(document, testConfig(), &Inputs{})
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}

@@ -38,21 +38,21 @@ func do(t *testing.T, method, url string, body map[string]any) (int, map[string]
 		r = bytes.NewReader(encoded)
 	}
 
-	req, err := http.NewRequest(method, url, r) //nolint:noctx // a test fixture
+	request, err := http.NewRequest(method, url, r) //nolint:noctx // a test fixture
 	if err != nil {
 		t.Fatalf("NewRequest: %v", err)
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("%s %s: %v", method, url, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = response.Body.Close() }()
 
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatalf("reading the body: %v", err)
 	}
@@ -65,7 +65,7 @@ func do(t *testing.T, method, url string, body map[string]any) (int, map[string]
 		}
 	}
 
-	return resp.StatusCode, out
+	return response.StatusCode, out
 }
 
 // TestUnit_Quirkserver_EachQuirkIsExhibited asserts that every switch actually
@@ -184,20 +184,20 @@ func TestUnit_Quirkserver_RejectsMalformedAndUnsupported(t *testing.T) {
 
 	s := New(t, Quirks{})
 
-	req, err := http.NewRequest(http.MethodPost, s.CollectionURL(), strings.NewReader("{not json")) //nolint:noctx // a test fixture
+	request, err := http.NewRequest(http.MethodPost, s.CollectionURL(), strings.NewReader("{not json")) //nolint:noctx // a test fixture
 	if err != nil {
 		t.Fatalf("NewRequest: %v", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("Do: %v", err)
 	}
-	_ = resp.Body.Close()
+	_ = response.Body.Close()
 
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("a malformed body should give 400, got %d", resp.StatusCode)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Errorf("a malformed body should give 400, got %d", response.StatusCode)
 	}
 
 	// A malformed update body, same contract.

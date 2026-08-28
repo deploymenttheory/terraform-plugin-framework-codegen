@@ -44,8 +44,8 @@ func TestUnit_BindContext_HarnessAndInPlaceAgree(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for path, sum := range first {
-		if second[path] != sum {
+	for path, summary := range first {
+		if second[path] != summary {
 			t.Errorf("%s differs between the harness-bound and in-place-bound runs", path)
 		}
 	}

@@ -269,16 +269,16 @@ type Strategy struct {
 // access is a read yields a read-only strategy. An entity that is neither is an
 // error: the caller decides what to audit, and a strategy for something with no
 // exercisable surface would be an empty program masquerading as a plan.
-func Compile(doc *specmodel.Document, class specmodel.Classification, cfg *config.Config) (*Strategy, error) {
-	if doc == nil {
+func Compile(document *specmodel.Document, class specmodel.Classification, configuration *config.Config) (*Strategy, error) {
+	if document == nil {
 		return nil, fmt.Errorf("strategy: the document is nil")
 	}
-	if cfg == nil {
+	if configuration == nil {
 		return nil, fmt.Errorf("strategy: the config is nil")
 	}
 
 	if hasKind(class, specmodel.KindResource) {
-		return compileResource(doc, class, cfg)
+		return compileResource(document, class, configuration)
 	}
 	if class.Read != nil {
 		return compileReadOnly(class), nil
@@ -310,8 +310,8 @@ func compileReadOnly(class specmodel.Classification) *Strategy {
 }
 
 // compileResource builds the writing strategy for a full-lifecycle resource.
-func compileResource(doc *specmodel.Document, class specmodel.Classification, cfg *config.Config) (*Strategy, error) {
-	createOp := findOp(doc, class.Create)
+func compileResource(document *specmodel.Document, class specmodel.Classification, configuration *config.Config) (*Strategy, error) {
+	createOp := findOp(document, class.Create)
 	if createOp == nil || createOp.RequestBody == nil {
 		return nil, fmt.Errorf("strategy: resource %q has no create request body to compile against", class.Key)
 	}
@@ -329,7 +329,7 @@ func compileResource(doc *specmodel.Document, class specmodel.Classification, cf
 		Hypotheses: hyps,
 	}
 	s.Program = buildProgram(createBody, gates, variants, hyps)
-	s.Budget = deriveBudget(s.Program, cfg)
+	s.Budget = deriveBudget(s.Program, configuration)
 	return s, nil
 }
 
@@ -338,24 +338,24 @@ func compileResource(doc *specmodel.Document, class specmodel.Classification, cf
 // for a given strategy — struct fields encode in declaration order and maps
 // encode sorted.
 func (s *Strategy) JSON() ([]byte, error) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(s); err != nil {
 		return nil, fmt.Errorf("encoding the strategy: %w", err)
 	}
-	return buf.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 // findOp resolves a classification operation reference to the loaded
 // operation, nil when the reference is nil or unresolvable.
-func findOp(doc *specmodel.Document, ref *specmodel.OperationReference) *specmodel.Operation {
+func findOp(document *specmodel.Document, ref *specmodel.OperationReference) *specmodel.Operation {
 	if ref == nil {
 		return nil
 	}
-	for pi := range doc.Paths {
-		p := &doc.Paths[pi]
+	for pi := range document.Paths {
+		p := &document.Paths[pi]
 		if p.Path != ref.Path {
 			continue
 		}

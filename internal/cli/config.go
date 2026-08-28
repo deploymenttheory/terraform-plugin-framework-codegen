@@ -32,21 +32,21 @@ func newConfigValidateCommand() *cobra.Command {
 		Short: "check tfpfgen.yaml and, with --secrets, the environment",
 		Args:  exactArgs("tfpfgen config validate [--file tfpfgen.yaml] [--secrets]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(file)
+			configuration, err := config.Load(file)
 			if err != nil {
 				return err
 			}
 
 			if secrets {
-				missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv)
+				missing := config.MissingSecrets(configuration.Auth.Method, os.LookupEnv)
 				if len(missing) > 0 {
 					return fmt.Errorf("auth.method %s needs repository secrets that are not set: %v",
-						cfg.Auth.Method, missing)
+						configuration.Auth.Method, missing)
 				}
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "%s is valid: provider %s, backend %s@%s, auth %s\n",
-				file, cfg.Provider.Name, cfg.SDK.Backend, cfg.SDK.BackendVersion, cfg.Auth.Method)
+				file, configuration.Provider.Name, configuration.SDK.Backend, configuration.SDK.BackendVersion, configuration.Auth.Method)
 			return nil
 		},
 	}

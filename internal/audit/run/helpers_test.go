@@ -144,14 +144,14 @@ func lookupOf(env map[string]string) func(string) (string, bool) {
 // derivedPlan derives the thing plan the way the CLI would.
 func derivedPlan(t *testing.T) *plan.Plan {
 	t.Helper()
-	doc, err := specmodel.Load([]byte(thingSpec))
+	document, err := specmodel.Load([]byte(thingSpec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := &config.Config{
+	configuration := &config.Config{
 		Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2},
 	}
-	p, err := plan.Derive(doc, cfg, nil)
+	p, err := plan.Derive(document, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -197,11 +197,11 @@ func mustRun(t *testing.T, opts Options) ([]observe.Observation, Summary) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	obs, sum, err := Run(ctx, opts)
+	obs, summary, err := Run(ctx, opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	return obs, sum
+	return obs, summary
 }
 
 // findObs locates one observation by its identity.
@@ -237,14 +237,14 @@ func observationIndex(obs []observe.Observation) []string {
 }
 
 // entityStatus finds one entity's result in a summary.
-func entityStatus(t *testing.T, sum Summary, entity string) EntityResult {
+func entityStatus(t *testing.T, summary Summary, entity string) EntityResult {
 	t.Helper()
-	for _, e := range sum.Entities {
+	for _, e := range summary.Entities {
 		if e.Entity == entity {
 			return e
 		}
 	}
-	t.Fatalf("no entity %q in the summary: %+v", entity, sum.Entities)
+	t.Fatalf("no entity %q in the summary: %+v", entity, summary.Entities)
 	return EntityResult{}
 }
 

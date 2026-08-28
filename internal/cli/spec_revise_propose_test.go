@@ -122,8 +122,8 @@ func TestUnit_SpecRevise_FreshObservationsProposeThenFailTheGate(t *testing.T) {
 
 func TestUnit_SpecRevise_AutoAcceptedKindsMaterializeInOneRun(t *testing.T) {
 	root, specDir := observedTree(t)
-	cfg := filepath.Join(root, "tfpfgen.yaml")
-	writeUnder(t, cfg, `version: 1
+	configuration := filepath.Join(root, "tfpfgen.yaml")
+	writeUnder(t, configuration, `version: 1
 provider:
   name: example
   registry_namespace: example-org
@@ -142,7 +142,7 @@ audit:
     - deleteNotFoundOK
 `)
 
-	code, stdout, stderr := run(t, "spec", "revise", "--dir", specDir, "--config", cfg)
+	code, stdout, stderr := run(t, "spec", "revise", "--dir", specDir, "--config", configuration)
 	if code != ExitOK {
 		t.Fatalf("exit code = %d, want %d (stderr: %s)", code, ExitOK, stderr)
 	}
@@ -175,8 +175,8 @@ func TestUnit_SpecRevise_RefusesAnExplicitConfigThatDoesNotExist(t *testing.T) {
 
 func TestUnit_SpecRevise_RefusesAnUnknownAutoAcceptKindFromConfig(t *testing.T) {
 	root, specDir := observedTree(t)
-	cfg := filepath.Join(root, "tfpfgen.yaml")
-	writeUnder(t, cfg, `version: 1
+	configuration := filepath.Join(root, "tfpfgen.yaml")
+	writeUnder(t, configuration, `version: 1
 provider:
   name: example
   registry_namespace: example-org
@@ -194,7 +194,7 @@ audit:
     - deleteNotFound
 `)
 
-	code, _, stderr := run(t, "spec", "revise", "--dir", specDir, "--config", cfg)
+	code, _, stderr := run(t, "spec", "revise", "--dir", specDir, "--config", configuration)
 	if code != ExitFailure {
 		t.Fatalf("exit code = %d, want %d", code, ExitFailure)
 	}

@@ -9,9 +9,9 @@ import (
 
 // declarationOf renders one attribute through a builder of the given kind, which is
 // the whole of what a presence, a sensitivity or a deprecation decides.
-func declarationOf(kind schemaKind, attr ir.Attribute) string {
+func declarationOf(kind schemaKind, attribute ir.Attribute) string {
 	sb := &schemaBuilder{kind: kind, imports: newImportSet("example.com/m")}
-	return sb.attributeDeclaration(node{attr: attr}, 0)
+	return sb.attributeDeclaration(node{attribute: attribute}, 0)
 }
 
 // TestUnit_AttributeDecl_MarksASecretSensitive proves a value the document

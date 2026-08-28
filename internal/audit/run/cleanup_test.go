@@ -21,12 +21,12 @@ func TestUnit_Cleanup_RemovesPrefixedLeftoversOnly(t *testing.T) {
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun2-thing-name"})
 	foreign := s.Seed(map[string]any{"name": "production-object"})
 
-	sum, err := Cleanup(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	summary, err := Cleanup(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatalf("Cleanup: %v", err)
 	}
-	if sum.PrefixDeletes != 2 {
-		t.Errorf("prefix deletes = %d, want 2", sum.PrefixDeletes)
+	if summary.PrefixDeletes != 2 {
+		t.Errorf("prefix deletes = %d, want 2", summary.PrefixDeletes)
 	}
 	left := s.Objects()
 	if len(left) != 1 {
@@ -55,12 +55,12 @@ func TestUnit_Cleanup_ReplaysACrashedRunsLedger(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sum, err := Cleanup(context.Background(), opts)
+	summary, err := Cleanup(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Cleanup: %v", err)
 	}
-	if sum.LedgerDeletes != 1 {
-		t.Errorf("ledger deletes = %d, want 1", sum.LedgerDeletes)
+	if summary.LedgerDeletes != 1 {
+		t.Errorf("ledger deletes = %d, want 1", summary.LedgerDeletes)
 	}
 	if len(s.Objects()) != 0 {
 		t.Errorf("the ledgered orphan survived: %v", s.Objects())
@@ -78,9 +78,9 @@ func TestUnit_Cleanup_RunBoundaryCleanupRemovesPriorDebris(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun9-thing-name"})
 
-	_, sum := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
-	if sum.CleanupStart.PrefixDeletes != 1 {
-		t.Errorf("start cleanup deletes = %d, want 1", sum.CleanupStart.PrefixDeletes)
+	_, summary := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	if summary.CleanupStart.PrefixDeletes != 1 {
+		t.Errorf("start cleanup deletes = %d, want 1", summary.CleanupStart.PrefixDeletes)
 	}
 	if len(s.Objects()) != 0 {
 		t.Errorf("objects remain: %v", s.Objects())
@@ -95,14 +95,14 @@ func TestUnit_Cleanup_FailedDeletesReportOrphans(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{DeleteFails: true})
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun3-thing-name"})
 
-	sum, err := Cleanup(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	summary, err := Cleanup(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err == nil {
 		t.Fatal("orphans must fail the cleanup")
 	}
-	if len(sum.Orphans) == 0 {
+	if len(summary.Orphans) == 0 {
 		t.Fatal("no orphans were reported")
 	}
-	raw, _ := json.Marshal(sum)
+	raw, _ := json.Marshal(summary)
 	if !strings.Contains(string(raw), "answered 500") {
 		t.Errorf("the orphan line does not carry the delete status: %s", raw)
 	}

@@ -27,7 +27,7 @@ type field struct {
 // fields, so a read-only property is never a skeleton field, a gate or an
 // update target.
 func flatFields(s *specmodel.Schema) []field {
-	var props []specmodel.Property
+	var properties []specmodel.Property
 	required := map[string]bool{}
 	seen := map[string]bool{}
 
@@ -40,7 +40,7 @@ func flatFields(s *specmodel.Schema) []field {
 		for _, p := range r.Properties {
 			if !seen[p.Name] {
 				seen[p.Name] = true
-				props = append(props, p)
+				properties = append(properties, p)
 			}
 		}
 		for _, name := range r.Required {
@@ -52,8 +52,8 @@ func flatFields(s *specmodel.Schema) []field {
 	}
 	walk(s, 0)
 
-	out := make([]field, 0, len(props))
-	for _, p := range props {
+	out := make([]field, 0, len(properties))
+	for _, p := range properties {
 		if p.Schema.Resolved().ReadOnly {
 			continue
 		}
@@ -136,10 +136,10 @@ func isBool(s *specmodel.Schema) bool {
 // the one synthesis reaches for, and the document's first member is a better
 // guess at a workable value than whichever one sorts first as text. Type is
 // kept because these values are sent on the wire.
-func dedupeValues(vals []any) []any {
+func dedupeValues(values []any) []any {
 	seen := map[string]bool{}
-	out := make([]any, 0, len(vals))
-	for _, v := range vals {
+	out := make([]any, 0, len(values))
+	for _, v := range values {
 		s := stringifyScalar(v)
 		if !seen[s] {
 			seen[s] = true
@@ -153,10 +153,10 @@ func dedupeValues(vals []any) []any {
 // de-duplicated, so a value list is byte-stable however the document spelled
 // the scalars. It is for prose and comparison only — never for a value that
 // goes on the wire, which must keep the type dedupeValues preserves.
-func stringifyValues(vals []any) []string {
+func stringifyValues(values []any) []string {
 	seen := map[string]bool{}
-	out := make([]string, 0, len(vals))
-	for _, v := range vals {
+	out := make([]string, 0, len(values))
+	for _, v := range values {
 		s := stringifyScalar(v)
 		if !seen[s] {
 			seen[s] = true

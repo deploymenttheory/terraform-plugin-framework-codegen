@@ -34,14 +34,14 @@ type Backend interface {
 	// Name is the config value that selects this backend.
 	Name() string
 	// RequiredVersion is the exact tool version the config pins.
-	RequiredVersion(cfg *config.Config) string
+	RequiredVersion(configuration *config.Config) string
 	// CheckTool finds the tool on PATH, asks it for its version, and refuses
 	// on a mismatch naming both versions. The toolkit never downloads the
 	// tool — the refusal says how to install the pinned one.
-	CheckTool(ctx context.Context, cfg *config.Config) error
+	CheckTool(ctx context.Context, configuration *config.Config) error
 	// Generate invokes the tool over the pre-normalized revised document,
 	// writing the SDK tree into outDir.
-	Generate(ctx context.Context, revisedSpecPath string, cfg *config.Config, outDir string) error
+	Generate(ctx context.Context, revisedSpecPath string, configuration *config.Config, outDir string) error
 	// Normalize scrubs the nondeterminism the tool's output carries —
 	// timestamps, temp-file paths — so regeneration from unchanged inputs is
 	// byte-identical. recordedSpecPath is the durable, repo-relative path of
@@ -51,21 +51,21 @@ type Backend interface {
 }
 
 // For returns the backend cfg selects, or an error naming the supported set.
-func For(cfg *config.Config) (Backend, error) {
-	switch cfg.SDK.Backend {
+func For(configuration *config.Config) (Backend, error) {
+	switch configuration.SDK.Backend {
 	case config.BackendKiota:
 		return kiotaBackend{}, nil
 	case config.BackendOpenAPIGenerator:
 		return openAPIGeneratorBackend{}, nil
 	default:
 		return nil, fmt.Errorf("sdk.backend %q is not a supported backend (%s | %s)",
-			cfg.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
+			configuration.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
 	}
 }
 
-// semverRE extracts the leading version from a tool's version output, which
+// semverPattern extracts the leading version from a tool's version output, which
 // may carry build metadata after a plus (e.g. "1.34.1+heads/main...").
-var semverRE = regexp.MustCompile(`\d+\.\d+\.\d+`)
+var semverPattern = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 // runTool executes one tool invocation, capturing both streams so a failure
 // carries the tool's own explanation.
@@ -89,7 +89,7 @@ func toolVersion(ctx context.Context, name string, extraEnv []string, versionArg
 	if err != nil {
 		return "", err
 	}
-	v := semverRE.FindString(out)
+	v := semverPattern.FindString(out)
 	if v == "" {
 		return "", fmt.Errorf("could not read a version from `%s %s` output: %q",
 			name, strings.Join(versionArgs, " "), strings.TrimSpace(out))
@@ -134,11 +134,11 @@ func scrubDatedHeaders(root string) error {
 			return err
 		}
 
-		src, err := os.ReadFile(path) //nolint:gosec // walking the tree this run wrote
+		source, err := os.ReadFile(path) //nolint:gosec // walking the tree this run wrote
 		if err != nil {
 			return err
 		}
-		lines := strings.SplitAfter(string(src), "\n")
+		lines := strings.SplitAfter(string(source), "\n")
 		changed := false
 		kept := lines[:0]
 		for i, line := range lines {

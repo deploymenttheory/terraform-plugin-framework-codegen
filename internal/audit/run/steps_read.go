@@ -17,13 +17,13 @@ import (
 // tenant would revise to a different spec each audit. An object readable on the
 // first attempt lagged not at all: zero. The read body is the evidence every
 // per-field conclusion draws on.
-func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *plan.Step) error {
-	if ent.idUnknown {
+func (r *runner) runReadWithRetry(ctx context.Context, entity *entityState, step *plan.Step) error {
+	if entity.idUnknown {
 		// The object was created but its id could not be learned, so there is
 		// no item URL to read it back at. The read-after-write claim is
 		// inconclusive — recorded, not silently skipped — and the entity keeps
 		// going: its create-only findings are still worth gathering.
-		r.record(ent.plan.Entity, "", observe.KindReadAfterWrite, nil, nil, observe.OutcomeInconclusive)
+		r.record(entity.plan.Entity, "", observe.KindReadAfterWrite, nil, nil, observe.OutcomeInconclusive)
 		return nil
 	}
 	interval, timeout := pollBounds(step.Poll)
@@ -32,18 +32,18 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 	var last *httpResult
 	polls := 0
 	for {
-		res, err := r.do(ctx, ent, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
+		res, err := r.do(ctx, entity, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
 		if err != nil {
 			return err
 		}
 		last = res
 		if res.ok() && res.object() != nil {
 			lag := time.Duration(polls) * interval
-			r.record(ent.plan.Entity, "", observe.KindReadAfterWrite, lag.String(), nil, observe.OutcomeConfirmed, res.excerpt)
-			ent.ev.got = res.object()
-			ent.ev.readProof = &res.excerpt
-			ent.lastRead = res.object()
-			r.observeUndeclaredFields(ent, ent.lastRead, res.excerpt)
+			r.record(entity.plan.Entity, "", observe.KindReadAfterWrite, lag.String(), nil, observe.OutcomeConfirmed, res.excerpt)
+			entity.ev.got = res.object()
+			entity.ev.readProof = &res.excerpt
+			entity.lastRead = res.object()
+			r.observeUndeclaredFields(entity, entity.lastRead, res.excerpt)
 			return nil
 		}
 		polls++
@@ -59,8 +59,8 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 	// is inconclusive, and everything downstream of a readable object is
 	// blocked.
 	if last != nil {
-		ent.cause = &last.excerpt
-		r.record(ent.plan.Entity, "", observe.KindReadAfterWrite, nil, nil, observe.OutcomeInconclusive, last.excerpt)
+		entity.cause = &last.excerpt
+		r.record(entity.plan.Entity, "", observe.KindReadAfterWrite, nil, nil, observe.OutcomeInconclusive, last.excerpt)
 	}
 	return blockedError{reason: fmt.Sprintf("the created object never became readable within %s", timeout)}
 }
@@ -68,16 +68,16 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 // runReadConsecutive reads the same object twice and marks every field
 // that differed as volatile — the perpetual-diff class a generated
 // provider must exclude from drift comparison.
-func (r *runner) runReadConsecutive(ctx context.Context, ent *entityState, step *plan.Step) error {
-	if ent.idUnknown {
+func (r *runner) runReadConsecutive(ctx context.Context, entity *entityState, step *plan.Step) error {
+	if entity.idUnknown {
 		// No item URL to read the object at, so volatility cannot be observed.
 		return nil
 	}
-	first, err := r.do(ctx, ent, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
+	first, err := r.do(ctx, entity, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
 	if err != nil {
 		return err
 	}
-	second, err := r.do(ctx, ent, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
+	second, err := r.do(ctx, entity, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
 	if err != nil {
 		return err
 	}
@@ -92,16 +92,16 @@ func (r *runner) runReadConsecutive(ctx context.Context, ent *entityState, step 
 		if equalJSON(a[f], b[f]) {
 			continue
 		}
-		ent.ev.volatile[f] = true
-		r.record(ent.plan.Entity, f, observe.KindVolatile, true, nil, observe.OutcomeConfirmed, first.excerpt, second.excerpt)
+		entity.ev.volatile[f] = true
+		r.record(entity.plan.Entity, f, observe.KindVolatile, true, nil, observe.OutcomeConfirmed, first.excerpt, second.excerpt)
 	}
-	r.observeUndeclaredFields(ent, a, first.excerpt)
-	r.observeUndeclaredFields(ent, b, second.excerpt)
-	ent.lastRead = b
-	if ent.ev.got == nil {
+	r.observeUndeclaredFields(entity, a, first.excerpt)
+	r.observeUndeclaredFields(entity, b, second.excerpt)
+	entity.lastRead = b
+	if entity.ev.got == nil {
 		// A lookup entity has no readWithRetry; its consecutive read is
 		// still the evidence a read decodes.
-		ent.ev.got = b
+		entity.ev.got = b
 	}
 	return nil
 }
@@ -109,20 +109,20 @@ func (r *runner) runReadConsecutive(ctx context.Context, ent *entityState, step 
 // runLookupRead is a lookup datasource's check: fetch by the operator-
 // supplied key and confirm the response decodes. A key that fetches
 // nothing blocks the entity — there is no object to say anything about.
-func (r *runner) runLookupRead(ctx context.Context, ent *entityState, step *plan.Step) error {
-	res, err := r.do(ctx, ent, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
+func (r *runner) runLookupRead(ctx context.Context, entity *entityState, step *plan.Step) error {
+	res, err := r.do(ctx, entity, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
 	if err != nil {
 		return err
 	}
 	if !res.ok() {
-		ent.cause = &res.excerpt
+		entity.cause = &res.excerpt
 		return blockedError{reason: fmt.Sprintf("the lookup read answered %d", res.status)}
 	}
 	if res.object() == nil {
-		ent.cause = &res.excerpt
+		entity.cause = &res.excerpt
 		return blockedError{reason: "the lookup read did not answer a JSON object"}
 	}
-	ent.lastRead = res.object()
+	entity.lastRead = res.object()
 	return nil
 }
 

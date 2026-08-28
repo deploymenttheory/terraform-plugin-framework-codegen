@@ -112,14 +112,14 @@ components:
 // path value-cycling lives on.
 func streamOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Options {
 	t.Helper()
-	doc, err := specmodel.Load([]byte(streamSpec))
+	document, err := specmodel.Load([]byte(streamSpec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := &config.Config{
+	configuration := &config.Config{
 		Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2},
 	}
-	p, err := plan.Derive(doc, cfg, nil)
+	p, err := plan.Derive(document, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -129,8 +129,8 @@ func streamOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Opti
 	}
 	return Options{
 		Plan:         p,
-		Doc:          doc,
-		Config:       cfg,
+		Doc:          document,
+		Config:       configuration,
 		BaseURL:      s.BaseURL(),
 		Auth:         Auth{Method: config.AuthBearerToken},
 		NamePrefix:   "tfpfgen",
@@ -179,9 +179,9 @@ func TestUnit_Adaptive_StreamCyclesValueAndConfirmsConfiguration(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
-	obs, sum := mustRun(t, streamOptions(t, s, nil))
+	obs, summary := mustRun(t, streamOptions(t, s, nil))
 
-	got := entityStatus(t, sum, "stream")
+	got := entityStatus(t, summary, "stream")
 	if got.Status == StatusBlocked {
 		t.Fatalf("stream blocked despite value-cycling: %+v", got)
 	}
@@ -197,8 +197,8 @@ func TestUnit_Adaptive_StreamCyclesValueAndConfirmsConfiguration(t *testing.T) {
 	if !hasString(values, "avro") || !hasString(values, "json") {
 		t.Fatalf("validConfiguration values = %v, want both avro and json", values)
 	}
-	if sum.EdgesConfirmed == 0 {
-		t.Errorf("summary reports no confirmed edges: %+v", sum.ByKind)
+	if summary.EdgesConfirmed == 0 {
+		t.Errorf("summary reports no confirmed edges: %+v", summary.ByKind)
 	}
 	if collectionCount(t, s.BaseURL(), "/streams", "streams") != 0 {
 		t.Errorf("streams remain after the run: cleanup did not level the tenant")
@@ -215,9 +215,9 @@ func TestUnit_Adaptive_StreamUnsatisfiableFormatRecordsInconclusive(t *testing.T
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
-	obs, sum := mustRun(t, streamOptions(t, s, nil))
+	obs, summary := mustRun(t, streamOptions(t, s, nil))
 
-	if got := entityStatus(t, sum, "stream"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "stream"); got.Status != StatusAudited {
 		t.Fatalf("stream = %+v, want audited despite the unsatisfiable locked format", got)
 	}
 	inc := validWhenFor(obs, "stream", "mode", "format", "locked")
@@ -264,53 +264,53 @@ func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 		return out
 	}
 	cases := []struct {
-		name  string
-		msg   string
-		known map[string]strategy.SynthHint
-		want  []string
+		name    string
+		message string
+		known   map[string]strategy.SynthHint
+		want    []string
 	}{
 		{
-			name:  "real API dynamic-tag refusal",
-			msg:   "type: Dynamic tags are not supported for the provided object type",
-			known: known("type", "objectType", "name"),
-			want:  []string{"type"},
+			name:    "real API dynamic-tag refusal",
+			message: "type: Dynamic tags are not supported for the provided object type",
+			known:   known("type", "objectType", "name"),
+			want:    []string{"type"},
 		},
 		{
-			name:  "free-form value-conditional naming two fields",
-			msg:   "mode: streaming is not supported for the json format",
-			known: known("name", "format", "mode"),
-			want:  []string{"format", "mode"},
+			name:    "free-form value-conditional naming two fields",
+			message: "mode: streaming is not supported for the json format",
+			known:   known("name", "format", "mode"),
+			want:    []string{"format", "mode"},
 		},
 		{
-			name:  "an unknown field named is not a signal",
-			msg:   "serial number must be provided",
-			known: known("name", "mode"),
-			want:  nil,
+			name:    "an unknown field named is not a signal",
+			message: "serial number must be provided",
+			known:   known("name", "mode"),
+			want:    nil,
 		},
 		{
-			name:  "a field name is matched on word boundaries only",
-			msg:   "the model number is invalid",
-			known: known("mode"),
-			want:  nil,
+			name:    "a field name is matched on word boundaries only",
+			message: "the model number is invalid",
+			known:   known("mode"),
+			want:    nil,
 		},
 		{
-			name:  "underscore field names match whole",
-			msg:   "agent_id could not be resolved",
-			known: known("agent_id", "name"),
-			want:  []string{"agent_id"},
+			name:    "underscore field names match whole",
+			message: "agent_id could not be resolved",
+			known:   known("agent_id", "name"),
+			want:    []string{"agent_id"},
 		},
 		{
-			name:  "empty message names nothing",
-			msg:   "",
-			known: known("mode"),
-			want:  nil,
+			name:    "empty message names nothing",
+			message: "",
+			known:   known("mode"),
+			want:    nil,
 		},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := namedKnownFields(tc.msg, tc.known)
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("namedKnownFields(%q) = %v, want %v", tc.msg, got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := namedKnownFields(testCase.message, testCase.known)
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Fatalf("namedKnownFields(%q) = %v, want %v", testCase.message, got, testCase.want)
 			}
 		})
 	}

@@ -23,11 +23,11 @@ func hashHeader(source string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parsing %s: %w", headerPartial, err)
 	}
-	var buf bytes.Buffer
-	if err := t.ExecuteTemplate(&buf, "hashheader", struct{ Source string }{Source: source}); err != nil {
+	var buffer bytes.Buffer
+	if err := t.ExecuteTemplate(&buffer, "hashheader", struct{ Source string }{Source: source}); err != nil {
 		return "", fmt.Errorf("rendering the hash header: %w", err)
 	}
-	return buf.String(), nil
+	return buffer.String(), nil
 }
 
 // hclBlock renders one terraform block around a fixture body, with the

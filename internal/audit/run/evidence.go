@@ -56,7 +56,7 @@ type evidence struct {
 	updRefused     int
 	updOmittedKept bool
 	updOmittedLost bool
-	updProof       []observe.Excerpt
+	updateProof    []observe.Excerpt
 	// proof excerpts for the finalize-time observations.
 	createProof *observe.Excerpt
 	readProof   *observe.Excerpt
@@ -82,11 +82,11 @@ type evidence struct {
 // check: created with the attribute present under the pinned condition,
 // and with it omitted.
 type requiredWhenPair struct {
-	attr    string
-	cond    observe.Condition
-	with    *bool
-	without *bool
-	proof   []observe.Excerpt
+	attribute string
+	cond      observe.Condition
+	with      *bool
+	without   *bool
+	proof     []observe.Excerpt
 }
 
 func newEvidence() *evidence {
@@ -108,27 +108,27 @@ func newEvidence() *evidence {
 // diffed — collection envelopes never reach here — which is what keeps
 // envelope noise out. An empty declared set means the plan carried no
 // schema knowledge, and no claim can be made.
-func (r *runner) observeUndeclaredFields(ent *entityState, obj map[string]any, excerpt observe.Excerpt) {
-	if len(ent.plan.DeclaredProperties) == 0 || obj == nil {
+func (r *runner) observeUndeclaredFields(entity *entityState, obj map[string]any, excerpt observe.Excerpt) {
+	if len(entity.plan.DeclaredProperties) == 0 || obj == nil {
 		return
 	}
-	if ent.declared == nil {
-		ent.declared = make(map[string]bool, len(ent.plan.DeclaredProperties))
-		for _, name := range ent.plan.DeclaredProperties {
-			ent.declared[name] = true
+	if entity.declared == nil {
+		entity.declared = make(map[string]bool, len(entity.plan.DeclaredProperties))
+		for _, name := range entity.plan.DeclaredProperties {
+			entity.declared[name] = true
 		}
 	}
 	for k, v := range obj {
-		if ent.declared[k] || v == nil {
+		if entity.declared[k] || v == nil {
 			continue
 		}
 		t := jsonTypeOf(v)
-		if prev, seen := ent.ev.undeclared[k]; seen && prev != t {
-			ent.ev.undeclaredUnstable[k] = true
+		if previous, seen := entity.ev.undeclared[k]; seen && previous != t {
+			entity.ev.undeclaredUnstable[k] = true
 			continue
 		}
-		ent.ev.undeclared[k] = t
-		ent.ev.undeclaredProof[k] = appendProof(ent.ev.undeclaredProof[k], excerpt)
+		entity.ev.undeclared[k] = t
+		entity.ev.undeclaredProof[k] = appendProof(entity.ev.undeclaredProof[k], excerpt)
 	}
 }
 
@@ -153,18 +153,18 @@ func jsonTypeOf(v any) string {
 
 // observeOmittedSamples records what a create's response answered for
 // every field its body did not send.
-func (r *runner) observeOmittedSamples(ent *entityState, sent, got map[string]any, id string) {
-	if ent == nil || got == nil {
+func (r *runner) observeOmittedSamples(entity *entityState, sent, got map[string]any, id string) {
+	if entity == nil || got == nil {
 		return
 	}
-	if ent.ev.idField == "" {
-		ent.ev.idField = identifyingProperty(got, id)
+	if entity.ev.idField == "" {
+		entity.ev.idField = identifyingProperty(got, id)
 	}
 	for k, v := range got {
 		if _, wasSent := sent[k]; wasSent || v == nil {
 			continue
 		}
-		ent.ev.omitted[k] = append(ent.ev.omitted[k], v)
+		entity.ev.omitted[k] = append(entity.ev.omitted[k], v)
 	}
 }
 
@@ -198,11 +198,11 @@ func identifyingProperty(got map[string]any, id string) string {
 }
 
 // valuesFor is the per-attribute accumulator.
-func (ev *evidence) valuesFor(attr string) *observe.Values {
-	v, ok := ev.values[attr]
+func (ev *evidence) valuesFor(attribute string) *observe.Values {
+	v, ok := ev.values[attribute]
 	if !ok {
 		v = &observe.Values{}
-		ev.values[attr] = v
+		ev.values[attribute] = v
 	}
 	return v
 }
@@ -210,29 +210,29 @@ func (ev *evidence) valuesFor(attr string) *observe.Values {
 // finalizeEvidence turns an entity's accumulated evidence into
 // observations. Per-field conclusions iterate sorted names so two runs
 // over the same behaviour emit identically ordered findings.
-func (r *runner) finalizeEvidence(ent *entityState) {
-	ev := ent.ev
-	entity := ent.plan.Entity
+func (r *runner) finalizeEvidence(entity *entityState) {
+	ev := entity.ev
+	entityKey := entity.plan.Entity
 
 	if ev.sent != nil && ev.got != nil {
-		r.finalizeFields(entity, ev, ev.sent, ev.got, true)
+		r.finalizeFields(entityKey, ev, ev.sent, ev.got, true)
 	}
 	if ev.maximalSent != nil && ev.maximalGot != nil {
 		// The maximal pair covers only what the minimal comparison could
 		// not: optional fields. Dedup keeps the minimal finding when both
 		// speak.
-		r.finalizeFields(entity, ev, ev.maximalSent, ev.maximalGot, false)
+		r.finalizeFields(entityKey, ev, ev.maximalSent, ev.maximalGot, false)
 	}
 
-	r.observeUndeclaredSent(ent)
-	r.finalizeValues(entity, ev)
+	r.observeUndeclaredSent(entity)
+	r.finalizeValues(entityKey, ev)
 	r.finalizeRequiredWhens(ev)
-	r.finalizeUpdateStyle(entity, ev)
-	r.finalizeUndeclaredFields(entity, ev)
+	r.finalizeUpdateStyle(entityKey, ev)
+	r.finalizeUndeclaredFields(entityKey, ev)
 }
 
 // observeUndeclaredSent adds every property an accepted create carried that
-// the entity's declared schema lacks, with the JSON type it was sent as.
+// the entityKey's declared schema lacks, with the JSON type it was sent as.
 //
 // The twin of observeUndeclaredFields, on the request side. An API that
 // demands a property the document never declares refuses every create until
@@ -242,28 +242,28 @@ func (r *runner) finalizeEvidence(ent *entityState) {
 //
 // Only an accepted create counts. A field added into a body the API went on to
 // refuse is a guess, and a guess is not evidence that the field exists.
-func (r *runner) observeUndeclaredSent(ent *entityState) {
-	if len(ent.plan.DeclaredProperties) == 0 || ent.ev.createProof == nil {
+func (r *runner) observeUndeclaredSent(entity *entityState) {
+	if len(entity.plan.DeclaredProperties) == 0 || entity.ev.createProof == nil {
 		return
 	}
-	if ent.declared == nil {
-		ent.declared = make(map[string]bool, len(ent.plan.DeclaredProperties))
-		for _, name := range ent.plan.DeclaredProperties {
-			ent.declared[name] = true
+	if entity.declared == nil {
+		entity.declared = make(map[string]bool, len(entity.plan.DeclaredProperties))
+		for _, name := range entity.plan.DeclaredProperties {
+			entity.declared[name] = true
 		}
 	}
-	for _, body := range ent.ev.acceptedRequestBodies {
+	for _, body := range entity.ev.acceptedRequestBodies {
 		for name, value := range body {
-			if ent.declared[name] || value == nil {
+			if entity.declared[name] || value == nil {
 				continue
 			}
 			t := jsonTypeOf(value)
-			if prev, seen := ent.ev.undeclared[name]; seen && prev != t {
-				ent.ev.undeclaredUnstable[name] = true
+			if previous, seen := entity.ev.undeclared[name]; seen && previous != t {
+				entity.ev.undeclaredUnstable[name] = true
 				continue
 			}
-			ent.ev.undeclared[name] = t
-			ent.ev.undeclaredProof[name] = appendProof(ent.ev.undeclaredProof[name], *ent.ev.createProof)
+			entity.ev.undeclared[name] = t
+			entity.ev.undeclaredProof[name] = appendProof(entity.ev.undeclaredProof[name], *entity.ev.createProof)
 		}
 	}
 }
@@ -347,12 +347,12 @@ func (r *runner) finalizeDefault(entity string, ev *evidence, field string, firs
 // finalizeValues emits one values observation per attribute that
 // accumulated any value-set evidence.
 func (r *runner) finalizeValues(entity string, ev *evidence) {
-	attrs := make([]string, 0, len(ev.values))
+	attributes := make([]string, 0, len(ev.values))
 	for a := range ev.values {
-		attrs = append(attrs, a)
+		attributes = append(attributes, a)
 	}
-	sort.Strings(attrs)
-	for _, a := range attrs {
+	sort.Strings(attributes)
+	for _, a := range attributes {
 		v := ev.values[a]
 		sort.Strings(v.Accepted)
 		sort.Strings(v.Rejected)
@@ -375,11 +375,11 @@ func (r *runner) finalizeRequiredWhens(ev *evidence) {
 		entity := strings.SplitN(k, "\x00", 2)[0]
 		switch {
 		case p.with != nil && *p.with && p.without != nil && !*p.without:
-			r.record(entity, p.attr, observe.KindRequiredWhen, true, &cond, observe.OutcomeConfirmed, p.proof...)
+			r.record(entity, p.attribute, observe.KindRequiredWhen, true, &cond, observe.OutcomeConfirmed, p.proof...)
 		case p.with != nil && *p.with && p.without != nil && *p.without:
-			r.record(entity, p.attr, observe.KindRequiredWhen, false, &cond, observe.OutcomeConfirmed, p.proof...)
+			r.record(entity, p.attribute, observe.KindRequiredWhen, false, &cond, observe.OutcomeConfirmed, p.proof...)
 		default:
-			r.record(entity, p.attr, observe.KindRequiredWhen, nil, &cond, observe.OutcomeInconclusive, p.proof...)
+			r.record(entity, p.attribute, observe.KindRequiredWhen, nil, &cond, observe.OutcomeInconclusive, p.proof...)
 		}
 	}
 }
@@ -389,13 +389,13 @@ func (r *runner) finalizeRequiredWhens(ev *evidence) {
 func (r *runner) finalizeUpdateStyle(entity string, ev *evidence) {
 	switch {
 	case ev.updSucceeded == 0 && ev.updRefused > 0:
-		r.record(entity, "", observe.KindUpdateStyle, "replace-only", nil, observe.OutcomeConfirmed, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, "replace-only", nil, observe.OutcomeConfirmed, ev.updateProof...)
 	case ev.updOmittedLost:
-		r.record(entity, "", observe.KindUpdateStyle, "put-full", nil, observe.OutcomeConfirmed, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, "put-full", nil, observe.OutcomeConfirmed, ev.updateProof...)
 	case ev.updSucceeded > 0 && ev.updOmittedKept:
-		r.record(entity, "", observe.KindUpdateStyle, "patch-merge", nil, observe.OutcomeConfirmed, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, "patch-merge", nil, observe.OutcomeConfirmed, ev.updateProof...)
 	case ev.updSucceeded > 0:
-		r.record(entity, "", observe.KindUpdateStyle, nil, nil, observe.OutcomeInconclusive, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, nil, nil, observe.OutcomeInconclusive, ev.updateProof...)
 	}
 }
 

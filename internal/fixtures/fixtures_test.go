@@ -219,8 +219,8 @@ func TestUnit_Fixturespec_WireJSONKeepsTreeOrderAndParses(t *testing.T) {
 		t.Fatalf("rules wire = %#v", wire["rules"])
 	}
 
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(wire); err != nil {
+	var buffer bytes.Buffer
+	if err := json.NewEncoder(&buffer).Encode(wire); err != nil {
 		t.Fatalf("the wire shape must encode: %v", err)
 	}
 

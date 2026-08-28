@@ -326,11 +326,11 @@ func dropUnacceptableErrorContent(top *yaml.Node) int {
 			continue
 		}
 		for _, method := range httpMethods {
-			op := yamlwalk.ChildValue(item, method)
-			if op == nil || op.Kind != yaml.MappingNode {
+			operation := yamlwalk.ChildValue(item, method)
+			if operation == nil || operation.Kind != yaml.MappingNode {
 				continue
 			}
-			rewritten += dropErrorContent(top, op)
+			rewritten += dropErrorContent(top, operation)
 		}
 	}
 	return rewritten
@@ -340,8 +340,8 @@ func dropUnacceptableErrorContent(top *yaml.Node) int {
 // it rewrote. An operation whose success responses declare a media type is
 // left alone: kiota builds its Accept from those and never reaches the
 // errors.
-func dropErrorContent(top *yaml.Node, op *yaml.Node) int {
-	responses := yamlwalk.ChildValue(op, "responses")
+func dropErrorContent(top *yaml.Node, operation *yaml.Node) int {
+	responses := yamlwalk.ChildValue(operation, "responses")
 	if responses == nil || responses.Kind != yaml.MappingNode {
 		return 0
 	}
@@ -416,13 +416,13 @@ func describeOnly(node *yaml.Node, resolved *yaml.Node) {
 // An empty include list means everything; excludes are then removed. A
 // filter that removes every path refuses, because a generator fed an empty
 // paths object would report success and generate nothing.
-func FilterPaths(doc []byte, include, exclude []string) ([]byte, error) {
+func FilterPaths(document []byte, include, exclude []string) ([]byte, error) {
 	if len(include) == 0 && len(exclude) == 0 {
-		return doc, nil
+		return document, nil
 	}
 
 	var root yaml.Node
-	if err := yaml.Unmarshal(doc, &root); err != nil {
+	if err := yaml.Unmarshal(document, &root); err != nil {
 		return nil, fmt.Errorf("the document is not usable YAML: %w", err)
 	}
 	if root.Kind != yaml.DocumentNode || len(root.Content) == 0 {

@@ -54,8 +54,8 @@ func TestUnit_Write_LandsFilesAndReportsProviderEntries(t *testing.T) {
 			t.Errorf("%s on disk differs from the render", e.Path)
 		}
 
-		sum := sha256.Sum256(f.Content)
-		if e.SHA256 != hex.EncodeToString(sum[:]) {
+		summary := sha256.Sum256(f.Content)
+		if e.SHA256 != hex.EncodeToString(summary[:]) {
 			t.Errorf("%s carries the wrong digest", e.Path)
 		}
 		if e.Source != f.Source {

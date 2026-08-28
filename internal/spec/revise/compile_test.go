@@ -117,10 +117,10 @@ func pinnedTree(t *testing.T) (root, specDir string, lock store.Lock) {
 }
 
 // confirmedObs builds one confirmed observation against the given pin.
-func confirmedObs(attr string, kind observe.Kind, value any, cond *observe.Condition, specHash string) observe.Observation {
+func confirmedObs(attribute string, kind observe.Kind, value any, cond *observe.Condition, specHash string) observe.Observation {
 	return observe.Observation{
 		Entity:    "tag",
-		Attribute: attr,
+		Attribute: attribute,
 		Kind:      kind,
 		Value:     value,
 		Condition: cond,
@@ -159,16 +159,16 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 	// Each case is one observation in, one exact proposed correction file
 	// out. %s in want is the observation's computed ID.
 	cases := []struct {
-		name  string
-		attr  string
-		kind  observe.Kind
-		value any
-		cond  *observe.Condition
-		want  string
+		name      string
+		attribute string
+		kind      observe.Kind
+		value     any
+		cond      *observe.Condition
+		want      string
 	}{
 		{
-			name: "requiredByAPI adds to required",
-			attr: "name", kind: observe.KindRequiredByAPI, value: true,
+			name:      "requiredByAPI adds to required",
+			attribute: "name", kind: observe.KindRequiredByAPI, value: true,
 			want: `{
   "justification": "the audit confirmed a requiredByAPI observation on tag.name: a create omitting the property is rejected whatever the document declares",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -185,8 +185,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "writable false becomes readOnly",
-			attr: "size", kind: observe.KindWritable, value: false,
+			name:      "writable false becomes readOnly",
+			attribute: "size", kind: observe.KindWritable, value: false,
 			want: `{
   "justification": "the audit confirmed a writable observation on tag.size: the live API accepts the value and never stores it, so the property is readOnly",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -201,8 +201,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "immutable becomes create-only",
-			attr: "name", kind: observe.KindImmutable, value: true,
+			name:      "immutable becomes create-only",
+			attribute: "name", kind: observe.KindImmutable, value: true,
 			want: `{
   "justification": "the audit confirmed an immutable observation on tag.name: the live API refuses to change the value after create (x-tfpfgen-create-only)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -217,8 +217,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "requiredWhen becomes the conditional extension",
-			attr: "port", kind: observe.KindRequiredWhen, value: true,
+			name:      "requiredWhen becomes the conditional extension",
+			attribute: "port", kind: observe.KindRequiredWhen, value: true,
 			cond: &observe.Condition{Attribute: "protocol", Equals: "tcp"},
 			want: `{
   "justification": "the audit confirmed a requiredWhen observation on tag.port: the property is required when protocol equals \"tcp\" (x-tfpfgen-required-when)",
@@ -237,8 +237,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "serverDefault records the filled value on the property",
-			attr: "mode", kind: observe.KindServerDefault, value: "auto",
+			name:      "serverDefault records the filled value on the property",
+			attribute: "mode", kind: observe.KindServerDefault, value: "auto",
 			want: `{
   "justification": "the audit confirmed a serverDefault observation on tag.mode: omitting the property stores auto, so the generated attribute is Optional and Computed (x-tfpfgen-server-default)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -253,8 +253,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "values corrects the enum and opens the set",
-			attr: "color", kind: observe.KindValues,
+			name:      "values corrects the enum and opens the set",
+			attribute: "color", kind: observe.KindValues,
 			value: observe.Values{Accepted: []string{"red", "green"}, Rejected: []string{"blue"}, Closed: boolPtr(false)},
 			want: `{
   "justification": "the audit confirmed a values observation on tag.color: the live API rejects the documented value(s) blue; accepts the undocumented value(s) green; accepts values beyond the documented set (x-tfpfgen-values-open)",
@@ -332,8 +332,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "volatile becomes its extension",
-			attr: "mode", kind: observe.KindVolatile, value: true,
+			name:      "volatile becomes its extension",
+			attribute: "mode", kind: observe.KindVolatile, value: true,
 			want: `{
   "justification": "the audit confirmed a volatile observation on tag.mode: the value differs between two identical reads (x-tfpfgen-volatile)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -348,8 +348,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "serverForced becomes its extension",
-			attr: "size", kind: observe.KindServerForced, value: true,
+			name:      "serverForced becomes its extension",
+			attribute: "size", kind: observe.KindServerForced, value: true,
 			want: `{
   "justification": "the audit confirmed a serverForced observation on tag.size: the server substitutes its own value regardless of what was sent (x-tfpfgen-server-forced)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -364,8 +364,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "undocumentedFieldInSpec adds the property with its observed type",
-			attr: "serial", kind: observe.KindUndocumentedFieldInSpec, value: "string",
+			name:      "undocumentedFieldInSpec adds the property with its observed type",
+			attribute: "serial", kind: observe.KindUndocumentedFieldInSpec, value: "string",
 			want: `{
   "justification": "the audit confirmed an undocumentedFieldInSpec observation on tag.serial: read responses carry the field with the stable JSON type string, and no schema declares it",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -382,8 +382,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "undocumentedFieldInSpec array carries an items stub",
-			attr: "labels", kind: observe.KindUndocumentedFieldInSpec, value: "array",
+			name:      "undocumentedFieldInSpec array carries an items stub",
+			attribute: "labels", kind: observe.KindUndocumentedFieldInSpec, value: "array",
 			want: `{
   "justification": "the audit confirmed an undocumentedFieldInSpec observation on tag.labels: read responses carry the field with the stable JSON type array, and no schema declares it",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -401,8 +401,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "validWhen becomes the conditional-validity extension",
-			attr: "port", kind: observe.KindValidWhen, value: true,
+			name:      "validWhen becomes the conditional-validity extension",
+			attribute: "port", kind: observe.KindValidWhen, value: true,
 			cond: &observe.Condition{Attribute: "protocol", Equals: "tcp"},
 			want: `{
   "justification": "the audit confirmed a validWhen observation on tag.port: the property is valid only when protocol equals \"tcp\" (x-tfpfgen-valid-when)",
@@ -421,8 +421,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "dependsOn becomes its extension on a 3.0 document",
-			attr: "port", kind: observe.KindDependsOn, value: "protocol",
+			name:      "dependsOn becomes its extension on a 3.0 document",
+			attribute: "port", kind: observe.KindDependsOn, value: "protocol",
 			want: `{
   "justification": "the audit confirmed a dependsOn observation on tag.port: the property is settable only when protocol is also present (x-tfpfgen-depends-on)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -458,8 +458,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "validConfiguration annotates the discriminator schema",
-			attr: "mode", kind: observe.KindValidConfiguration, value: []string{"manual", "auto"},
+			name:      "validConfiguration annotates the discriminator schema",
+			attribute: "mode", kind: observe.KindValidConfiguration, value: []string{"manual", "auto"},
 			want: `{
   "justification": "the audit confirmed a validConfiguration observation on tag.mode: the property gates the valid field set, one variant per value (x-tfpfgen-valid-configuration)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -525,8 +525,8 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "ignoredOnUpdate becomes its extension",
-			attr: "mode", kind: observe.KindIgnoredOnUpdate, value: true,
+			name:      "ignoredOnUpdate becomes its extension",
+			attribute: "mode", kind: observe.KindIgnoredOnUpdate, value: true,
 			want: `{
   "justification": "the audit confirmed an ignoredOnUpdate observation on tag.mode: updates accept a new value with a success status and do not apply it (x-tfpfgen-silently-ignored-on-update)",
   "evidence": "audit/observations/tag.observations.json#%s",
@@ -542,18 +542,18 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			root, specDir, lock := pinnedTree(t)
-			commitObs(t, root, confirmedObs(tc.attr, tc.kind, tc.value, tc.cond, lock.SHA256))
+			commitObs(t, root, confirmedObs(testCase.attribute, testCase.kind, testCase.value, testCase.cond, lock.SHA256))
 
 			p, err := Propose(specDir)
 			if err != nil {
 				t.Fatalf("Propose: %v", err)
 			}
-			id := observe.ComputeID("tag", tc.attr, tc.kind, tc.cond)
-			if got, want := readProposed(t, p), fmt.Sprintf(tc.want, id); got != want {
+			id := observe.ComputeID("tag", testCase.attribute, testCase.kind, testCase.cond)
+			if got, want := readProposed(t, p), fmt.Sprintf(testCase.want, id); got != want {
 				t.Errorf("proposed correction:\n got: %s\nwant: %s", got, want)
 			}
 			wantName := "001-tag.correction.json"

@@ -73,11 +73,11 @@ func proseHypotheses(createBody *specmodel.Schema) []Hypothesis {
 
 	var out []Hypothesis
 	for _, f := range fields {
-		desc := f.schema.Resolved().Description
-		if desc == "" {
+		description := f.schema.Resolved().Description
+		if description == "" {
 			continue
 		}
-		out = append(out, extractProse(f.name, desc, siblingNames, siblingEnum)...)
+		out = append(out, extractProse(f.name, description, siblingNames, siblingEnum)...)
 	}
 	return out
 }
@@ -86,15 +86,15 @@ func proseHypotheses(createBody *specmodel.Schema) []Hypothesis {
 // phrase found, it looks — in the text after the phrase — for a sibling name,
 // and for a value of that sibling. What it finds decides the edge; what it
 // cannot anchor it discards.
-func extractProse(field, desc string, siblingNames []string, siblingEnum map[string][]string) []Hypothesis {
-	lower := strings.ToLower(desc)
+func extractProse(field, description string, siblingNames []string, siblingEnum map[string][]string) []Hypothesis {
+	lower := strings.ToLower(description)
 	var out []Hypothesis
 	for _, ph := range prosePhrases {
-		idx := strings.Index(lower, ph.text)
-		if idx < 0 {
+		index := strings.Index(lower, ph.text)
+		if index < 0 {
 			continue
 		}
-		tail := lower[idx+len(ph.text):]
+		tail := lower[index+len(ph.text):]
 
 		sibling := earliestSibling(tail, field, siblingNames)
 		if sibling == "" {

@@ -45,21 +45,21 @@ func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 			},
 		},
 		{
-			name: "openapi-generator with basic", pc: oagProviderCore(),
-			model: oagModel(), bindings: oagBindings(),
+			name: "openapi-generator with basic", pc: openAPIGeneratorProviderCore(),
+			model: openAPIGeneratorModel(), bindings: openAPIGeneratorBindings(),
 			stub: map[string]string{
 				"testdata/entitysdkoag/sdk.go": "internal/sdk/sdk.go",
 			},
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			core, err := RenderProviderCore(tc.pc)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			core, err := RenderProviderCore(testCase.pc)
 			if err != nil {
 				t.Fatalf("RenderProviderCore: %v", err)
 			}
-			entities, err := RenderServices(tc.pc, tc.model, tc.bindings)
+			entities, err := RenderServices(testCase.pc, testCase.model, testCase.bindings)
 			if err != nil {
 				t.Fatalf("RenderServices: %v", err)
 			}
@@ -99,7 +99,7 @@ func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 				}
 			}
 
-			installEntityStubSDK(t, root, tc.stub)
+			installEntityStubSDK(t, root, testCase.stub)
 
 			runGo(t, root, "mod", "tidy")
 			runGo(t, root, "build", "./...")
@@ -166,12 +166,12 @@ func writeFictionalKiotaModule(t *testing.T, pc ProviderCore) string {
 // paths the SDK import expects.
 func installEntityStubSDK(t *testing.T, root string, files map[string]string) {
 	t.Helper()
-	for src, dst := range files {
-		data, err := os.ReadFile(src)
+	for source, destination := range files {
+		data, err := os.ReadFile(source)
 		if err != nil {
-			t.Fatalf("reading %s: %v", src, err)
+			t.Fatalf("reading %s: %v", source, err)
 		}
-		target := filepath.Join(root, filepath.FromSlash(dst))
+		target := filepath.Join(root, filepath.FromSlash(destination))
 		if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
 			t.Fatal(err)
 		}

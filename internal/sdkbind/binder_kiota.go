@@ -27,11 +27,11 @@ func (b kiotaBinder) Bind(m *ir.Model, info SDKInfo) (*Bindings, error) {
 //
 // The trailing nil is the per-request configuration, which generated
 // provider code never customises.
-func (kiotaBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
+func (kiotaBinder) call(operation *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
 	var segs []Segment
-	parameters := callParameters(op)
+	parameters := callParameters(operation)
 	next := 0
-	for _, seg := range pathSegments(op.PathTemplate) {
+	for _, seg := range pathSegments(operation.PathTemplate) {
 		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
 			local := "param_"
 			if next < len(parameters) {
@@ -48,7 +48,7 @@ func (kiotaBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo
 		segs = append(segs, Segment{Name: exportedName(seg), Call: true})
 	}
 
-	verb := exportedName(strings.ToLower(op.Method))
+	verb := exportedName(strings.ToLower(operation.Method))
 	args := []string{"ctx"}
 	if hasBody {
 		args = append(args, "body")
@@ -66,7 +66,7 @@ func (kiotaBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo
 	// spells a component schema's interface; Prune settles them from the
 	// real method signatures. A delete answers with error alone.
 	able := "models." + exportedName(n.Key) + "able"
-	switch op.Kind {
+	switch operation.Kind {
 	case ir.OperationDelete:
 		c.Results = []string{"error"}
 	case ir.OperationList:

@@ -17,7 +17,7 @@ func TestDeriveNames(t *testing.T) {
 			key:            "v7_tag",
 			collectionPath: "/v7/tags",
 			want: Names{
-				Key: "tag", Pascal: "Tag", Camel: "tag",
+				Key: "tag", PascalCase: "Tag", CamelCase: "tag",
 				TerraformType: "acme_tag", Package: "acmetag",
 				Service: "tags", APIVersionDirectory: "v7",
 			},
@@ -27,7 +27,7 @@ func TestDeriveNames(t *testing.T) {
 			key:            "v7_tests_http_server",
 			collectionPath: "/v7/tests/http-server",
 			want: Names{
-				Key: "tests_http_server", Pascal: "TestsHTTPServer", Camel: "testsHTTPServer",
+				Key: "tests_http_server", PascalCase: "TestsHTTPServer", CamelCase: "testsHTTPServer",
 				TerraformType: "acme_tests_http_server", Package: "acmetestshttpserver",
 				Service: "tests", APIVersionDirectory: "v7",
 			},
@@ -37,7 +37,7 @@ func TestDeriveNames(t *testing.T) {
 			key:            "note",
 			collectionPath: "/notes",
 			want: Names{
-				Key: "note", Pascal: "Note", Camel: "note",
+				Key: "note", PascalCase: "Note", CamelCase: "note",
 				TerraformType: "acme_note", Package: "acmenote",
 				Service: "notes", APIVersionDirectory: "v1",
 			},
@@ -47,7 +47,7 @@ func TestDeriveNames(t *testing.T) {
 			key:            "tests_v2_run",
 			collectionPath: "/tests/v2/runs",
 			want: Names{
-				Key: "tests_v2_run", Pascal: "TestsV2Run", Camel: "testsV2Run",
+				Key: "tests_v2_run", PascalCase: "TestsV2Run", CamelCase: "testsV2Run",
 				TerraformType: "acme_tests_v2_run", Package: "acmetestsv2run",
 				Service: "tests", APIVersionDirectory: "v1",
 			},
@@ -104,15 +104,15 @@ func TestSnakeCase(t *testing.T) {
 }
 
 func TestUnit_Names_PackageCarriesTheProviderPrefix(t *testing.T) {
-	for _, tc := range []struct{ provider, key, want string }{
+	for _, testCase := range []struct{ provider, key, want string }{
 		{"jamfpro", "computer_group", "jamfprocomputergroup"},
 		{"thousandeyes", "http_server", "thousandeyeshttpserver"},
 		{"github", "repository", "githubrepository"},
 		// A provider name may carry a hyphen; a package name may not.
 		{"my-api", "widget", "myapiwidget"},
 	} {
-		if got := packageName(tc.provider, tc.key); got != tc.want {
-			t.Fatalf("packageName(%q, %q) = %q, want %q", tc.provider, tc.key, got, tc.want)
+		if got := packageName(testCase.provider, testCase.key); got != testCase.want {
+			t.Fatalf("packageName(%q, %q) = %q, want %q", testCase.provider, testCase.key, got, testCase.want)
 		}
 	}
 }

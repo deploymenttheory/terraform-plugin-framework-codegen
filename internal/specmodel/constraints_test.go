@@ -50,11 +50,11 @@ func property(t *testing.T, schema *Schema, name string) *Schema {
 // emitted schema needs survives the load, and that a schema declaring none
 // carries none rather than a zero that reads as a bound.
 func TestUnit_Specmodel_ReadsTheDeclaredConstraints(t *testing.T) {
-	doc, err := Load([]byte(constrainedSpec))
+	document, err := Load([]byte(constrainedSpec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	a := doc.Schemas["A"]
+	a := document.Schemas["A"]
 	if a == nil {
 		t.Fatal("no A schema")
 	}

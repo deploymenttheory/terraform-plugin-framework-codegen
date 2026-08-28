@@ -80,10 +80,10 @@ func TestUnit_Run_RefusesAManifestItCannotRead(t *testing.T) {
 
 func TestUnit_OpenAPIGeneratorGenerate_RefusesWithoutTheToolOnPATH(t *testing.T) {
 	emptyPath(t)
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.Generate(context.Background(), "in.yaml", cfg, t.TempDir())
+	backend, _ := For(configuration)
+	err := backend.Generate(context.Background(), "in.yaml", configuration, t.TempDir())
 	if err == nil || !strings.Contains(err.Error(), "on PATH") {
 		t.Fatalf("Generate without the tool should refuse the same way CheckTool does, got %v", err)
 	}
@@ -91,10 +91,10 @@ func TestUnit_OpenAPIGeneratorGenerate_RefusesWithoutTheToolOnPATH(t *testing.T)
 
 func TestUnit_OpenAPIGeneratorGenerate_RefusesAnUnreadableDocumentWhenFiltering(t *testing.T) {
 	installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
-	cfg := testConfig(config.BackendOpenAPIGenerator, []string{"/widgets/**"}, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, []string{"/widgets/**"}, nil)
 
-	backend, _ := For(cfg)
-	err := backend.Generate(context.Background(), filepath.Join(t.TempDir(), "no-such.yaml"), cfg, t.TempDir())
+	backend, _ := For(configuration)
+	err := backend.Generate(context.Background(), filepath.Join(t.TempDir(), "no-such.yaml"), configuration, t.TempDir())
 	if err == nil {
 		t.Fatal("filtering needs the document; a missing one must refuse")
 	}
@@ -102,10 +102,10 @@ func TestUnit_OpenAPIGeneratorGenerate_RefusesAnUnreadableDocumentWhenFiltering(
 
 func TestUnit_OpenAPIGeneratorCheckTool_RefusesUnreadableVersionOutput(t *testing.T) {
 	installStub(t, "openapi-generator-cli", "#!/bin/sh\necho no digits here\n", "")
-	cfg := testConfig(config.BackendOpenAPIGenerator, nil, nil)
+	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.CheckTool(context.Background(), cfg)
+	backend, _ := For(configuration)
+	err := backend.CheckTool(context.Background(), configuration)
 	if err == nil || !strings.Contains(err.Error(), "could not read a version") {
 		t.Fatalf("unparseable version output should refuse, got %v", err)
 	}
@@ -139,7 +139,7 @@ func TestUnit_OpenAPIGeneratorNormalize_SurfacesUndeletableScaffolding(t *testin
 }
 
 func TestUnit_CollapseAllOf_LeavesRealCompositionsAlone(t *testing.T) {
-	doc := `openapi: 3.0.3
+	document := `openapi: 3.0.3
 components:
   schemas:
     TwoMembers:
@@ -163,7 +163,7 @@ components:
                 deep:
                   type: string
 `
-	out, _, collapsed, err := Prenormalize([]byte(doc))
+	out, _, collapsed, err := Prenormalize([]byte(document))
 	if err != nil {
 		t.Fatal(err)
 	}

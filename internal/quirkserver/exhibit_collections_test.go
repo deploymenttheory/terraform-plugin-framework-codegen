@@ -109,17 +109,17 @@ func TestUnit_Quirkserver_Monitor_VariantGrammar(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			status, body := post(t, monitorsURL(s), tc.body)
-			if status != tc.status {
-				t.Fatalf("status = %d, want %d (%v)", status, tc.status, body)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			status, body := post(t, monitorsURL(s), testCase.body)
+			if status != testCase.status {
+				t.Fatalf("status = %d, want %d (%v)", status, testCase.status, body)
 			}
-			if tc.detail == "" {
+			if testCase.detail == "" {
 				return
 			}
-			if got, _ := body["detail"].(string); got != tc.detail {
-				t.Errorf("detail = %q, want %q", got, tc.detail)
+			if got, _ := body["detail"].(string); got != testCase.detail {
+				t.Errorf("detail = %q, want %q", got, testCase.detail)
 			}
 		})
 	}
@@ -301,18 +301,18 @@ func TestUnit_Quirkserver_Shapes_ErrorPaths(t *testing.T) {
 
 	// A malformed body on create and on update.
 	for _, url := range []string{monitorsURL(s), assignmentsURL(s)} {
-		req, err := http.NewRequest(http.MethodPost, url, strings.NewReader("{not json")) //nolint:noctx // a test fixture
+		request, err := http.NewRequest(http.MethodPost, url, strings.NewReader("{not json")) //nolint:noctx // a test fixture
 		if err != nil {
 			t.Fatalf("NewRequest: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := http.DefaultClient.Do(req)
+		request.Header.Set("Content-Type", "application/json")
+		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			t.Fatalf("Do: %v", err)
 		}
-		_ = resp.Body.Close()
-		if resp.StatusCode != http.StatusBadRequest {
-			t.Errorf("a malformed create at %s = %d, want 400", url, resp.StatusCode)
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Errorf("a malformed create at %s = %d, want 400", url, response.StatusCode)
 		}
 	}
 

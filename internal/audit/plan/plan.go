@@ -185,14 +185,14 @@ type Plan struct {
 // for a given plan — struct fields encode in declaration order and maps
 // encode sorted.
 func (p *Plan) JSON() ([]byte, error) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(p); err != nil {
 		return nil, fmt.Errorf("encoding the plan: %w", err)
 	}
-	return buf.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 // nearest returns the candidate closest to got, or "" when nothing is
@@ -218,10 +218,10 @@ func didYouMean(got string, candidates []string) string {
 
 // levenshtein is the standard two-row edit distance.
 func levenshtein(a, b string) int {
-	prev := make([]int, len(b)+1)
+	previous := make([]int, len(b)+1)
 	curr := make([]int, len(b)+1)
-	for j := range prev {
-		prev[j] = j
+	for j := range previous {
+		previous[j] = j
 	}
 	for i := 1; i <= len(a); i++ {
 		curr[0] = i
@@ -230,11 +230,11 @@ func levenshtein(a, b string) int {
 			if a[i-1] == b[j-1] {
 				cost = 0
 			}
-			curr[j] = min(prev[j]+1, min(curr[j-1]+1, prev[j-1]+cost))
+			curr[j] = min(previous[j]+1, min(curr[j-1]+1, previous[j-1]+cost))
 		}
-		prev, curr = curr, prev
+		previous, curr = curr, previous
 	}
-	return prev[len(b)]
+	return previous[len(b)]
 }
 
 // isEnvRef reports whether an operator value is a ${VAR} environment

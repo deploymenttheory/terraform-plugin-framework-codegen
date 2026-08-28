@@ -10,10 +10,10 @@ import (
 )
 
 // findWhenObs locates a value-conditional observation by its gate value.
-func findWhenObs(obs []observe.Observation, entity, attr string, kind observe.Kind, gateVal string) *observe.Observation {
+func findWhenObs(obs []observe.Observation, entity, attribute string, kind observe.Kind, gateVal string) *observe.Observation {
 	for i := range obs {
 		o := &obs[i]
-		if o.Entity == entity && o.Attribute == attr && o.Kind == kind &&
+		if o.Entity == entity && o.Attribute == attribute && o.Kind == kind &&
 			o.Condition != nil && o.Condition.Equals == gateVal {
 			return o
 		}
@@ -30,7 +30,7 @@ func findWhenObs(obs []observe.Observation, entity, attr string, kind observe.Ki
 func TestUnit_Infer_MonitorEdgesFromAStrategyRun(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
-	obs, sum := mustRun(t, strategyOptions(t, s, nil))
+	obs, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	vc := findObs(obs, "monitor", "kind", observe.KindValidConfiguration)
 	if vc == nil || vc.Outcome != observe.OutcomeConfirmed {
@@ -45,12 +45,12 @@ func TestUnit_Infer_MonitorEdgesFromAStrategyRun(t *testing.T) {
 
 	// Each field the kind gates is valid only under its own value — asserted
 	// from a positive acceptance and reproduced negative removals.
-	for _, tc := range []struct{ field, gate string }{
+	for _, testCase := range []struct{ field, gate string }{
 		{"target_host", "ping"}, {"domain", "dns"}, {"dnssec", "dns"},
 	} {
-		o := findWhenObs(obs, "monitor", tc.field, observe.KindValidWhen, tc.gate)
+		o := findWhenObs(obs, "monitor", testCase.field, observe.KindValidWhen, testCase.gate)
 		if o == nil || o.Outcome != observe.OutcomeConfirmed || o.Value != true {
-			t.Errorf("validWhen(monitor.%s, kind=%s) = %+v, want confirmed true", tc.field, tc.gate, o)
+			t.Errorf("validWhen(monitor.%s, kind=%s) = %+v, want confirmed true", testCase.field, testCase.gate, o)
 		}
 	}
 
@@ -77,8 +77,8 @@ func TestUnit_Infer_MonitorEdgesFromAStrategyRun(t *testing.T) {
 		t.Errorf("listResponseShape(monitor) = %s, want wrapped under monitors", shape)
 	}
 
-	if sum.EdgesConfirmed < 1 {
-		t.Errorf("summary reports %d confirmed edges, want at least one", sum.EdgesConfirmed)
+	if summary.EdgesConfirmed < 1 {
+		t.Errorf("summary reports %d confirmed edges, want at least one", summary.EdgesConfirmed)
 	}
 
 	// Every inferred observation must be committable.

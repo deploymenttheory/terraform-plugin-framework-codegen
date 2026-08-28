@@ -14,19 +14,19 @@ import (
 // value-typed nested object, concrete list elements, and Execute-style
 // result shapes carrying *http.Response.
 
-func oagAccess(base, sdkType, convGet, convSet, parse string) sdkbind.FieldAccess {
+func openAPIGeneratorAccess(base, sdkType, convGet, convSet, parse string) sdkbind.FieldAccess {
 	return sdkbind.FieldAccess{
 		Get: "Get" + base, Set: "Set" + base,
 		SDKType: sdkType, ConvertGet: convGet, ConvertSet: convSet, ParseFunc: parse,
 	}
 }
 
-func oagModel() *ir.Model {
+func openAPIGeneratorModel() *ir.Model {
 	opt := func(name string, kind ir.AttributeType) ir.Attribute {
 		return ir.Attribute{Name: name, WireName: name, Kind: kind, ComputedOptionalRequired: ir.Optional}
 	}
-	list := func(name string, elem ir.AttributeType) ir.Attribute {
-		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementType: elem, ComputedOptionalRequired: ir.Optional}
+	list := func(name string, element ir.AttributeType) ir.Attribute {
+		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementType: element, ComputedOptionalRequired: ir.Optional}
 	}
 
 	return &ir.Model{
@@ -104,7 +104,7 @@ func oagModel() *ir.Model {
 	}
 }
 
-func oagBindings() *sdkbind.Bindings {
+func openAPIGeneratorBindings() *sdkbind.Bindings {
 	info := sdkbind.SDKInfo{
 		ImportPath:       "example.test/provider/internal/sdk",
 		ModelsImportPath: "example.test/provider/internal/sdk",
@@ -130,35 +130,35 @@ func oagBindings() *sdkbind.Bindings {
 				WriteConstructor: "sdk.NewTagWithDefaults()",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
-						Access: readOnly(oagAccess("Id", "string", "FromString", "ToString", ""))},
+						Access: readOnly(openAPIGeneratorAccess("Id", "string", "FromString", "ToString", ""))},
 					{Attr: "name", Wire: "name", Kind: ir.TypeString,
-						Access: oagAccess("Name", "string", "FromString", "ToString", "")},
+						Access: openAPIGeneratorAccess("Name", "string", "FromString", "ToString", "")},
 					{Attr: "enabled", Wire: "enabled", Kind: ir.TypeBool,
-						Access: oagAccess("Enabled", "bool", "FromBool", "ToBool", "")},
+						Access: openAPIGeneratorAccess("Enabled", "bool", "FromBool", "ToBool", "")},
 					{Attr: "count", Wire: "count", Kind: ir.TypeInt64,
-						Access: oagAccess("Count", "int32", "FromInt32", "ToInt32", "")},
+						Access: openAPIGeneratorAccess("Count", "int32", "FromInt32", "ToInt32", "")},
 					{Attr: "big", Wire: "big", Kind: ir.TypeInt64,
-						Access: oagAccess("Big", "int64", "FromInt64", "ToInt64", "")},
+						Access: openAPIGeneratorAccess("Big", "int64", "FromInt64", "ToInt64", "")},
 					{Attr: "score", Wire: "score", Kind: ir.TypeFloat64,
-						Access: oagAccess("Score", "float32", "FromFloat32", "ToFloat32", "")},
+						Access: openAPIGeneratorAccess("Score", "float32", "FromFloat32", "ToFloat32", "")},
 					{Attr: "weight", Wire: "weight", Kind: ir.TypeFloat64,
-						Access: oagAccess("Weight", "float64", "FromFloat64", "ToFloat64", "")},
+						Access: openAPIGeneratorAccess("Weight", "float64", "FromFloat64", "ToFloat64", "")},
 					{Attr: "status", Wire: "status", Kind: ir.TypeString,
-						Access: oagAccess("Status", "sdk.TagStatus", "FromEnum", "ToEnum", "sdk.NewTagStatusFromValue")},
+						Access: openAPIGeneratorAccess("Status", "sdk.TagStatus", "FromEnum", "ToEnum", "sdk.NewTagStatusFromValue")},
 					{Attr: "phase", Wire: "phase", Kind: ir.TypeString,
-						Access: oagAccess("Phase", "*sdk.TagPhase", "FromPtrEnum", "ToPtrEnum", "sdk.NewTagPhaseFromValue")},
+						Access: openAPIGeneratorAccess("Phase", "*sdk.TagPhase", "FromPtrEnum", "ToPtrEnum", "sdk.NewTagPhaseFromValue")},
 					{Attr: "when", Wire: "when", Kind: ir.TypeString,
-						Access: oagAccess("When", "time.Time", "FromTime", "ToTime", "")},
+						Access: openAPIGeneratorAccess("When", "time.Time", "FromTime", "ToTime", "")},
 					{Attr: "levels", Wire: "levels", Kind: ir.TypeList, ElementType: ir.TypeInt64,
-						Access: oagAccess("Levels", "[]int64", "FromInt64Slice", "ToInt64Slice", "")},
+						Access: openAPIGeneratorAccess("Levels", "[]int64", "FromInt64Slice", "ToInt64Slice", "")},
 					{Attr: "flags", Wire: "flags", Kind: ir.TypeList, ElementType: ir.TypeBool,
-						Access: oagAccess("Flags", "[]bool", "FromBoolSlice", "ToBoolSlice", "")},
+						Access: openAPIGeneratorAccess("Flags", "[]bool", "FromBoolSlice", "ToBoolSlice", "")},
 					{Attr: "ratios", Wire: "ratios", Kind: ir.TypeList, ElementType: ir.TypeFloat64,
-						Access: oagAccess("Ratios", "[]float64", "FromFloat64Slice", "ToFloat64Slice", "")},
+						Access: openAPIGeneratorAccess("Ratios", "[]float64", "FromFloat64Slice", "ToFloat64Slice", "")},
 					{Attr: "sizes", Wire: "sizes", Kind: ir.TypeList, ElementType: ir.TypeInt64,
-						Access: oagAccess("Sizes", "[]int32", "FromInt32Slice", "ToInt32Slice", "")},
+						Access: openAPIGeneratorAccess("Sizes", "[]int32", "FromInt32Slice", "ToInt32Slice", "")},
 					{Attr: "modes", Wire: "modes", Kind: ir.TypeList, ElementType: ir.TypeString,
-						Access: oagAccess("Modes", "[]sdk.Mode", "FromEnumSlice", "ToEnumSlice", "sdk.NewModeFromValue")},
+						Access: openAPIGeneratorAccess("Modes", "[]sdk.Mode", "FromEnumSlice", "ToEnumSlice", "sdk.NewModeFromValue")},
 					{Attr: "meta", Wire: "meta", Kind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Get: "GetMeta", Set: "SetMeta", SDKType: "sdk.TagMeta"},
 						NestedModel:       "sdk.TagMeta",
@@ -166,7 +166,7 @@ func oagBindings() *sdkbind.Bindings {
 						NestedConstructor: "sdk.NewTagMetaWithDefaults()",
 						Nested: []sdkbind.FieldBinding{
 							{Attr: "note", Wire: "note", Kind: ir.TypeString,
-								Access: oagAccess("Note", "string", "FromString", "ToString", "")},
+								Access: openAPIGeneratorAccess("Note", "string", "FromString", "ToString", "")},
 						}},
 					{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Get: "GetRules", Set: "SetRules", SDKType: "[]sdk.TagRule"},
@@ -175,7 +175,7 @@ func oagBindings() *sdkbind.Bindings {
 						NestedConstructor: "sdk.NewTagRuleWithDefaults()",
 						Nested: []sdkbind.FieldBinding{
 							{Attr: "pattern", Wire: "pattern", Kind: ir.TypeString,
-								Access: oagAccess("Pattern", "string", "FromString", "ToString", "")},
+								Access: openAPIGeneratorAccess("Pattern", "string", "FromString", "ToString", "")},
 						}},
 				},
 			},
@@ -189,9 +189,9 @@ func oagBindings() *sdkbind.Bindings {
 				ListWrapperKey:   "tags",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
-						Access: readOnly(oagAccess("Id", "string", "FromString", "", ""))},
+						Access: readOnly(openAPIGeneratorAccess("Id", "string", "FromString", "", ""))},
 					{Attr: "name", Wire: "name", Kind: ir.TypeString,
-						Access: readOnly(oagAccess("Name", "string", "FromString", "", ""))},
+						Access: readOnly(openAPIGeneratorAccess("Name", "string", "FromString", "", ""))},
 				},
 			},
 		},
@@ -234,7 +234,7 @@ func oagBindings() *sdkbind.Bindings {
 	}
 }
 
-func oagProviderCore() ProviderCore {
+func openAPIGeneratorProviderCore() ProviderCore {
 	pc := fictionalProviderCore()
 	pc.BackendKiota = false
 	pc.BackendOpenAPIGenerator = true
@@ -247,7 +247,7 @@ func oagProviderCore() ProviderCore {
 // value-typed accessor and Execute-result shapes through the same
 // renderer and holds the conversions to the catalog's value family.
 func TestUnit_RenderServices_TheOpenAPIGeneratorDialectRenders(t *testing.T) {
-	out, err := RenderServices(oagProviderCore(), oagModel(), oagBindings())
+	out, err := RenderServices(openAPIGeneratorProviderCore(), openAPIGeneratorModel(), openAPIGeneratorBindings())
 	if err != nil {
 		t.Fatalf("RenderServices: %v", err)
 	}

@@ -11,20 +11,20 @@ import (
 // method when the document declares none.
 func TestOpMethodName(t *testing.T) {
 	cases := []struct {
-		name string
-		op   *ir.Operation
-		want string
+		name      string
+		operation *ir.Operation
+		want      string
 	}{
-		{"operationId camelises", op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag"), "GetTag"},
-		{"kebab operationId", op(ir.OperationRead, "GET", "/tags", "list-tags"), "ListTags"},
-		{"snake operationId", op(ir.OperationRead, "GET", "/tags", "list_tags"), "ListTags"},
-		{"no operationId synthesises from the path", op(ir.OperationRead, "GET", "/tags/{tagId}", ""), "TagsTagIdGet"},
-		{"synthesis keeps every literal segment", op(ir.OperationCreate, "POST", "/v2/account-groups", ""), "V2AccountGroupsPost"},
+		{"operationId camelises", operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag"), "GetTag"},
+		{"kebab operationId", operation(ir.OperationRead, "GET", "/tags", "list-tags"), "ListTags"},
+		{"snake operationId", operation(ir.OperationRead, "GET", "/tags", "list_tags"), "ListTags"},
+		{"no operationId synthesises from the path", operation(ir.OperationRead, "GET", "/tags/{tagId}", ""), "TagsTagIdGet"},
+		{"synthesis keeps every literal segment", operation(ir.OperationCreate, "POST", "/v2/account-groups", ""), "V2AccountGroupsPost"},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := opMethodName(tc.op); got != tc.want {
-				t.Errorf("opMethodName = %q, want %q", got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := opMethodName(testCase.operation); got != testCase.want {
+				t.Errorf("opMethodName = %q, want %q", got, testCase.want)
 			}
 		})
 	}
@@ -38,40 +38,40 @@ func TestOAGCallSpelling(t *testing.T) {
 	info := oagInfo()
 
 	cases := []struct {
-		name    string
-		op      *ir.Operation
-		hasBody bool
-		want    string
+		name      string
+		operation *ir.Operation
+		hasBody   bool
+		want      string
 	}{
 		{
-			name:    "create carries the body through a setter",
-			op:      op(ir.OperationCreate, "POST", "/tags", "createTag"),
-			hasBody: true,
-			want:    "client.TagsAPI.CreateTag(ctx).Tags(*body).Execute()",
+			name:      "create carries the body through a setter",
+			operation: operation(ir.OperationCreate, "POST", "/tags", "createTag"),
+			hasBody:   true,
+			want:      "client.TagsAPI.CreateTag(ctx).Tags(*body).Execute()",
 		},
 		{
-			name: "read passes the path parameter",
-			op:   op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
-			want: "client.TagsAPI.GetTag(ctx, tagId).Execute()",
+			name:      "read passes the path parameter",
+			operation: operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			want:      "client.TagsAPI.GetTag(ctx, tagId).Execute()",
 		},
 		{
-			name:    "update passes parameter then body",
-			op:      op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
-			hasBody: true,
-			want:    "client.TagsAPI.UpdateTag(ctx, tagId).Tags(*body).Execute()",
+			name:      "update passes parameter then body",
+			operation: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			hasBody:   true,
+			want:      "client.TagsAPI.UpdateTag(ctx, tagId).Tags(*body).Execute()",
 		},
 		{
-			name: "delete",
-			op:   op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
-			want: "client.TagsAPI.DeleteTag(ctx, tagId).Execute()",
+			name:      "delete",
+			operation: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			want:      "client.TagsAPI.DeleteTag(ctx, tagId).Execute()",
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			c := openAPIGeneratorBinder{}.call(tc.op, n, tc.hasBody, info)
-			if c.Expr != tc.want {
-				t.Errorf("Expr = %q, want %q", c.Expr, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			c := openAPIGeneratorBinder{}.call(testCase.operation, n, testCase.hasBody, info)
+			if c.Expr != testCase.want {
+				t.Errorf("Expr = %q, want %q", c.Expr, testCase.want)
 			}
 			if c.Expr != renderExpr(c.Segments) {
 				t.Errorf("Expr disagrees with Segments: %q", c.Expr)
@@ -85,7 +85,7 @@ func TestOAGCallDrafts(t *testing.T) {
 	n := names("tags", "tags")
 	info := oagInfo()
 
-	create := openAPIGeneratorBinder{}.call(op(ir.OperationCreate, "POST", "/tags", "createTag"), n, true, info)
+	create := openAPIGeneratorBinder{}.call(operation(ir.OperationCreate, "POST", "/tags", "createTag"), n, true, info)
 	if create.ResponseType != "*sdk.Tags" || create.RequestType != "sdk.Tags" {
 		t.Errorf("create drafts = response %q request %q", create.ResponseType, create.RequestType)
 	}
@@ -94,7 +94,7 @@ func TestOAGCallDrafts(t *testing.T) {
 	}
 
 	del := openAPIGeneratorBinder{}.call(
-		op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+		operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, info)
 	if del.ResponseType != "" || len(del.Results) != 2 {
 		t.Errorf("delete drafts = response %q results %v", del.ResponseType, del.Results)
@@ -104,7 +104,7 @@ func TestOAGCallDrafts(t *testing.T) {
 // TestOAGAccessSpelling holds drafted accessors to the generator's
 // deref-on-the-way-out helper shape: value-typed, no mangling.
 func TestOAGAccessSpelling(t *testing.T) {
-	fa := openAPIGeneratorBinder{}.access(attr("name", "name", ir.TypeString, ir.Required), accessReadWrite)
+	fa := openAPIGeneratorBinder{}.access(attribute("name", "name", ir.TypeString, ir.Required), accessReadWrite)
 	if fa.Get != "GetName" || fa.Set != "SetName" || fa.SDKType != "string" {
 		t.Errorf("access = %+v, want value-typed GetName/SetName", fa)
 	}
@@ -112,7 +112,7 @@ func TestOAGAccessSpelling(t *testing.T) {
 		t.Errorf("converts = %q/%q, want FromString/ToString", fa.ConvertGet, fa.ConvertSet)
 	}
 
-	labels := attr("labels", "labels", ir.TypeList, ir.Optional)
+	labels := attribute("labels", "labels", ir.TypeList, ir.Optional)
 	labels.ElementType = ir.TypeString
 	fa = openAPIGeneratorBinder{}.access(labels, accessReadWrite)
 	if fa.SDKType != "[]string" || fa.ConvertGet != "FromStringSlice" {
@@ -120,7 +120,7 @@ func TestOAGAccessSpelling(t *testing.T) {
 	}
 
 	// The generator does not mangle reserved words the way kiota does.
-	fa = openAPIGeneratorBinder{}.access(attr("error", "error", ir.TypeString, ir.Optional), accessReadWrite)
+	fa = openAPIGeneratorBinder{}.access(attribute("error", "error", ir.TypeString, ir.Optional), accessReadWrite)
 	if fa.Get != "GetError" {
 		t.Errorf("reserved wire name drafted %q, want GetError", fa.Get)
 	}
@@ -137,21 +137,21 @@ func TestBinderFor(t *testing.T) {
 		{"openapi-generator", "openapi-generator", false},
 		{"resty", "", true},
 	}
-	for _, tc := range cases {
-		cfg := minimalConfig(tc.backend)
-		b, err := For(cfg)
-		if tc.wantErr {
+	for _, testCase := range cases {
+		configuration := minimalConfig(testCase.backend)
+		b, err := For(configuration)
+		if testCase.wantErr {
 			if err == nil {
-				t.Errorf("For(%q) accepted an unsupported backend", tc.backend)
+				t.Errorf("For(%q) accepted an unsupported backend", testCase.backend)
 			}
 			continue
 		}
 		if err != nil {
-			t.Errorf("For(%q): %v", tc.backend, err)
+			t.Errorf("For(%q): %v", testCase.backend, err)
 			continue
 		}
-		if b.Name() != tc.want {
-			t.Errorf("For(%q).Name() = %q", tc.backend, b.Name())
+		if b.Name() != testCase.want {
+			t.Errorf("For(%q).Name() = %q", testCase.backend, b.Name())
 		}
 	}
 }

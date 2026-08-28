@@ -18,7 +18,7 @@ type pendingRef struct {
 // refused by name.
 func (l *loader) resolve() error {
 	for _, p := range l.refs {
-		target, ok := l.doc.Schemas[p.schema.Ref]
+		target, ok := l.document.Schemas[p.schema.Ref]
 		if !ok {
 			return fmt.Errorf("%s: references #/components/schemas/%s, which the document does not declare",
 				p.at, p.schema.Ref)

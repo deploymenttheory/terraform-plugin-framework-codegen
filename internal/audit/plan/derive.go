@@ -38,8 +38,8 @@ const (
 // children whose paths embed them; classification's collection-path
 // ordering already guarantees that, because a parent's collection path is
 // a strict prefix of its child's.
-func Derive(doc *specmodel.Document, cfg *config.Config, inputs *Inputs) (*Plan, error) {
-	cls := specmodel.Classify(doc)
+func Derive(document *specmodel.Document, configuration *config.Config, inputs *Inputs) (*Plan, error) {
+	cls := specmodel.Classify(document)
 
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	byCollection := make(map[string]string, len(cls.Entities))
@@ -55,17 +55,17 @@ func Derive(doc *specmodel.Document, cfg *config.Config, inputs *Inputs) (*Plan,
 	}
 
 	excluded := map[string]bool{}
-	for _, e := range cfg.Services.Exclude {
+	for _, e := range configuration.Services.Exclude {
 		excluded[e] = true
 	}
 
 	d := &planBuilder{
-		doc:          doc,
-		cfg:          cfg,
-		inputs:       inputs,
-		byKey:        byKey,
-		byCollection: byCollection,
-		planned:      map[string]bool{},
+		document:      document,
+		configuration: configuration,
+		inputs:        inputs,
+		byKey:         byKey,
+		byCollection:  byCollection,
+		planned:       map[string]bool{},
 	}
 
 	p := &Plan{}
@@ -108,7 +108,7 @@ func Derive(doc *specmodel.Document, cfg *config.Config, inputs *Inputs) (*Plan,
 		add(d.lookupPlan(c))
 	}
 
-	p.Budget = runBudget(cfg, len(p.Entities))
+	p.Budget = runBudget(configuration, len(p.Entities))
 	return p, nil
 }
 
@@ -134,11 +134,11 @@ func checkInputEntities(inputs *Inputs, byKey map[string]specmodel.Classificatio
 
 // planBuilder carries the per-run derivation state.
 type planBuilder struct {
-	doc          *specmodel.Document
-	cfg          *config.Config
-	inputs       *Inputs
-	byKey        map[string]specmodel.Classification
-	byCollection map[string]string
+	document      *specmodel.Document
+	configuration *config.Config
+	inputs        *Inputs
+	byKey         map[string]specmodel.Classification
+	byCollection  map[string]string
 	// planned marks resources whose plans exist, and whose minimal
 	// objects children may therefore reference via CreatedRef.
 	planned map[string]bool
@@ -211,11 +211,11 @@ func (d *planBuilder) pathValues(path, selfKey string, ei EntityInputs) (map[str
 // it: for "/projects/{projectId}/tags", parameter projectId's enclosing
 // prefix is "/projects", and the entity classified there is the parent.
 func (d *planBuilder) parentFor(path, parameter string) (string, bool) {
-	idx := strings.Index(path, "{"+parameter+"}")
-	if idx <= 1 {
+	index := strings.Index(path, "{"+parameter+"}")
+	if index <= 1 {
 		return "", false
 	}
-	prefix := strings.TrimRight(path[:idx], "/")
+	prefix := strings.TrimRight(path[:index], "/")
 	key, ok := d.byCollection[prefix]
 	return key, ok
 }
@@ -225,8 +225,8 @@ func (d *planBuilder) operation(ref *specmodel.OperationReference) *specmodel.Op
 	if ref == nil {
 		return nil
 	}
-	for pi := range d.doc.Paths {
-		p := &d.doc.Paths[pi]
+	for pi := range d.document.Paths {
+		p := &d.document.Paths[pi]
 		if p.Path != ref.Path {
 			continue
 		}
@@ -253,14 +253,14 @@ func hasKind(c specmodel.Classification, k specmodel.Kind) bool {
 // configured live-object ceiling, and a wall-clock allowance of twice the
 // time the request budget takes at the configured rate — headroom for
 // retries and read-back polling — with a one-minute floor.
-func runBudget(cfg *config.Config, entities int) RunBudget {
+func runBudget(configuration *config.Config, entities int) RunBudget {
 	requests := entityRequestBudget * entities
 
-	objects := cfg.Audit.MaxObjects
+	objects := configuration.Audit.MaxObjects
 	if objects < 1 {
 		objects = 25
 	}
-	rps := cfg.Audit.RateLimitRPS
+	rps := configuration.Audit.RateLimitRPS
 	if rps < 1 {
 		rps = 2
 	}

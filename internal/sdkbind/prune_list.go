@@ -46,9 +46,9 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, lis
 
 	settle := func(c listElementCandidate) (types.Type, string) {
 		*access = c.access
-		*elementType = shortType(c.elem)
-		p.recordTypePackage(c.elem)
-		return c.elem, ""
+		*elementType = shortType(c.element)
+		p.recordTypePackage(c.element)
+		return c.element, ""
 	}
 
 	// The observed envelope key names the wrapper's getter or field
@@ -82,9 +82,9 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, lis
 // a getter method (rendered "GetTags()") or a struct field (rendered
 // "Tags"), with the slice's element type.
 type listElementCandidate struct {
-	name   string
-	access string
-	elem   types.Type
+	name    string
+	access  string
+	element types.Type
 }
 
 // sliceGetters returns every zero-argument, single-slice-returning getter
@@ -101,7 +101,7 @@ func sliceGetters(t types.Type) []listElementCandidate {
 			continue
 		}
 		if slice, ok := sig.Results().At(0).Type().Underlying().(*types.Slice); ok {
-			out = append(out, listElementCandidate{name: obj.Name(), access: obj.Name() + "()", elem: slice.Elem()})
+			out = append(out, listElementCandidate{name: obj.Name(), access: obj.Name() + "()", element: slice.Elem()})
 		}
 	}
 	return out
@@ -122,7 +122,7 @@ func sliceFields(t types.Type) []listElementCandidate {
 			continue
 		}
 		if slice, ok := f.Type().Underlying().(*types.Slice); ok {
-			out = append(out, listElementCandidate{name: f.Name(), access: f.Name(), elem: slice.Elem()})
+			out = append(out, listElementCandidate{name: f.Name(), access: f.Name(), element: slice.Elem()})
 		}
 	}
 	return out

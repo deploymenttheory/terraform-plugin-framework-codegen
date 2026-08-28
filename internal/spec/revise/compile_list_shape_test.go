@@ -60,11 +60,11 @@ func TestUnit_Propose_ListResponseShapeConvergesOnceStated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc, err := specmodel.Load(raw)
+	document, err := specmodel.Load(raw)
 	if err != nil {
 		t.Fatalf("the revised document does not load: %v", err)
 	}
-	if got, ok := listOpShape(doc); !ok || got != (specmodel.ListResponseShape{
+	if got, ok := listOpShape(document); !ok || got != (specmodel.ListResponseShape{
 		Envelope: "wrapped", Key: "tags", Pagination: "cursor",
 	}) {
 		t.Errorf("revised list operation carries %+v (present=%v), want the observed shape", got, ok)
@@ -72,15 +72,15 @@ func TestUnit_Propose_ListResponseShapeConvergesOnceStated(t *testing.T) {
 }
 
 // listOpShape reads the shape extension off the document's list operation.
-func listOpShape(doc *specmodel.Document) (specmodel.ListResponseShape, bool) {
-	for pi := range doc.Paths {
-		if doc.Paths[pi].Path != "/tags" {
+func listOpShape(document *specmodel.Document) (specmodel.ListResponseShape, bool) {
+	for pi := range document.Paths {
+		if document.Paths[pi].Path != "/tags" {
 			continue
 		}
-		for oi := range doc.Paths[pi].Operations {
-			op := &doc.Paths[pi].Operations[oi]
-			if op.Method == "GET" {
-				return op.Extensions.ListResponseShape()
+		for oi := range document.Paths[pi].Operations {
+			operation := &document.Paths[pi].Operations[oi]
+			if operation.Method == "GET" {
+				return operation.Extensions.ListResponseShape()
 			}
 		}
 	}
@@ -199,12 +199,12 @@ func TestUnit_Compile_ListResponseShapeRefusesADriftedVocabulary(t *testing.T) {
 		{"a value that is not a record at all", 42,
 			""}, // an error, not a note — see below
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			res, err := comp.compile(confirmedObs("", observe.KindListResponseShape, tc.value, nil, ""))
-			if tc.want == "" {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			res, err := comp.compile(confirmedObs("", observe.KindListResponseShape, testCase.value, nil, ""))
+			if testCase.want == "" {
 				if err == nil {
-					t.Fatalf("compile accepted %v: %+v", tc.value, res)
+					t.Fatalf("compile accepted %v: %+v", testCase.value, res)
 				}
 				if !strings.Contains(err.Error(), "not a list-response-shape record") {
 					t.Errorf("error = %v, want it to name the unusable value", err)
@@ -214,8 +214,8 @@ func TestUnit_Compile_ListResponseShapeRefusesADriftedVocabulary(t *testing.T) {
 			if err != nil {
 				t.Fatalf("compile: %v", err)
 			}
-			if res.category != catUnplaceable || !strings.Contains(res.reason, tc.want) {
-				t.Errorf("compiled = %+v, want an unplaceable note containing %q", res, tc.want)
+			if res.category != catUnplaceable || !strings.Contains(res.reason, testCase.want) {
+				t.Errorf("compiled = %+v, want an unplaceable note containing %q", res, testCase.want)
 			}
 		})
 	}

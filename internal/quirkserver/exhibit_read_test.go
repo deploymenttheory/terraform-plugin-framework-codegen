@@ -119,26 +119,26 @@ var readExhibits = map[string]func(*testing.T){
 
 		s := New(t, Quirks{RateLimitHeaders: true})
 
-		resp, err := http.Get(s.CollectionURL()) //nolint:noctx // a test fixture
+		response, err := http.Get(s.CollectionURL()) //nolint:noctx // a test fixture
 		if err != nil {
 			t.Fatalf("Get: %v", err)
 		}
-		_ = resp.Body.Close()
+		_ = response.Body.Close()
 
 		// The server states the budget, which is why the auditor paces from
 		// the headers rather than guessing. Without an explicit budget the
 		// default applies.
-		if got := resp.Header.Get("x-organization-rate-limit-limit"); got != "240" {
+		if got := response.Header.Get("x-organization-rate-limit-limit"); got != "240" {
 			t.Errorf("limit header = %q, want the default 240", got)
 		}
-		if resp.Header.Get("x-organization-rate-limit-remaining") == "" {
+		if response.Header.Get("x-organization-rate-limit-remaining") == "" {
 			t.Error("the remaining header should be present")
 		}
-		if resp.Header.Get("x-organization-rate-limit-reset") == "" {
+		if response.Header.Get("x-organization-rate-limit-reset") == "" {
 			t.Error("the reset header should be present")
 		}
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("status = %d, want 200 while the budget lasts", resp.StatusCode)
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("status = %d, want 200 while the budget lasts", response.StatusCode)
 		}
 	},
 
@@ -151,12 +151,12 @@ var readExhibits = map[string]func(*testing.T){
 
 		var last *http.Response
 		for range 3 {
-			resp, err := http.Get(s.CollectionURL()) //nolint:noctx // a test fixture
+			response, err := http.Get(s.CollectionURL()) //nolint:noctx // a test fixture
 			if err != nil {
 				t.Fatalf("Get: %v", err)
 			}
-			_ = resp.Body.Close()
-			last = resp
+			_ = response.Body.Close()
+			last = response
 		}
 
 		if got := last.Header.Get("x-organization-rate-limit-limit"); got != "2" {

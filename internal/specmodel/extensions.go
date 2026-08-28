@@ -191,14 +191,14 @@ func parseExtensions(n *yaml.Node, at string) (Extensions, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s: unknown extension %q%s", at, key, suggestExtension(key))
 		}
-		val, err := parse(deref(n.Content[i+1]), at+"."+key)
+		value, err := parse(deref(n.Content[i+1]), at+"."+key)
 		if err != nil {
 			return nil, err
 		}
 		if out == nil {
 			out = Extensions{}
 		}
-		out[key] = val
+		out[key] = value
 	}
 	return out, nil
 }
@@ -295,16 +295,16 @@ func extRequiredWhen(n *yaml.Node, at string) (any, error) {
 	}
 	var rw RequiredWhen
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		key, value := n.Content[i].Value, deref(n.Content[i+1])
 		switch key {
 		case "property":
-			rw.Property = val.Value
+			rw.Property = value.Value
 		case "equals":
-			rw.Equals = val.Value
+			rw.Equals = value.Value
 		default:
 			return nil, fmt.Errorf("%s: unknown key %q; only \"property\" and \"equals\" are allowed", at, key)
 		}
-		if val.Kind != yaml.ScalarNode || val.Value == "" {
+		if value.Kind != yaml.ScalarNode || value.Value == "" {
 			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
 		}
 	}
@@ -322,16 +322,16 @@ func extValidWhen(n *yaml.Node, at string) (any, error) {
 	}
 	var vw ValidWhen
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		key, value := n.Content[i].Value, deref(n.Content[i+1])
 		switch key {
 		case "property":
-			vw.Property = val.Value
+			vw.Property = value.Value
 		case "equals":
-			vw.Equals = val.Value
+			vw.Equals = value.Value
 		default:
 			return nil, fmt.Errorf("%s: unknown key %q; only \"property\" and \"equals\" are allowed", at, key)
 		}
-		if val.Kind != yaml.ScalarNode || val.Value == "" {
+		if value.Kind != yaml.ScalarNode || value.Value == "" {
 			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
 		}
 	}
@@ -349,14 +349,14 @@ func extDependsOn(n *yaml.Node, at string) (any, error) {
 	}
 	var do DependsOn
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		key, value := n.Content[i].Value, deref(n.Content[i+1])
 		switch key {
 		case "requires":
-			do.Requires = val.Value
+			do.Requires = value.Value
 		default:
 			return nil, fmt.Errorf("%s: unknown key %q; only \"requires\" is allowed", at, key)
 		}
-		if val.Kind != yaml.ScalarNode || val.Value == "" {
+		if value.Kind != yaml.ScalarNode || value.Value == "" {
 			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
 		}
 	}
@@ -402,15 +402,15 @@ func extValidConfiguration(n *yaml.Node, at string) (any, error) {
 	var vc ValidConfiguration
 	var variantsNode *yaml.Node
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		key, value := n.Content[i].Value, deref(n.Content[i+1])
 		switch key {
 		case "discriminator":
-			if val.Kind != yaml.ScalarNode || val.Value == "" {
+			if value.Kind != yaml.ScalarNode || value.Value == "" {
 				return nil, fmt.Errorf("%s.discriminator: must be a non-empty property name", at)
 			}
-			vc.Discriminator = val.Value
+			vc.Discriminator = value.Value
 		case "variants":
-			variantsNode = val
+			variantsNode = value
 		default:
 			return nil, fmt.Errorf("%s: unknown key %q; only \"discriminator\" and \"variants\" are allowed", at, key)
 		}
@@ -454,18 +454,18 @@ func extListResponseShape(n *yaml.Node, at string) (any, error) {
 	}
 	var s ListResponseShape
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		key, value := n.Content[i].Value, deref(n.Content[i+1])
 		switch key {
 		case "envelope":
-			s.Envelope = val.Value
+			s.Envelope = value.Value
 		case "key":
-			s.Key = val.Value
+			s.Key = value.Value
 		case "pagination":
-			s.Pagination = val.Value
+			s.Pagination = value.Value
 		default:
 			return nil, fmt.Errorf("%s: unknown key %q; only \"envelope\", \"key\" and \"pagination\" are allowed", at, key)
 		}
-		if val.Kind != yaml.ScalarNode || val.Value == "" {
+		if value.Kind != yaml.ScalarNode || value.Value == "" {
 			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
 		}
 	}
@@ -586,10 +586,10 @@ func (e Extensions) boolKey(key string) (bool, bool) {
 
 // levenshtein is the standard two-row edit distance, for typo suggestions.
 func levenshtein(a, b string) int {
-	prev := make([]int, len(b)+1)
+	previous := make([]int, len(b)+1)
 	curr := make([]int, len(b)+1)
-	for j := range prev {
-		prev[j] = j
+	for j := range previous {
+		previous[j] = j
 	}
 	for i := 1; i <= len(a); i++ {
 		curr[0] = i
@@ -598,9 +598,9 @@ func levenshtein(a, b string) int {
 			if a[i-1] == b[j-1] {
 				cost = 0
 			}
-			curr[j] = min(prev[j]+1, min(curr[j-1]+1, prev[j-1]+cost))
+			curr[j] = min(previous[j]+1, min(curr[j-1]+1, previous[j-1]+cost))
 		}
-		prev, curr = curr, prev
+		previous, curr = curr, previous
 	}
-	return prev[len(b)]
+	return previous[len(b)]
 }
