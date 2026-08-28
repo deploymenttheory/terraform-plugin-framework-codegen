@@ -90,20 +90,6 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 	return blockedError{reason: "the minimal create produced no object"}
 }
 
-// namesOnly reports whether a refusal names the given field and no other
-// field the entity declares.
-func (r *runner) namesOnly(entity *entityState, res *httpResult, field string) bool {
-	if !res.mentions(field) {
-		return false
-	}
-	for _, named := range declaredFieldsNamedIn(refusalMessage(res.body), r.hints[entity.plan.Entity]) {
-		if named != field {
-			return false
-		}
-	}
-	return true
-}
-
 // rebased answers a step's body built on the minimal body the API accepted
 // rather than the one the plan derived. A per-value or negative probe is
 // the planned minimal with one change — a value pinned, a field omitted, a
@@ -424,11 +410,12 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 		switch {
 		case accepted:
 			v.Accepted = append(v.Accepted, fmt.Sprint(cond.Equals))
-		case res.mentions(fmt.Sprint(cond.Equals)) || r.namesOnly(entity, res, step.Attribute):
-			// The refusal names the value, or names this field and no
-			// other: the value is what was refused. A refusal naming two
-			// fields is about their combination, which says nothing about
-			// either value alone.
+		case res.mentions(fmt.Sprint(cond.Equals)):
+			// The refusal names the value: the value is what was refused. A
+			// refusal naming only the field is about the field under this
+			// body's other values — a direction the alert type does not
+			// take, a tag kind that wants filters — and a documented value
+			// refused in one configuration is not an undocumented one.
 			v.Rejected = append(v.Rejected, fmt.Sprint(cond.Equals))
 		default:
 			// Refused without naming either — a conflict with an object
