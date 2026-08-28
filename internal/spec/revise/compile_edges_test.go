@@ -1,6 +1,7 @@
 package revise
 
 import (
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/correction"
 	"os"
 	"path/filepath"
 	"strings"
