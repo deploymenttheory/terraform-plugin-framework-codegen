@@ -256,7 +256,12 @@ var reQuotedValue = regexp.MustCompile(`'([^']+)'|"([^"]+)"`)
 // segment is recorded as that field's value evidence: the documented value
 // refused, the segment accepted, for the values observation to compile into
 // the document's enum.
-func (r *runner) retryCollectionSegments(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
+//
+// A segment the API takes without creating the object — the refusal moves
+// on to complain about something else and no longer quotes the value — is
+// progress: the value stays in the body, the same evidence is recorded, and
+// the new refusal is answered by the loop that called this.
+func (r *runner) retryCollectionSegments(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (obj *createdObject, res *httpResult, progressed bool, err error) {
 	hints := r.hints[entity.plan.Entity]
 	if hints == nil || refusal == nil {
 		return nil, nil, false, nil
@@ -267,6 +272,15 @@ func (r *runner) retryCollectionSegments(ctx context.Context, entity *entityStat
 	}
 	applied["s:"+field] = true
 
+	recordValue := func(segment string, proof observe.Excerpt) {
+		values := entity.ev.valuesFor(field)
+		values.Accepted = append(values.Accepted, segment)
+		if enumMember(hints[field], current) {
+			values.Rejected = append(values.Rejected, current)
+		}
+		entity.ev.valuesProof[field] = append(entity.ev.valuesProof[field], refusal.excerpt, proof)
+	}
+
 	segments := staticSegments(rec.collectionPath)
 	for i := len(segments) - 1; i >= 0; i-- {
 		segment := segments[i]
@@ -274,21 +288,20 @@ func (r *runner) retryCollectionSegments(ctx context.Context, entity *entityStat
 			continue
 		}
 		body[field] = segment
-		obj, res, err := r.createObject(ctx, entity, rec, body)
+		obj, res, err = r.createObject(ctx, entity, rec, body)
 		if err != nil {
 			return nil, nil, false, err
 		}
 		if obj != nil {
-			values := entity.ev.valuesFor(field)
-			values.Accepted = append(values.Accepted, segment)
-			if enumMember(hints[field], current) {
-				values.Rejected = append(values.Rejected, current)
-			}
-			entity.ev.valuesProof[field] = append(entity.ev.valuesProof[field], refusal.excerpt, res.excerpt)
+			recordValue(segment, res.excerpt)
 			return obj, res, true, nil
 		}
 		if res == nil || !res.refused() {
 			break
+		}
+		if quoted, _ := quotedEnumField(refusalMessage(res.body), body, hints); quoted != field {
+			recordValue(segment, res.excerpt)
+			return nil, res, true, nil
 		}
 	}
 	body[field] = typedGate(hints[field], current)

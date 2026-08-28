@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/bits"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -64,12 +65,14 @@ func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *
 			continue
 		}
 		addr := addressingOf(&ep)
+		composites, attested := plan.CompositeValues(document, class, prefix)
 		synthesis := bodySynthesis{
-			entity:     ep.Entity,
-			prefix:     prefix,
-			values:     inputs.ValuesFor(ep.Entity),
-			composites: plan.CompositeValues(document, class, prefix),
-			references: references,
+			entity:             ep.Entity,
+			prefix:             prefix,
+			values:             inputs.ValuesFor(ep.Entity),
+			composites:         composites,
+			attestedComposites: attested,
+			references:         references,
 		}
 		ep.Steps = translateProgram(compiled, addr, synthesis)
 		ep.Budget = plan.Budget{Requests: compiled.Budget.Requests}
@@ -96,9 +99,13 @@ type bodySynthesis struct {
 	// outrank every synthesis and are never bound as references.
 	values map[string]any
 	// composites are the array- and object-typed fields synthesised from the
-	// document, keyed by top-level wire name; the executor's own synthesis
-	// reaches no deeper than a scalar.
-	composites map[string]any
+	// document, keyed by top-level wire name, each carrying its required
+	// members alone; the executor's own synthesis reaches no deeper than a
+	// scalar. attestedComposites are the same fields widened to the members
+	// the document states a value for, which the adjustment loop swaps in
+	// when the smaller form is refused.
+	composites         map[string]any
+	attestedComposites map[string]any
 	// references maps the noun a collection path spells to that path, for
 	// binding id-named fields to a borrow token.
 	references map[string]string
@@ -397,6 +404,20 @@ func (b bodySynthesis) fieldValue(h strategy.SyntheticValueRules) any {
 		return cloneAny(composite)
 	}
 	return synthesiseValue(h, b.entity, b.prefix)
+}
+
+// attestedValue answers the widened form of one composite field, bound to
+// its references, and false where the field has none or the widened form is
+// the same as the smaller one.
+func (b bodySynthesis) attestedValue(field string) (any, bool) {
+	wider, ok := b.attestedComposites[field]
+	if !ok {
+		return nil, false
+	}
+	if smaller, has := b.composites[field]; has && reflect.DeepEqual(smaller, wider) {
+		return nil, false
+	}
+	return bindReferences(cloneAny(wider), field, b.references, nil), true
 }
 
 // synthesiseField synthesises one field the adjustment loop must add live, from its

@@ -32,8 +32,10 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 	// wider body than the one that started it, and the fields it added name
 	// what it asked for. Both are carried for the block reason alone — the
 	// grammar's own result still decides what happens next.
+	// A 5xx counts as a refusal here: an API that answers a body it cannot
+	// read with a server error rather than a 400 is still answering the body.
 	var searched bodyCorrection
-	if rr.obj == nil && rr.res != nil && rr.res.refused() {
+	if rr.obj == nil && rr.res != nil && (rr.res.refused() || rr.res.status >= 500) {
 		found, serr := r.addFieldsUntilAccepted(ctx, entity, entity.recipe, rr.body, rr.res)
 		if serr != nil {
 			return serr
@@ -114,6 +116,18 @@ func minimalRefusedReason(status int, tried []string) string {
 // field the loop can act on, a bounded bisection names the refused field.
 func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
+	// A composite field takes the form the minimal create got accepted —
+	// widened or not — because the maximal claim is about the entity's own
+	// fields, and re-learning the element's shape would spend the same
+	// requests for the same answer.
+	for field, value := range entity.recipe.minimalBody {
+		switch value.(type) {
+		case map[string]any, []any:
+			if _, present := body[field]; present {
+				body[field] = cloneAny(value)
+			}
+		}
+	}
 	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
 		return err
@@ -412,7 +426,7 @@ func (r *runner) addFieldsUntilAccepted(ctx context.Context, entity *entityState
 			}
 			return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: true}, nil
 		}
-		if res == nil || !res.refused() {
+		if res == nil || (!res.refused() && res.status < 500) {
 			return bodyCorrection{res: res, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
 		}
 		// The API now objects to the field just added, so it is not one this

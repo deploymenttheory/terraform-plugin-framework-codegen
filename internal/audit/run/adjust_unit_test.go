@@ -549,3 +549,65 @@ func TestUnit_Cycle_QuotedEnumFieldAndSegments(t *testing.T) {
 		t.Errorf("staticSegments = %v", got)
 	}
 }
+
+func TestUnit_Adjust_ANestedMemberTheAPIRefusesIsRemovedWhereItSits(t *testing.T) {
+	t.Parallel()
+	got := classifyRefusal(&httpResult{status: 400, body: []byte(`{"errors":[{"field":"secrets[0].id","message":"must be null"}]}`)})
+	if got.kind != adjustmentRemove || got.field != "secrets[0].id" {
+		t.Fatalf("classify = %+v, want remove secrets[0].id", got)
+	}
+	body := map[string]any{
+		"name":    "x",
+		"secrets": []any{map[string]any{"id": "stale", "name": "s"}, map[string]any{"id": "keep"}},
+		"auth":    map[string]any{"username": "u", "type": "basic"},
+	}
+	if !removePath(body, "secrets[0].id") {
+		t.Fatal("secrets[0].id was not removed")
+	}
+	if _, still := body["secrets"].([]any)[0].(map[string]any)["id"]; still {
+		t.Error("secrets[0].id survived")
+	}
+	if _, kept := body["secrets"].([]any)[1].(map[string]any)["id"]; !kept {
+		t.Error("secrets[1].id was removed instead")
+	}
+	if !removePath(body, "auth.username") || len(body["auth"].(map[string]any)) != 1 {
+		t.Errorf("auth.username was not removed: %v", body["auth"])
+	}
+	if !removePath(body, "secrets[1]") || len(body["secrets"].([]any)) != 1 {
+		t.Errorf("secrets[1] was not removed: %v", body["secrets"])
+	}
+	if removePath(body, "secrets[7].id") || removePath(body, "nothing.here") || removePath(body, "name.deeper") {
+		t.Error("a path that names nothing reported a removal")
+	}
+	r := &runner{}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "vault"}}
+	applied := map[string]bool{}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, &httpResult{status: 400,
+		body: []byte(`{"errors":[{"field":"auth.type","message":"must be null"}]}`)}, applied, true); !ok {
+		t.Fatal("the nested removal was not applied")
+	}
+	if _, still := body["auth"].(map[string]any)["type"]; still {
+		t.Error("auth.type survived the adjustment")
+	}
+}
+
+func TestUnit_Adjust_ARefusedChoiceMovesOnToTheNextOffered(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"payload": {Field: "payload"}, "queryParams": {Field: "queryParams"}, "headers": {Field: "headers"},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"webhook": known}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "webhook"}}
+	choice := &pendingAdd{field: "payload", candidates: []string{"payload", "query params", "headers"}}
+	if next := r.nextChoice(entity, map[string]any{"payload": "{}"}, choice); next != "queryParams" {
+		t.Errorf("nextChoice = %q, want queryParams", next)
+	}
+	choice.field = "queryParams"
+	if next := r.nextChoice(entity, map[string]any{"queryParams": "{}", "headers": []any{}}, choice); next != "" {
+		t.Errorf("nextChoice = %q, want nothing once every candidate is present or spent", next)
+	}
+	adds := withoutAdd([]pendingAdd{{field: "type"}, {field: "payload"}}, "payload")
+	if len(adds) != 1 || adds[0].field != "type" {
+		t.Errorf("withoutAdd = %+v", adds)
+	}
+}

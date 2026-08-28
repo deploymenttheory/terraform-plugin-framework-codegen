@@ -25,6 +25,11 @@ type valueSynthesiser struct {
 	// toolkit debris and cleanup can match them by name.
 	prefix string
 	inputs EntityInputs
+	// attested widens every nested object to the optional members the
+	// document states a value for — an example, a default or an enum —
+	// beside the required ones. Off, an object carries its required members
+	// alone.
+	attested bool
 }
 
 // minimalBody synthesizes the smallest valid create body: required,
@@ -185,12 +190,14 @@ func (sy valueSynthesiser) typeValue(field string, r *specmodel.Schema, depth in
 }
 
 // objectValue synthesizes a nested object: its required writable fields,
-// recursively, plus the optional ones the document states a value for — an
-// example, a default or an enum. The maximal claim is about the entity's own
-// attributes, not the transitive closure, so an optional nested field with
-// nothing attested about it stays out; one the document vouches for goes in,
-// because an element carrying only its required members is routinely refused
-// as incomplete where the same element with its documented values is taken.
+// recursively, and in attested mode the optional ones the document states a
+// value for — an example, a default or an enum. The maximal claim is about
+// the entity's own attributes, not the transitive closure, so an optional
+// nested field with nothing attested about it never goes in. Which of the
+// two forms an API takes is not knowable from the document: one refuses an
+// element carrying only its required members as incomplete, another refuses
+// the documented optional members as inapplicable, so the executor sends the
+// smaller form and widens on refusal.
 func (sy valueSynthesiser) objectValue(r *specmodel.Schema, depth int) (any, bool) {
 	properties, required := flatProps(r)
 	out := map[string]any{}
@@ -199,7 +206,8 @@ func (sy valueSynthesiser) objectValue(r *specmodel.Schema, depth int) (any, boo
 		if resolved.ReadOnly {
 			continue
 		}
-		if !required[p.Name] && resolved.Example == nil && resolved.Default == nil && len(resolved.Enum) == 0 {
+		attested := sy.attested && (resolved.Example != nil || resolved.Default != nil || len(resolved.Enum) > 0)
+		if !required[p.Name] && !attested {
 			continue
 		}
 		v, ok := sy.value(p.Name, p.Schema, depth+1, false)
@@ -214,44 +222,51 @@ func (sy valueSynthesiser) objectValue(r *specmodel.Schema, depth int) (any, boo
 	return out, true
 }
 
-// CompositeValues synthesizes the array- and object-typed writable fields of
-// one entity's create body from the document's item and property schemas:
-// one element per array, the attested members per object. The executor's own
-// synthesis reaches no deeper than a scalar and sends an empty collection for
-// anything wider, which an API reads as "nothing selected" and refuses. The
-// values are keyed by wire property name; a field no value can be derived for
-// is absent.
-func CompositeValues(document *specmodel.Document, class specmodel.Classification, prefix string) map[string]any {
+// CompositeValues synthesizes the array-, object- and union-typed writable
+// fields of one entity's create body from the document's item, property and
+// branch schemas, in both forms: one element per array or one object carrying
+// its required members alone, and the same widened to the members the
+// document attests. The executor's own synthesis reaches no deeper than a
+// scalar and sends an empty collection for anything wider, which an API
+// reads as "nothing selected" and refuses. The values are keyed by wire
+// property name; a field no value can be derived for is absent from both.
+func CompositeValues(document *specmodel.Document, class specmodel.Classification, prefix string) (minimal, attested map[string]any) {
 	if class.Create == nil || document == nil {
-		return nil
+		return nil, nil
 	}
 	builder := planBuilder{document: document}
 	createOp := builder.operation(class.Create)
 	if createOp == nil || createOp.RequestBody == nil {
-		return nil
+		return nil, nil
 	}
-	sy := valueSynthesiser{entity: class.Key, prefix: prefix}
 	properties, _ := flatProps(createOp.RequestBody)
-	out := map[string]any{}
+	minimal, attested = map[string]any{}, map[string]any{}
 	for _, p := range properties {
 		resolved := p.Schema.Resolved()
 		if resolved.ReadOnly {
 			continue
 		}
-		composite := resolved.Type == "array" || resolved.Type == "object" || len(resolved.Properties) > 0
+		composite := resolved.Type == "array" || resolved.Type == "object" || len(resolved.Properties) > 0 ||
+			len(resolved.OneOf) > 0 || len(resolved.AnyOf) > 0
 		if !composite {
 			continue
 		}
-		v, ok := sy.value(p.Name, p.Schema, 0, false)
-		if !ok {
-			continue
+		smaller := valueSynthesiser{entity: class.Key, prefix: prefix}
+		if v, ok := smaller.value(p.Name, p.Schema, 0, false); ok {
+			minimal[p.Name] = v
 		}
-		out[p.Name] = v
+		wider := valueSynthesiser{entity: class.Key, prefix: prefix, attested: true}
+		if v, ok := wider.value(p.Name, p.Schema, 0, false); ok {
+			attested[p.Name] = v
+		}
 	}
-	if len(out) == 0 {
-		return nil
+	if len(minimal) == 0 {
+		minimal = nil
 	}
-	return out
+	if len(attested) == 0 {
+		attested = nil
+	}
+	return minimal, attested
 }
 
 // alternateValue synthesizes a second, distinct value for an update: something

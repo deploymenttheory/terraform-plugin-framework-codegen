@@ -473,18 +473,26 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
 	document := loadDoc(t, spec)
 	class := specmodel.Classify(document).Entities[0]
 
-	got := CompositeValues(document, class, "tfpfgen")
-	want := map[string]any{
-		// Every member the document states a value for, none it does not.
-		"filters": []any{map[string]any{"key": "network", "values": []any{"10.1.1.0/24"}, "mode": "in"}},
-		// A required member alone: an optional nested collection the
-		// document says nothing about is not a value the document attests.
+	minimal, attested := CompositeValues(document, class, "tfpfgen")
+	wantMinimal := map[string]any{
+		// Required members alone: none here, so an empty element.
+		"filters": []any{map[string]any{}},
 		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("composites = %#v\nwant %#v", got, want)
+	wantAttested := map[string]any{
+		// Every member the document states a value for, none it does not.
+		"filters": []any{map[string]any{"key": "network", "values": []any{"10.1.1.0/24"}, "mode": "in"}},
+		// An optional nested collection the document says nothing about is
+		// not a value the document attests, in either form.
+		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
 	}
-	if CompositeValues(document, specmodel.Classification{Key: "none"}, "tfpfgen") != nil {
+	if !reflect.DeepEqual(minimal, wantMinimal) {
+		t.Errorf("minimal composites = %#v\nwant %#v", minimal, wantMinimal)
+	}
+	if !reflect.DeepEqual(attested, wantAttested) {
+		t.Errorf("attested composites = %#v\nwant %#v", attested, wantAttested)
+	}
+	if m, a := CompositeValues(document, specmodel.Classification{Key: "none"}, "tfpfgen"); m != nil || a != nil {
 		t.Error("an entity with no create yields composites")
 	}
 }

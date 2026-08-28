@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -304,11 +305,22 @@ func (r *runner) resolveValue(ctx context.Context, entity *entityState, v string
 	if path, ok := strings.CutPrefix(v, BorrowToken); ok {
 		id, found := r.borrowFromPath(ctx, entity, path)
 		if !found {
-			return "", blockedError{reason: fmt.Sprintf("the %s collection holds no object to reference, and a synthesised id is refused by construction", path)}
+			return "", unsatisfiedReference{path: path}
 		}
 		return id, nil
 	}
 	return v, nil
+}
+
+// unsatisfiedReference is a borrow token whose collection served no object.
+// A caller that can leave the reference out does so; one that cannot blocks
+// the entity with the collection named.
+type unsatisfiedReference struct {
+	path string
+}
+
+func (u unsatisfiedReference) Error() string {
+	return fmt.Sprintf("the %s collection holds no object to reference, and a synthesised id is refused by construction", u.path)
 }
 
 // resolveReference resolves one body value under its field name, recording
@@ -332,7 +344,7 @@ func (r *runner) resolveReference(ctx context.Context, entity *entityState, fiel
 // depth: a reference bound inside a nested object or a list element is
 // resolved the same way as one at the top.
 func (r *runner) resolveBody(ctx context.Context, entity *entityState, body map[string]any) (map[string]any, error) {
-	resolved, err := r.resolveAny(ctx, entity, "", body)
+	resolved, err := r.resolveAny(ctx, entity, "", body, true)
 	if err != nil {
 		return nil, err
 	}
@@ -342,26 +354,41 @@ func (r *runner) resolveBody(ctx context.Context, entity *entityState, body map[
 // resolveAny is resolveBody's recursion over maps, lists and strings, carrying
 // the field name a value sits under so a resolved reference is recorded
 // against it.
-func (r *runner) resolveAny(ctx context.Context, entity *entityState, field string, value any) (any, error) {
+//
+// A reference the API cannot satisfy — the collection is empty — is left out
+// where leaving it out is a body the API can still read: an element of a
+// list of ids, or a top-level field the entity does not require. Anywhere
+// else it blocks with the collection named, because a nested object missing
+// its id, or a required field missing outright, is refused for a reason the
+// refusal will not spell.
+func (r *runner) resolveAny(ctx context.Context, entity *entityState, field string, value any, top bool) (any, error) {
 	switch v := value.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(v))
 		for k, inner := range v {
-			resolved, err := r.resolveAny(ctx, entity, k, inner)
+			resolved, err := r.resolveAny(ctx, entity, k, inner, false)
+			var unsatisfied unsatisfiedReference
+			if errors.As(err, &unsatisfied) && top && !r.requiredField(entity, k) {
+				continue
+			}
 			if err != nil {
-				return nil, err
+				return nil, blockedIfUnsatisfied(err)
 			}
 			out[k] = resolved
 		}
 		return out, nil
 	case []any:
-		out := make([]any, len(v))
+		out := make([]any, 0, len(v))
 		for i := range v {
-			resolved, err := r.resolveAny(ctx, entity, field, v[i])
+			resolved, err := r.resolveAny(ctx, entity, field, v[i], false)
+			var unsatisfied unsatisfiedReference
+			if _, isString := v[i].(string); isString && errors.As(err, &unsatisfied) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
-			out[i] = resolved
+			out = append(out, resolved)
 		}
 		return out, nil
 	case string:
@@ -369,6 +396,26 @@ func (r *runner) resolveAny(ctx context.Context, entity *entityState, field stri
 	default:
 		return value, nil
 	}
+}
+
+// requiredField reports whether the entity's strategy declares the field
+// required in a create body. Unknown fields read as not required.
+func (r *runner) requiredField(entity *entityState, field string) bool {
+	if entity == nil {
+		return false
+	}
+	h, ok := r.hints[entity.plan.Entity][field]
+	return ok && h.Required
+}
+
+// blockedIfUnsatisfied turns an unsatisfied reference that nothing above it
+// could leave out into the block reason the entity ends on.
+func blockedIfUnsatisfied(err error) error {
+	var unsatisfied unsatisfiedReference
+	if errors.As(err, &unsatisfied) {
+		return blockedError{reason: unsatisfied.Error()}
+	}
+	return err
 }
 
 // fragment trims a body to an excerpt-sized JSON fragment; nil for an

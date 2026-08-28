@@ -36,8 +36,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
@@ -140,6 +142,9 @@ var (
 	// reAtLeastOne matches a refusal offering a choice of fields, one of
 	// which has to be present; the list after the colon is the candidates.
 	reAtLeastOne = regexp.MustCompile(`(?i)\bat least one of (?:the following )?(?:is |are )?(?:required|mandatory)\s*[:\-]?\s*(.+)`)
+	// reUnwanted matches the complaints that mean "you sent this and must
+	// not", the opposite of reAbsent: only presence is corrected by removal.
+	reUnwanted = regexp.MustCompile(`(?i)^\s*(?:must be null|is not allowed|not allowed|should not be (?:set|present)|cannot be set|must not be set|unknown (?:property|field)|unrecognized (?:property|field))\b`)
 	// reBareAbsent matches the word before an absence complaint, in a
 	// sentence carrying no "field" marker: "endRepeat must be specified".
 	reBareAbsent = regexp.MustCompile(`(?i)\b([A-Za-z][\w.]*)\s+(?:must be (?:specified|provided|present|set)|is required|is mandatory|cannot be (?:null|empty|blank)|must not be (?:null|empty|blank)|may not be (?:null|empty|blank))\b`)
@@ -187,6 +192,9 @@ func classifyRefusal(res *httpResult) parsedRefusal {
 	// grammar that names two fields or a gate.
 	if m := reFieldSaid.FindStringSubmatch(message); m != nil && reAbsent.MatchString(m[2]) {
 		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1])}
+	}
+	if m := reFieldSaid.FindStringSubmatch(message); m != nil && reUnwanted.MatchString(m[2]) {
+		return parsedRefusal{kind: adjustmentRemove, field: cleanField(m[1])}
 	}
 	if m := reBareAbsent.FindStringSubmatch(message); m != nil {
 		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1]), mustBeDeclared: true}
@@ -392,57 +400,185 @@ func (r *runner) correctCreateBody(ctx context.Context, entity *entityState, rec
 func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, record bool) (bodyCorrection, error) {
 	applied := map[string]bool{}
 	var last *httpResult
-	var corrected []pendingAdd
+	var adds []pendingAdd
+	var choice *pendingAdd
 	adjusted := false
+	// pending is a refusal one of the retries below already answered the
+	// current body with, classified on the next pass instead of sending the
+	// same body again.
+	var pending *httpResult
+
+	// The API took a body carrying every field the grammar added, so each
+	// of those fields is a fact about this entity rather than a reading of a
+	// sentence.
+	accepted := func(obj *createdObject, res *httpResult) bodyCorrection {
+		if record {
+			for _, add := range adds {
+				r.recordAdjustAdd(entity, add.field, add.condGate, add.condVal, add.excerpt)
+			}
+		}
+		return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: adjusted}
+	}
+
 	for i := 0; i < maxBodyCorrectionAttempts; i++ {
-		obj, res, err := r.createObject(ctx, entity, rec, body)
-		if err != nil {
-			return bodyCorrection{}, err
+		var obj *createdObject
+		var res *httpResult
+		if pending != nil {
+			res, pending = pending, nil
+		} else {
+			var err error
+			obj, res, err = r.createObject(ctx, entity, rec, body)
+			if err != nil {
+				return bodyCorrection{}, err
+			}
 		}
 		last = res
 		if obj != nil {
-			// The API took a body carrying every field the grammar added, so
-			// each of those fields is a fact about this entity rather than a
-			// reading of a sentence.
-			if record {
-				for _, add := range corrected {
-					r.recordAdjustAdd(entity, add.field, add.condGate, add.condVal, add.excerpt)
-				}
-			}
-			return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: adjusted}, nil
+			return accepted(obj, res), nil
 		}
 		if res == nil || !res.refused() {
 			return bodyCorrection{res: res, body: body, bodyCorrected: adjusted, unresolved: true}, nil
 		}
+		// A field added from a choice the API then refuses by name gives way
+		// to the next field the choice offered.
+		if choice != nil && res.mentions(choice.field) {
+			if next := r.nextChoice(entity, body, choice); next != "" {
+				delete(body, choice.field)
+				adds = withoutAdd(adds, choice.field)
+				body[next] = r.synthesiseField(entity, next)
+				applied["a:"+next] = true
+				choice = &pendingAdd{field: next, candidates: choice.candidates, excerpt: res.excerpt}
+				adds = append(adds, *choice)
+				adjusted = true
+				continue
+			}
+		}
 		if added, ok := r.applyAdjustment(ctx, entity, body, res, applied, record); ok {
-			corrected = append(corrected, added...)
+			adds = append(adds, added...)
+			choice = nil
+			if len(added) == 1 && len(added[0].candidates) > 1 {
+				choice = &added[0]
+			}
 			adjusted = true
 			continue
 		}
-		// The grammar could not correct the refusal. Before giving up, try
-		// the entity's own name for a discriminator value the API refused,
-		// then value-cycling: a free-form conditional refusal that names an
-		// enum field the entity declares is often satisfied by another of
-		// that field's values.
-		sobj, sres, corrected, err := r.retryCollectionSegments(ctx, entity, rec, body, held, res, applied)
+		// The grammar could not correct the refusal. Before giving up: widen
+		// a composite field to the members the document attests, try the
+		// entity's own name for a discriminator value the API refused, then
+		// value-cycle — a free-form conditional refusal that names an enum
+		// field the entity declares is often satisfied by another of that
+		// field's values.
+		wobj, wres, err := r.retryAttestedComposites(ctx, entity, rec, body, applied)
 		if err != nil {
 			return bodyCorrection{}, err
 		}
-		if corrected {
-			return bodyCorrection{obj: sobj, res: sres, body: body, bodyCorrected: true}, nil
+		if wobj != nil {
+			adjusted = true
+			return accepted(wobj, wres), nil
 		}
-		cobj, cres, corrected, err := r.retryAcrossValues(ctx, entity, rec, body, held, res, applied)
+		sobj, sres, progressed, err := r.retryCollectionSegments(ctx, entity, rec, body, held, res, applied)
 		if err != nil {
 			return bodyCorrection{}, err
 		}
-		if corrected {
-			return bodyCorrection{obj: cobj, res: cres, body: body, bodyCorrected: true}, nil
+		if sobj != nil {
+			adjusted = true
+			return accepted(sobj, sres), nil
+		}
+		if progressed {
+			pending = sres
+			adjusted = true
+			continue
+		}
+		cobj, cres, cycled, err := r.retryAcrossValues(ctx, entity, rec, body, held, res, applied)
+		if err != nil {
+			return bodyCorrection{}, err
+		}
+		if cycled {
+			adjusted = true
+			return accepted(cobj, cres), nil
 		}
 		return bodyCorrection{res: res, body: body, bodyCorrected: adjusted, unresolved: true,
 			freeFormConditional: r.isConditionalRefusal(entity, res)}, nil
 	}
 	return bodyCorrection{res: last, body: body, bodyCorrected: adjusted, unresolved: true,
 		freeFormConditional: r.isConditionalRefusal(entity, last)}, nil
+}
+
+// nextChoice answers the field a refused choice moves on to: the next one
+// the refusal offered that the entity declares and the body lacks. Empty
+// when the choice is exhausted.
+func (r *runner) nextChoice(entity *entityState, body map[string]any, choice *pendingAdd) string {
+	after := false
+	known := r.hints[entity.plan.Entity]
+	for _, candidate := range choice.candidates {
+		spelled := candidate
+		if known != nil {
+			spelled = declaredSpelling(candidate, known)
+		} else if strings.ContainsAny(candidate, ". ") {
+			spelled = ""
+		}
+		if spelled == choice.field {
+			after = true
+			continue
+		}
+		if after && spelled != "" && !present(body, spelled) {
+			return spelled
+		}
+	}
+	return ""
+}
+
+// withoutAdd drops one field's pending add: the API refused the field by
+// name, so the body no longer carries it and nothing is recorded for it.
+func withoutAdd(adds []pendingAdd, field string) []pendingAdd {
+	out := adds[:0]
+	for _, add := range adds {
+		if add.field != field {
+			out = append(out, add)
+		}
+	}
+	return out
+}
+
+// retryAttestedComposites corrects a refusal of a body whose composite fields
+// carry their required members alone by widening one at a time to the
+// members the document attests — an element the API refuses as incomplete is
+// routinely taken once it carries the documented values. Each field is
+// widened once; a widening the API refuses is undone before the next.
+func (r *runner) retryAttestedComposites(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, applied map[string]bool) (*createdObject, *httpResult, error) {
+	synthesis, ok := r.syntheses[entity.plan.Entity]
+	if !ok {
+		return nil, nil, nil
+	}
+	fields := make([]string, 0, len(body))
+	for field := range body {
+		fields = append(fields, field)
+	}
+	sort.Strings(fields)
+	for _, field := range fields {
+		if applied["w:"+field] {
+			continue
+		}
+		wider, has := synthesis.attestedValue(field)
+		if !has || reflect.DeepEqual(wider, body[field]) {
+			continue
+		}
+		applied["w:"+field] = true
+		smaller := body[field]
+		body[field] = wider
+		obj, res, err := r.createObject(ctx, entity, rec, body)
+		if err != nil {
+			return nil, nil, err
+		}
+		if obj != nil {
+			return obj, res, nil
+		}
+		body[field] = smaller
+		if res == nil || !res.refused() {
+			break
+		}
+	}
+	return nil, nil, nil
 }
 
 // pendingAdd is one field the grammar added to a body, held until the API
@@ -459,6 +595,9 @@ type pendingAdd struct {
 	condGate string
 	condVal  string
 	excerpt  observe.Excerpt
+	// candidates are the other fields the refusal offered in place of this
+	// one, where it offered a choice.
+	candidates []string
 }
 
 // applyAdjustment classifies one refusal and mutates body toward acceptance,
@@ -483,6 +622,7 @@ func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body 
 		applied["a:"+field] = true
 		return []pendingAdd{{
 			field: field, condGate: act.condGate, condVal: act.condVal, excerpt: res.excerpt,
+			candidates: act.candidates,
 		}}, true
 	case adjustmentRequires:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
@@ -495,7 +635,20 @@ func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body 
 		}
 		return nil, true
 	case adjustmentRemove:
-		if !present(body, act.field) || applied["r:"+act.field] {
+		if applied["r:"+act.field] {
+			return nil, false
+		}
+		if strings.ContainsAny(act.field, ".[") {
+			// A nested member the API refuses is removed where it sits. That
+			// is a fact about the element, not about a top-level property,
+			// so nothing is recorded against the entity's attributes.
+			if !removePath(body, act.field) {
+				return nil, false
+			}
+			applied["r:"+act.field] = true
+			return nil, true
+		}
+		if !present(body, act.field) {
 			return nil, false
 		}
 		delete(body, act.field)
@@ -591,4 +744,59 @@ func cloneAnyMap(body map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+// removePath deletes one nested member a refusal named by its path —
+// "secrets[0].id", "authentication.username" — and reports whether anything
+// was there to delete. A dotted segment descends into an object, an index
+// into a list.
+func removePath(body map[string]any, path string) bool {
+	segments := strings.Split(path, ".")
+	var current any = body
+	for i, segment := range segments {
+		name, index, indexed := splitIndex(segment)
+		object, ok := current.(map[string]any)
+		if !ok {
+			return false
+		}
+		last := i == len(segments)-1
+		if last && !indexed {
+			if _, has := object[name]; !has {
+				return false
+			}
+			delete(object, name)
+			return true
+		}
+		next, has := object[name]
+		if !has {
+			return false
+		}
+		if indexed {
+			list, ok := next.([]any)
+			if !ok || index < 0 || index >= len(list) {
+				return false
+			}
+			if last {
+				object[name] = append(append([]any{}, list[:index]...), list[index+1:]...)
+				return true
+			}
+			next = list[index]
+		}
+		current = next
+	}
+	return false
+}
+
+// splitIndex reads "name[3]" as name and 3; a plain segment answers -1 and
+// false.
+func splitIndex(segment string) (string, int, bool) {
+	open := strings.Index(segment, "[")
+	if open < 0 || !strings.HasSuffix(segment, "]") {
+		return segment, -1, false
+	}
+	index, err := strconv.Atoi(segment[open+1 : len(segment)-1])
+	if err != nil {
+		return segment, -1, false
+	}
+	return segment[:open], index, true
 }
