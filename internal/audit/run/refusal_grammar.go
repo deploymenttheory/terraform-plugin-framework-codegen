@@ -54,7 +54,9 @@ var (
 	rePositive = regexp.MustCompile(`(?i)\b([\w.]+) must be (?:a )?(?:positive|greater than (?:0|zero))`)
 	// reBareAbsent matches the word before an absence complaint, in a
 	// sentence carrying no "field" marker: "endRepeat must be specified".
-	reBareAbsent = regexp.MustCompile(`(?i)\b([A-Za-z][\w.]*)\s+(?:must be (?:specified|provided|present|set)|is required|is mandatory|cannot be (?:null|empty|blank)|must not be (?:null|empty|blank)|may not be (?:null|empty|blank))\b`)
+	// The word before that is kept too: "repeat type must be specified"
+	// names a member of an object the body already carries.
+	reBareAbsent = regexp.MustCompile(`(?i)(?:\b([A-Za-z]\w*)\s+)?\b([A-Za-z][\w.]*)\s+(?:must be (?:specified|provided|present|set)|is required|is mandatory|cannot be (?:null|empty|blank)|must not be (?:null|empty|blank)|may not be (?:null|empty|blank))\b`)
 )
 
 // classifyRefusal reads a 4xx response body and decides what to change. The
@@ -110,7 +112,7 @@ func classifyRefusal(res *httpResult) parsedRefusal {
 		return parsedRefusal{kind: adjustmentRemove, field: cleanField(m[1])}
 	}
 	if m := reBareAbsent.FindStringSubmatch(message); m != nil {
-		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1]), mustBeDeclared: true}
+		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[2]), container: cleanField(m[1]), mustBeDeclared: true}
 	}
 	return parsedRefusal{kind: adjustmentNone}
 }

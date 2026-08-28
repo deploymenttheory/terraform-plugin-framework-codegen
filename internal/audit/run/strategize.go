@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/bits"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -426,6 +427,31 @@ func (b bodySynthesis) attestedValue(field string) (any, bool) {
 		return nil, false
 	}
 	return bindReferences(cloneAny(wider), field, b.references, nil), true
+}
+
+// memberValue answers one member of a composite field as the document
+// attests it: the member's declared spelling and its widened value, from
+// the attested form first and the minimal form second. False where neither
+// form carries the member.
+func (b bodySynthesis) memberValue(field, member string) (string, any, bool) {
+	wanted := lettersOf(member)
+	for _, form := range []map[string]any{b.attestedComposites, b.composites} {
+		object, ok := form[field].(map[string]any)
+		if !ok {
+			continue
+		}
+		keys := make([]string, 0, len(object))
+		for key := range object {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			if lettersOf(key) == wanted {
+				return key, bindReferences(cloneAny(object[key]), key, b.references, nil), true
+			}
+		}
+	}
+	return "", nil, false
 }
 
 // synthesiseField synthesises one field the adjustment loop must add live, from its

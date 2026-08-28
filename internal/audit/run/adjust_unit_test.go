@@ -54,6 +54,7 @@ func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 		extra string // collection / trigger / condVal, per kind
 	}{
 		{"required", `{"detail":"field interval is required"}`, adjustmentAdd, "interval", ""},
+		{"bare-member", `{"title":"400 Bad Request\nrepeat type must be specified"}`, adjustmentAdd, "type", ""},
 		{"required-when", `{"detail":"field target_host is required when kind=ping"}`, adjustmentAdd, "target_host", "ping"},
 		{"not-valid", `{"detail":"field domain is not valid when kind=ping"}`, adjustmentRemove, "domain", "ping"},
 		{"requires", `{"detail":"field dnssec requires field domain to be set"}`, adjustmentRequires, "domain", "dnssec"},
@@ -742,5 +743,39 @@ func TestUnit_Steps_AProbeUnderARefusedGateValueIsNotSent(t *testing.T) {
 	// returning cleanly proves nothing was sent.
 	if err := r.runCreatePerEnumValue(context.Background(), entity, step); err != nil {
 		t.Fatalf("a probe under a refused gate value was sent: %v", err)
+	}
+}
+
+func TestUnit_Adjust_ABareAbsenceNamingAnObjectsMemberAddsTheMember(t *testing.T) {
+	t.Parallel()
+	act := classifyRefusal(&httpResult{status: 400, body: []byte(`{"title":"400 Bad Request\nrepeat type must be specified"}`)})
+	if act.kind != adjustmentAdd || act.field != "type" || act.container != "repeat" {
+		t.Fatalf("classifyRefusal = %+v, want an add of type under repeat", act)
+	}
+	r := &runner{
+		hints: map[string]map[string]strategy.SyntheticValueRules{"window": {"repeat": {Field: "repeat"}, "name": {Field: "name"}}},
+		syntheses: map[string]bodySynthesis{"window": {
+			composites:         map[string]any{"repeat": map[string]any{}},
+			attestedComposites: map[string]any{"repeat": map[string]any{"type": "week", "intervalType": "day"}},
+		}},
+	}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "window"}}
+	body := map[string]any{"name": "n", "repeat": map[string]any{}}
+	applied := map[string]bool{}
+	path, ok := r.addMember(entity, body, "repeat", "type", applied)
+	if !ok || path != "repeat.type" {
+		t.Fatalf("addMember = %q, %v; want repeat.type set", path, ok)
+	}
+	if got := body["repeat"].(map[string]any)["type"]; got != "week" {
+		t.Errorf("repeat.type = %#v, want the attested value", got)
+	}
+	if _, again := r.addMember(entity, body, "repeat", "type", applied); again {
+		t.Error("a member already set was added twice")
+	}
+	if _, ok := r.addMember(entity, body, "Request", "duration", applied); ok {
+		t.Error("a word that is not a declared field was taken for a container")
+	}
+	if _, ok := r.addMember(entity, body, "name", "type", applied); ok {
+		t.Error("a scalar field was taken for a container")
 	}
 }

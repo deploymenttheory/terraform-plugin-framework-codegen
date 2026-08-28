@@ -133,6 +133,10 @@ type parsedRefusal struct {
 	mutuallyExclusiveWith string
 	// revalue names the replacement rule on a revalue.
 	revalue revalueRule
+	// container is the word the refusal put before the absent field, where
+	// it put one: the object whose member is missing when the field is not
+	// a top-level one the entity declares.
+	container string
 	// mustBeDeclared marks an add read out of a looser sentence: the word
 	// before an absence complaint, with no "field" marker to vouch for it.
 	// Such a field is added only where the entity declares it; the
@@ -323,6 +327,39 @@ func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityS
 		freeFormConditional: r.isConditionalRefusal(entity, last)}, nil
 }
 
+// addMember puts one member into an object the body carries, for a refusal
+// that named the object and the member together — "repeat type must be
+// specified". The member's value is the one the document attests for it,
+// read from the object's widened form. Answers the dotted path it set, and
+// false where the container is not a declared field, the body holds no
+// object under it, or the document attests no such member.
+func (r *runner) addMember(entity *entityState, body map[string]any, container, member string, applied map[string]bool) (string, bool) {
+	known := r.hints[entity.plan.Entity]
+	name := declaredSpelling(container, known)
+	if name == "" {
+		return "", false
+	}
+	object, ok := body[name].(map[string]any)
+	if !ok {
+		return "", false
+	}
+	synthesis, ok := r.syntheses[entity.plan.Entity]
+	if !ok {
+		return "", false
+	}
+	key, value, ok := synthesis.memberValue(name, member)
+	if !ok {
+		return "", false
+	}
+	path := name + "." + key
+	if _, has := object[key]; has || applied["a:"+path] {
+		return "", false
+	}
+	object[key] = value
+	applied["a:"+path] = true
+	return path, true
+}
+
 // nextChoice answers the field a refused choice moves on to: the next one
 // the refusal offered that the entity declares and the body lacks. Empty
 // when the choice is exhausted.
@@ -443,6 +480,13 @@ func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body 
 	switch act.kind {
 	case adjustmentAdd:
 		field := r.addField(entity, body, act, refusalMessage(res.body))
+		if field == "" && act.container != "" {
+			path, ok := r.addMember(entity, body, act.container, act.field, applied)
+			if !ok {
+				return nil, false
+			}
+			return []pendingAdd{{field: path, excerpt: res.excerpt}}, true
+		}
 		if field == "" || applied["a:"+field] {
 			return nil, false
 		}
