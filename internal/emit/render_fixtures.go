@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"path"
 	"slices"
+	"sort"
+	"strings"
 	"text/template"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
@@ -72,60 +74,109 @@ func retainedWireNames(spec fixtures.Fixture, nodes []node) map[string]bool {
 	return out
 }
 
-// parentBlockDepth bounds how far up a chain of parents a fixture reaches:
-// a parent's parent is rendered too, and a document whose paths nest deeper
-// than this is one no fixture is going to exercise honestly.
-const parentBlockDepth = 4
+// dependencyDepth bounds how far a chain of dependencies a fixture reaches:
+// a parent's parent and a referenced object's own references are rendered
+// too, and a document whose objects nest deeper than this is one no fixture
+// is going to exercise honestly.
+const dependencyDepth = 4
 
-// parentBlocks is the configuration of the parent a resource addresses, and
-// of that parent's own parents: one block per ancestor, each named for its
-// entity and minimal. live selects the live suite's spelling — the accepted
-// body, invented names, the run suffix — over the unit suite's derivation.
-// attribute names the resource's own attribute that takes the parent's id,
-// and reference is the expression it takes. Empty when the resource has no
-// parent the provider emits, in which case the fixture keeps its invented
-// value.
+// dependencyBlocks is the configuration of every object a resource's
+// fixture depends on: the parent its path addresses, and each object a
+// recorded create borrowed an identifier from — one block per dependency,
+// named for its entity, minimal, with that dependency's own dependencies
+// ahead of it. live selects the live suite's spelling — the accepted body,
+// invented names, the run suffix — over the unit suite's derivation.
 //
-// The parent's block is its own minimal configuration: the smallest object
-// the API accepts is the one a child needs to exist under, and the values
-// are the same ones the parent's own test sends.
-func (e *serviceRenderer) parentBlocks(r *ir.Resource, depth int, live bool) (blocks, attribute, reference string) {
-	parent := e.resources[r.ParentEntity]
-	if parent == nil || depth >= parentBlockDepth {
-		return "", "", ""
+// The returned fixture carries the expressions: the parent attribute and
+// every borrowed wire name refer to the block's id. blocks is empty, and the
+// fixture unchanged, where the resource depends on nothing the provider
+// emits, in which case the fixture keeps its recorded values.
+//
+// A dependency's block is its own minimal configuration: the smallest object
+// the API accepts is the one another needs to exist beside, and the values
+// are the same ones the dependency's own test sends.
+func (e *serviceRenderer) dependencyBlocks(r *ir.Resource, fixture fixtures.Fixture, references map[string]string, depth int, live bool) (blocks string, out fixtures.Fixture) {
+	out = fixture
+	if depth >= dependencyDepth {
+		return "", out
 	}
-	attribute = parentAttribute(r)
-	if attribute == "" {
-		return "", "", ""
+	var rendered []string
+	seen := map[string]bool{}
+	add := func(dependency *ir.Resource) (string, bool) {
+		label := dependency.Names.Key
+		reference := dependency.Names.TerraformType + "." + label + ".id"
+		if seen[label] {
+			return reference, true
+		}
+		block, ok := e.dependencyBlock(dependency, depth, live)
+		if !ok {
+			return "", false
+		}
+		seen[label] = true
+		rendered = append(rendered, block)
+		return reference, true
 	}
-	pb := e.bindings.Resources[parent.Names.Key]
+	if parent := e.resources[r.ParentEntity]; parent != nil {
+		if attribute := parentAttribute(r); attribute != "" {
+			if reference, ok := add(parent); ok {
+				out = out.WithExpression(attribute, reference)
+			}
+		}
+	}
+	wires := make([]string, 0, len(references))
+	for wire := range references {
+		wires = append(wires, wire)
+	}
+	sort.Strings(wires)
+	for _, wire := range wires {
+		dependency := e.resourceByCollection(references[wire])
+		if dependency == nil || dependency.Names.Key == r.Names.Key {
+			continue
+		}
+		reference, ok := add(dependency)
+		if !ok {
+			continue
+		}
+		if with, took := out.WithReference(wire, reference); took {
+			out = with
+		}
+	}
+	return strings.Join(rendered, "\n\n"), out
+}
+
+// dependencyBlock renders one dependency's block: its minimal
+// configuration, with its own dependencies' blocks ahead of it. False
+// where the provider has no binding for it.
+func (e *serviceRenderer) dependencyBlock(dependency *ir.Resource, depth int, live bool) (string, bool) {
+	pb := e.bindings.Resources[dependency.Names.Key]
 	if pb == nil {
-		return "", "", ""
+		return "", false
 	}
-	e.parentTypes = append(e.parentTypes, parent.Names.TerraformType)
-	nodes := e.joinTree(bindingKindResource, parent.Names.Key, parent.Schema, pb.Fields, addressingNames(parent.Schema,
-		parent.Operations.Read, parent.Operations.Create, parent.Operations.Update, parent.Operations.Delete))
-	spec := deriveFixtures(parent.Schema, nodes)
+	e.dependencyTypes = append(e.dependencyTypes, dependency.Names.TerraformType)
+	nodes := e.joinTree(bindingKindResource, dependency.Names.Key, dependency.Schema, pb.Fields, addressingNames(dependency.Schema,
+		dependency.Operations.Read, dependency.Operations.Create, dependency.Operations.Update, dependency.Operations.Delete))
+	spec := deriveFixtures(dependency.Schema, nodes)
 	// A replayed body is already the smallest accepted create and renders
 	// whole; a derived fixture still selects the required attributes.
 	minimal, form := spec, fixtures.ConfigMinimal
+	var references map[string]string
 	if live {
-		accepted, _, replayed := e.acceptedFixtures(parent, spec, nodes)
+		accepted, _, replayed := e.acceptedFixtures(dependency, spec, nodes)
 		minimal = accepted.WithInventedNames().WithRunSuffix()
 		if replayed {
 			form = fixtures.ConfigMaximal
+			if rec := e.pc.AcceptedRequestBodies[dependency.Names.Key]; rec.Minimal != nil {
+				references = rec.Minimal.References
+				minimal, _ = minimal.WithFutureDates(rec.Minimal.FutureDates)
+			}
 		}
 	}
-	above, parentAttr, parentRef := e.parentBlocks(parent, depth+1, live)
-	if parentAttr != "" {
-		minimal = minimal.WithExpression(parentAttr, parentRef)
-	}
-	label := parent.Names.Key
-	block := fmt.Sprintf("resource %q %q {\n%s}", parent.Names.TerraformType, label, minimal.HCL(form))
+	above, minimal := e.dependencyBlocks(dependency, minimal, references, depth+1, live)
+	block := fmt.Sprintf("resource %q %q {\n%s}", dependency.Names.TerraformType, dependency.Names.Key, minimal.HCL(form))
 	if above != "" {
 		block = above + "\n\n" + block
 	}
-	return block, attribute, parent.Names.TerraformType + "." + label + ".id"
+	return block, true
 }
 
 // parentAttribute names the root attribute answering the path parameter of
@@ -155,6 +206,25 @@ func parentAttribute(r *ir.Resource) string {
 		}
 	}
 	return ""
+}
+
+// resourceByCollection finds the resource whose collection the path names:
+// the one its create or list operation is addressed to.
+func (e *serviceRenderer) resourceByCollection(path string) *ir.Resource {
+	keys := make([]string, 0, len(e.resources))
+	for key := range e.resources {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		r := e.resources[key]
+		for _, operation := range []*ir.Operation{r.Operations.Create, r.Operations.List} {
+			if operation != nil && operation.PathTemplate == path {
+				return r
+			}
+		}
+	}
+	return nil
 }
 
 // acceptedFixtures replays what the probe got the API to accept, where it
@@ -210,14 +280,17 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 	// time_offset block: the record's value was ahead of the run that made
 	// it, not of the run that replays it.
 	e.timeOffsets = false
+	var minimalReferences, maximalReferences map[string]string
 	if rec, ok := e.pc.AcceptedRequestBodies[r.Names.Key]; ok {
 		var rewritten []string
 		if rec.Minimal != nil {
 			liveMinimal, rewritten = liveMinimal.WithFutureDates(rec.Minimal.FutureDates)
+			minimalReferences = rec.Minimal.References
 		}
 		if rec.Maximal != nil {
 			var more []string
 			liveMaximal, more = liveMaximal.WithFutureDates(rec.Maximal.FutureDates)
+			maximalReferences = rec.Maximal.References
 			for _, name := range more {
 				if !slices.Contains(rewritten, name) {
 					rewritten = append(rewritten, name)
@@ -225,24 +298,30 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 			}
 		} else if rec.Minimal != nil {
 			liveMaximal, _ = liveMaximal.WithFutureDates(rec.Minimal.FutureDates)
+			maximalReferences = rec.Minimal.References
 		}
 		for _, name := range rewritten {
 			livePreamble += "\n\n" + fixtures.FutureDateBlock(name)
 			e.timeOffsets = true
 		}
 	}
-	e.parentTypes = nil
-	if parents, attribute, reference := e.parentBlocks(r, 0, true); parents != "" {
-		liveMinimal = liveMinimal.WithExpression(attribute, reference)
-		liveMaximal = liveMaximal.WithExpression(attribute, reference)
-		livePreamble += "\n\n" + parents
+	// An object under a parent, or one that borrowed another's identifier,
+	// is configured beside the blocks it depends on and takes the
+	// identifiers from them: a recorded id names an object of another run.
+	// The minimal and the maximal configuration each carry the blocks they
+	// depend on; the preamble is shared, so a block both need appears once.
+	e.dependencyTypes = nil
+	minimalBlocks, liveMinimal := e.dependencyBlocks(r, liveMinimal, minimalReferences, 0, true)
+	maximalBlocks, liveMaximal := e.dependencyBlocks(r, liveMaximal, maximalReferences, 0, true)
+	for _, blocks := range []string{minimalBlocks, maximalBlocks} {
+		if blocks != "" && !strings.Contains(livePreamble, blocks) {
+			livePreamble += "\n\n" + blocks
+		}
 	}
-	e.parentTypes = nil
-	if parents, attribute, reference := e.parentBlocks(r, 0, false); parents != "" {
-		unitMinimal = unitMinimal.WithExpression(attribute, reference)
-		unitMaximal = unitMaximal.WithExpression(attribute, reference)
-		unitPreamble = parents
-	}
+	e.dependencyTypes = nil
+	unitBlocks, unitMinimal := e.dependencyBlocks(r, unitMinimal, nil, 0, false)
+	_, unitMaximal = e.dependencyBlocks(r, unitMaximal, nil, 0, false)
+	unitPreamble = unitBlocks
 	suites := []struct {
 		name     string
 		minimal  fixtures.Fixture

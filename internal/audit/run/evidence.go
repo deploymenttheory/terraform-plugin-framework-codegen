@@ -70,7 +70,11 @@ type evidence struct {
 	acceptedRequestBodies []map[string]any
 	// futureFields is every field the adjustment loop moved ahead of now
 	// because the API wanted it there: a replay must move it again.
-	futureFields     map[string]bool
+	futureFields map[string]bool
+	// references maps each field whose value was borrowed from another
+	// collection to that collection's path: a replay must create such an
+	// object of its own and refer to it, since the borrowed one is gone.
+	references       map[string]string
 	listBodies       [][]byte
 	combinedRefusals []infer.FieldPair
 	// conditionalValues records the value-cycling outcomes the executor

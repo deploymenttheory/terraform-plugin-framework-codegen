@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
@@ -27,7 +28,7 @@ func settingUnder(parentParam string) ir.Resource {
 	}
 }
 
-func TestUnit_ParentBlocks_CarryTheParentsMinimalConfiguration(t *testing.T) {
+func TestUnit_DependencyBlocks_CarryTheParentsMinimalConfiguration(t *testing.T) {
 	m, b := fictionalModel(), fictionalBindings()
 	pc := fictionalProviderCore()
 	pc.AcceptedRequestBodies = map[string]observe.RequestBodies{"http_server": {
@@ -36,10 +37,14 @@ func TestUnit_ParentBlocks_CarryTheParentsMinimalConfiguration(t *testing.T) {
 	}}
 	e := &serviceRenderer{pc: pc, bindings: b, resources: map[string]*ir.Resource{"http_server": &m.Resources[0]}}
 	child := settingUnder("id")
+	fixture := fixtures.Fixture{Entries: []fixtures.Entry{
+		{Name: "http_server_id", Wire: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "tfpfgen-test-http-server-id"},
+		{Name: "scope", Wire: "scope", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "default"},
+	}}
 
-	blocks, attribute, reference := e.parentBlocks(&child, 0, true)
-	if attribute != "http_server_id" || reference != "petstore_http_server.http_server.id" {
-		t.Fatalf("parentBlocks = %q, %q; want the parent attribute and its id expression", attribute, reference)
+	blocks, with := e.dependencyBlocks(&child, fixture, nil, 0, true)
+	if with.Entries[0].Expression != "petstore_http_server.http_server.id" {
+		t.Fatalf("parent attribute = %+v, want the parent's id expression", with.Entries[0])
 	}
 	if !strings.HasPrefix(blocks, `resource "petstore_http_server" "http_server" {`) || !strings.Contains(blocks, "name") {
 		t.Errorf("live block = %q, want the parent's minimal block", blocks)
@@ -47,11 +52,11 @@ func TestUnit_ParentBlocks_CarryTheParentsMinimalConfiguration(t *testing.T) {
 	if !strings.Contains(blocks, "${random_string.tfpfgen_run.result}") {
 		t.Errorf("live block = %q, want the run suffix on the invented name", blocks)
 	}
-	if e.parentTypes == nil || e.parentTypes[0] != "petstore_http_server" {
-		t.Errorf("parentTypes = %v, want the parent's type recorded", e.parentTypes)
+	if e.dependencyTypes == nil || e.dependencyTypes[0] != "petstore_http_server" {
+		t.Errorf("dependencyTypes = %v, want the parent's type recorded", e.dependencyTypes)
 	}
 
-	unit, _, _ := e.parentBlocks(&child, 0, false)
+	unit, _ := e.dependencyBlocks(&child, fixture, nil, 0, false)
 	if strings.Contains(unit, "random_string") || !strings.HasPrefix(unit, `resource "petstore_http_server" "http_server" {`) {
 		t.Errorf("unit block = %q, want the derived minimal block without a run suffix", unit)
 	}
@@ -59,12 +64,46 @@ func TestUnit_ParentBlocks_CarryTheParentsMinimalConfiguration(t *testing.T) {
 	// No parent the provider emits: the fixture keeps its invented value.
 	orphan := settingUnder("id")
 	orphan.ParentEntity = "ghost"
-	if blocks, _, _ := e.parentBlocks(&orphan, 0, true); blocks != "" {
+	if blocks, with := e.dependencyBlocks(&orphan, fixture, nil, 0, true); blocks != "" || with.Entries[0].Expression != "" {
 		t.Errorf("a parent the provider does not emit produced a block: %q", blocks)
 	}
 	// Past the depth bound: nothing.
-	if blocks, _, _ := e.parentBlocks(&child, parentBlockDepth, true); blocks != "" {
+	if blocks, _ := e.dependencyBlocks(&child, fixture, nil, dependencyDepth, true); blocks != "" {
 		t.Errorf("a block past the depth bound: %q", blocks)
+	}
+}
+
+func TestUnit_DependencyBlocks_CarryABorrowedObjectsBlock(t *testing.T) {
+	m, b := fictionalModel(), fictionalBindings()
+	pc := fictionalProviderCore()
+	e := &serviceRenderer{pc: pc, bindings: b, resources: map[string]*ir.Resource{"http_server": &m.Resources[0]}}
+	rule := ir.Resource{Names: names("alert_rule", "AlertRule", "alerts"), Operations: ir.Operations{
+		Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/v7/alert-rules", SuccessCode: 201},
+		Read:   &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/alert-rules/{ruleId}", PathParameters: []ir.Parameter{{Name: "ruleId"}}},
+	}}
+	fixture := fixtures.Fixture{Entries: []fixtures.Entry{
+		{Name: "name", Wire: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "r"},
+		{Name: "server_ids", Wire: "serverIds", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional, Scalar: "s1"},
+		{Name: "targets", Wire: "targets", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional, Nested: []fixtures.Entry{
+			{Name: "server_id", Wire: "serverId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "s1"},
+		}},
+	}}
+	references := map[string]string{"serverIds": "/v7/http-servers", "serverId": "/v7/http-servers", "ghostId": "/v7/ghosts"}
+	blocks, with := e.dependencyBlocks(&rule, fixture, references, 0, false)
+	if !strings.HasPrefix(blocks, `resource "petstore_http_server" "http_server" {`) || strings.Count(blocks, "resource ") != 1 {
+		t.Fatalf("blocks = %q, want the borrowed object's block once", blocks)
+	}
+	if with.Entries[1].Expression != "petstore_http_server.http_server.id" {
+		t.Errorf("list of ids = %+v, want the block's id expression", with.Entries[1])
+	}
+	if with.Entries[2].Nested[0].Expression != "petstore_http_server.http_server.id" {
+		t.Errorf("nested id = %+v, want the block's id expression", with.Entries[2].Nested[0])
+	}
+	if got := with.HCL(fixtures.ConfigMaximal); !strings.Contains(got, "server_ids = [petstore_http_server.http_server.id]") {
+		t.Errorf("HCL = %q, want the list expression in brackets", got)
+	}
+	if e.resourceByCollection("/v7/ghosts") != nil {
+		t.Error("a collection no resource is addressed to resolved")
 	}
 }
 

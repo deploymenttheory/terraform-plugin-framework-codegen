@@ -361,3 +361,33 @@ func (s Fixture) WithFutureDates(wires []string) (Fixture, []string) {
 	}
 	return out, rewritten
 }
+
+// WithReference answers a copy whose entries under the given wire name, at
+// any depth, render the expression: the id of the block a replay creates
+// for an object the recorded body borrowed. Answers whether any entry took
+// it.
+func (s Fixture) WithReference(wire, expression string) (Fixture, bool) {
+	out := s
+	var took bool
+	out.Entries = referenced(s.Entries, wire, expression, &took)
+	return out, took
+}
+
+// referenced copies a level, setting the expression on every scalar or
+// list-of-scalars entry of the wire name and descending into the rest.
+func referenced(values []Entry, wire, expression string, took *bool) []Entry {
+	if values == nil {
+		return nil
+	}
+	out := make([]Entry, len(values))
+	copy(out, values)
+	for i := range out {
+		if out[i].Wire == wire && out[i].Nested == nil {
+			out[i].Expression = expression
+			*took = true
+			continue
+		}
+		out[i].Nested = referenced(out[i].Nested, wire, expression, took)
+	}
+	return out
+}

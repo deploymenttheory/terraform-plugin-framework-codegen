@@ -42,10 +42,10 @@ type resourceData struct {
 
 	HasImport  bool
 	ImportAttr string
-	// ParentTypes is the terraform type of every ancestor whose block the
-	// unit configuration carries, so the unit test activates their mocks
-	// beside the resource's own.
-	ParentTypes []string
+	// DependencyTypes is the terraform type of every block the unit
+	// configuration carries beside the resource's own, so the unit test
+	// activates their mocks too.
+	DependencyTypes []string
 	// UsesTimeProvider reports whether the acceptance configuration reads a
 	// timestamp from a time_offset block, so the test declares the time
 	// provider beside random.
@@ -195,7 +195,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 	if err != nil {
 		return nil, err
 	}
-	d.ParentTypes = e.parentTypes
+	d.DependencyTypes = e.dependencyTypes
 	d.UsesTimeProvider = e.timeOffsets
 	var files []File
 

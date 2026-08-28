@@ -349,9 +349,17 @@ func (r *runner) resolveReference(ctx context.Context, entity *entityState, fiel
 	if err != nil || entity == nil {
 		return resolved, err
 	}
-	if path, ok := strings.CutPrefix(v, BorrowToken); ok && !r.borrowRecorded[entity.plan.Entity+"\x00"+field] {
-		r.borrowRecorded[entity.plan.Entity+"\x00"+field] = true
-		r.recordAdjustment(entity, infer.AdjustBorrow, field, path, "")
+	if path, ok := strings.CutPrefix(v, BorrowToken); ok {
+		if entity.ev != nil {
+			if entity.ev.references == nil {
+				entity.ev.references = map[string]string{}
+			}
+			entity.ev.references[field] = path
+		}
+		if !r.borrowRecorded[entity.plan.Entity+"\x00"+field] {
+			r.borrowRecorded[entity.plan.Entity+"\x00"+field] = true
+			r.recordAdjustment(entity, infer.AdjustBorrow, field, path, "")
+		}
 	}
 	return resolved, nil
 }

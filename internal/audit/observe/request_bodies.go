@@ -61,6 +61,11 @@ type AcceptedRequestBody struct {
 	// configuration replaying the body must choose them ahead of its own
 	// run, not copy these.
 	FutureDates []string `json:"futureDates,omitempty"`
+	// References maps each property whose value was borrowed from another
+	// collection — at any depth, by its wire name — to that collection's
+	// path: the object it named belonged to the run, and a configuration
+	// replaying the body creates one of its own and refers to it.
+	References map[string]string `json:"references,omitempty"`
 }
 
 // Echoed reports whether the response carried the named wire property.

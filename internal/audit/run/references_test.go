@@ -185,3 +185,28 @@ func TestUnit_References_AnEntityNeverBorrowsFromItsOwnCollection(t *testing.T) 
 		t.Errorf("no collection path changed the index: %v", same)
 	}
 }
+
+func TestUnit_References_ABorrowedFieldIsRecordedWithItsCollection(t *testing.T) {
+	t.Parallel()
+	s := testapiserver.New(t, testapiserver.Quirks{})
+	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "assignment", Budget: plan.Budget{Requests: 20}}, ev: newEvidence()}
+	body := map[string]any{"name": "n", "agentId": BorrowToken + "/agents", "members": []any{map[string]any{"agentId": BorrowToken + "/agents"}}}
+	sent, err := r.resolveBody(context.Background(), entity, body)
+	if err != nil {
+		t.Fatalf("resolveBody: %v", err)
+	}
+	if entity.ev.references["agentId"] != "/agents" {
+		t.Fatalf("references = %v, want agentId recorded against /agents", entity.ev.references)
+	}
+	got := referencesIn(sent, entity.ev.references)
+	if got["agentId"] != "/agents" || len(got) != 1 {
+		t.Errorf("referencesIn = %v, want the borrowed field with its collection", got)
+	}
+	if referencesIn(map[string]any{"name": "n"}, entity.ev.references) != nil {
+		t.Error("a body without the borrowed field reported a reference")
+	}
+}

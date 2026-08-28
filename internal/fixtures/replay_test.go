@@ -111,3 +111,24 @@ func TestUnit_Fixturespec_AnEmptyListTheAPITookIsLeftOut(t *testing.T) {
 		t.Errorf("the empty list was not explained: %#v", got.Omissions)
 	}
 }
+
+func TestUnit_Fixturespec_AReferenceReachesEveryDepth(t *testing.T) {
+	spec := Fixture{Entries: []Entry{
+		{Name: "rule_ids", Wire: "ruleIds", Kind: ir.TypeList, ElementType: ir.TypeString, Scalar: "1"},
+		{Name: "agents", Wire: "agents", Kind: ir.TypeList, ElementType: ir.TypeObject, Nested: []Entry{
+			{Name: "agent_id", Wire: "agentId", Kind: ir.TypeString, Scalar: "3"},
+		}},
+		{Name: "name", Wire: "name", Kind: ir.TypeString, Scalar: "n"},
+	}}
+	got, took := spec.WithReference("agentId", "petstore_agent.agent.id")
+	if !took || got.Entries[1].Nested[0].Expression != "petstore_agent.agent.id" || spec.Entries[1].Nested[0].Expression != "" {
+		t.Errorf("a nested reference = %+v (took %v), want the expression set on the copy alone", got.Entries[1].Nested[0], took)
+	}
+	got, took = got.WithReference("ruleIds", "petstore_rule.rule.id")
+	if !took || !strings.Contains(got.HCL(ConfigMaximal), "rule_ids = [petstore_rule.rule.id]") {
+		t.Errorf("a list reference rendered as %q", got.HCL(ConfigMaximal))
+	}
+	if _, took := spec.WithReference("absent", "x"); took {
+		t.Error("a wire name the fixture does not carry took an expression")
+	}
+}

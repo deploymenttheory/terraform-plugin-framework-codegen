@@ -104,13 +104,45 @@ func recordedRequestBodies(entityKey string, entity *entityState) observe.Reques
 		out.Minimal = &observe.AcceptedRequestBody{
 			Status: entity.ev.sentStatus, Request: entity.ev.sent, Response: entity.ev.got,
 			FutureDates: futureDatesIn(entity.ev.sent, entity.ev.futureFields),
+			References:  referencesIn(entity.ev.sent, entity.ev.references),
 		}
 	}
 	if entity.ev.maximalSent != nil {
 		out.Maximal = &observe.AcceptedRequestBody{
 			Status: entity.ev.maximalStatus, Request: entity.ev.maximalSent, Response: entity.ev.maximalGot,
 			FutureDates: futureDatesIn(entity.ev.maximalSent, entity.ev.futureFields),
+			References:  referencesIn(entity.ev.maximalSent, entity.ev.references),
 		}
+	}
+	return out
+}
+
+// referencesIn is the borrowed fields one body carries, at any depth, with
+// the collection each came from.
+func referencesIn(body map[string]any, references map[string]string) map[string]string {
+	if len(references) == 0 {
+		return nil
+	}
+	out := map[string]string{}
+	var walk func(value any)
+	walk = func(value any) {
+		switch v := value.(type) {
+		case map[string]any:
+			for key, inner := range v {
+				if path, borrowed := references[key]; borrowed {
+					out[key] = path
+				}
+				walk(inner)
+			}
+		case []any:
+			for _, inner := range v {
+				walk(inner)
+			}
+		}
+	}
+	walk(body)
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }

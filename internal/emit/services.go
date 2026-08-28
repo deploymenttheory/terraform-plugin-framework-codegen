@@ -217,9 +217,9 @@ type serviceRenderer struct {
 	// resources is every resource of the model by entity key, so a child's
 	// fixture can carry the block of the parent it addresses.
 	resources map[string]*ir.Resource
-	// parentTypes is the terraform type of each ancestor block the fixture
-	// being rendered carries, gathered as the blocks are, nearest first.
-	parentTypes []string
+	// dependencyTypes is the terraform type of each block the fixture being
+	// rendered depends on, gathered as the blocks are.
+	dependencyTypes []string
 	// timeOffsets reports whether the fixture being rendered reads a
 	// timestamp from a time_offset block, which the acceptance test then
 	// takes the time provider for.
