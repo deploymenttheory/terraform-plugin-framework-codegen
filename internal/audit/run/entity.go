@@ -32,6 +32,10 @@ type entityState struct {
 	// lastRead is the most recent full read of the minimal object, the
 	// baseline updates compare against.
 	lastRead map[string]any
+	// plannedMinimal is the minimal body the plan derived, before the
+	// correction loop changed it. A later step's body was built on it, and
+	// is rebased onto the body the API accepted before it is sent.
+	plannedMinimal map[string]any
 	// preflighted marks the foreign-object pre-flight as done.
 	preflighted bool
 	// idUnknown records that a create succeeded but no id could be learned

@@ -314,6 +314,12 @@ func (r *runner) finalizeFields(entity string, ev *evidence, sent, got map[strin
 		case wasSent && present:
 			if norm, ok := normalisedForm(sentV, gotV); ok {
 				r.record(entity, f, observe.KindNormalisation, norm, nil, observe.OutcomeConfirmed, proof...)
+			} else if composite(sentV) || composite(gotV) {
+				// An object or list answered differently is not the server
+				// substituting a value: it is members added, masked or
+				// dropped, and which of those it was is not one fact about
+				// the field.
+				r.record(entity, f, observe.KindServerForced, nil, nil, observe.OutcomeInconclusive, proof...)
 			} else {
 				r.record(entity, f, observe.KindServerForced, true, nil, observe.OutcomeConfirmed, proof...)
 			}
@@ -489,6 +495,13 @@ func normalisedForm(sent, got any) (string, bool) {
 				return gs, true
 			}
 		}
+		// The answer carries what was sent inside a longer spelling — a
+		// scheme and a trailing slash around a host, a unit after a number
+		// — which is the value stored in the API's own form, not another
+		// value.
+		if ss != "" && gs != ss && strings.Contains(gs, ss) && !isMask(gs) {
+			return gs, true
+		}
 		return "", false
 	}
 	sentList, okS := sent.([]any)
@@ -547,6 +560,15 @@ func isMask(s string) bool {
 		}
 	}
 	return true
+}
+
+// composite reports whether a value is an object or a list.
+func composite(v any) bool {
+	switch v.(type) {
+	case map[string]any, []any:
+		return true
+	}
+	return false
 }
 
 // scalarLike reports whether a value can be a serverDefault observation's

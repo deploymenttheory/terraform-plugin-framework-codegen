@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +20,9 @@ import (
 // variant has already established the object; a later variant that cannot be
 // built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step *plan.Step) error {
+	if entity.plannedMinimal == nil {
+		entity.plannedMinimal = cloneAnyMap(step.Body)
+	}
 	body := cloneAnyMap(step.Body)
 	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
@@ -83,6 +87,34 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 		return blockedError{reason: minimalRefusedReason(refused.status, searched.addedFields)}
 	}
 	return blockedError{reason: "the minimal create produced no object"}
+}
+
+// rebased answers a step's body built on the minimal body the API accepted
+// rather than the one the plan derived. A per-value or negative probe is
+// the planned minimal with one change — a value pinned, a field omitted, a
+// field added — and sending it on the planned minimal repeats every
+// refusal the correction loop already answered, which the probe then
+// records against its own field. The change is carried across: a field the
+// step omits stays out, a value the step sets stays set, and everything the
+// accepted body learned stays in.
+func (r *runner) rebased(entity *entityState, stepBody map[string]any) map[string]any {
+	accepted := entity.recipe.minimalBody
+	planned := entity.plannedMinimal
+	if accepted == nil || planned == nil {
+		return cloneAnyMap(stepBody)
+	}
+	body := cloneAnyMap(accepted)
+	for field := range planned {
+		if _, kept := stepBody[field]; !kept {
+			delete(body, field)
+		}
+	}
+	for field, value := range stepBody {
+		if plannedValue, inPlan := planned[field]; !inPlan || !reflect.DeepEqual(plannedValue, value) {
+			body[field] = value
+		}
+	}
+	return body
 }
 
 // lastRefusal answers the later-informed of the two refusals a minimal create
@@ -229,7 +261,7 @@ func (r *runner) recordRejectedValue(entity *entityState, attribute string, valu
 // refusal that names the field is the requirement observed; acceptance is
 // its absence — and an object to delete.
 func (r *runner) runOmitRequired(ctx context.Context, entity *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, r.rebased(entity, step.Body))
 	if err != nil {
 		return err
 	}
@@ -253,7 +285,7 @@ func (r *runner) runOmitRequired(ctx context.Context, entity *entityState, step 
 // runUndocumentedEnumValue sends a value the document does not list.
 // Refusal closes the documented set; acceptance opens it.
 func (r *runner) runUndocumentedEnumValue(ctx context.Context, entity *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, r.rebased(entity, step.Body))
 	if err != nil {
 		return err
 	}
@@ -281,7 +313,7 @@ func (r *runner) runUndocumentedEnumValue(ctx context.Context, entity *entitySta
 // is about how to read the other findings — when true, this entity's
 // refusal-based findings need caution — not a finding in its own right.
 func (r *runner) runUndeclaredSpecField(ctx context.Context, entity *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, r.rebased(entity, step.Body))
 	if err != nil {
 		return err
 	}
@@ -304,7 +336,7 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, entity *entityState
 // one half of a required-when pair — created with the attribute present
 // or omitted under the pinned sibling value.
 func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState, step *plan.Step) error {
-	body := cloneAnyMap(step.Body)
+	body := r.rebased(entity, step.Body)
 	held := ""
 	if step.Condition != nil {
 		held = step.Condition.Attribute

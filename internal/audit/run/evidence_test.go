@@ -1,6 +1,7 @@
 package run
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -192,5 +193,71 @@ func TestUnit_Run_NewRunIDShape(t *testing.T) {
 	}
 	if id == newRunID() {
 		t.Fatal("two run ids collided")
+	}
+}
+
+func TestUnit_Evidence_ARefusalIsNotADeclinedRequest(t *testing.T) {
+	t.Parallel()
+	for status, want := range map[int]bool{400: true, 404: true, 409: true, 422: true, 429: false, 408: false, 500: false, 201: false} {
+		if got := (&httpResult{status: status}).refused(); got != want {
+			t.Errorf("refused(%d) = %v, want %v", status, got, want)
+		}
+	}
+}
+
+func TestUnit_Evidence_ACompositeAnsweredDifferentlyIsNotServerForced(t *testing.T) {
+	t.Parallel()
+	r := evidenceRunner(t)
+	entity := &entityState{plan: &r.opts.Plan.Entities[0], ev: newEvidence()}
+	entity.ev.sent = map[string]any{
+		"headers": []any{map[string]any{"name": "a", "value": "secret"}},
+		"target":  "www.example.invalid",
+	}
+	entity.ev.got = map[string]any{
+		"headers": []any{map[string]any{"name": "a", "value": "*****"}},
+		"target":  "https://www.example.invalid/",
+	}
+
+	r.finalizeEvidence(entity)
+	obs := r.finishObservations()
+
+	forced := findObs(obs, "thing", "headers", observe.KindServerForced)
+	if forced == nil || forced.Outcome != observe.OutcomeInconclusive {
+		t.Errorf("a list answered with members changed = %+v, want an inconclusive serverForced", forced)
+	}
+	// A host answered inside a longer spelling is the API's own form of the
+	// value sent, not another value.
+	if o := wantConfirmed(t, obs, "thing", "target", observe.KindNormalisation); o.Value != "https://www.example.invalid/" {
+		t.Errorf("normalisation = %v", o.Value)
+	}
+}
+
+func TestUnit_Steps_AProbeBodyIsRebasedOnTheAcceptedMinimal(t *testing.T) {
+	t.Parallel()
+	r := &runner{}
+	entity := &entityState{
+		plannedMinimal: map[string]any{"name": "n", "filters": []any{map[string]any{}}, "kind": "a"},
+		recipe: &entityLifecycle{minimalBody: map[string]any{
+			"name": "n", "filters": []any{map[string]any{"key": "network"}}, "kind": "a", "type": "webhook",
+		}},
+	}
+	// A per-value probe pins one field: the accepted body carries the
+	// pinned value, the widened element and the field the loop added.
+	got := r.rebased(entity, map[string]any{"name": "n", "filters": []any{map[string]any{}}, "kind": "b"})
+	want := map[string]any{"name": "n", "filters": []any{map[string]any{"key": "network"}}, "kind": "b", "type": "webhook"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("rebased = %#v, want %#v", got, want)
+	}
+	// An omission probe leaves out the field it omits, and an addition
+	// probe carries what it adds.
+	got = r.rebased(entity, map[string]any{"filters": []any{map[string]any{}}, "kind": "a", "extra": true})
+	want = map[string]any{"filters": []any{map[string]any{"key": "network"}}, "kind": "a", "type": "webhook", "extra": true}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("rebased omission = %#v, want %#v", got, want)
+	}
+	// Before a minimal was accepted there is nothing to rebase onto.
+	bare := &entityState{recipe: &entityLifecycle{}}
+	if got := r.rebased(bare, map[string]any{"a": 1}); !reflect.DeepEqual(got, map[string]any{"a": 1}) {
+		t.Errorf("rebased without an accepted body = %#v", got)
 	}
 }

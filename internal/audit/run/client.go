@@ -56,7 +56,12 @@ func (h *httpResult) ok() bool { return h.status >= 200 && h.status < 300 }
 
 // refused reports a 4xx: the API understood and said no, which is
 // evidence. A 5xx is not — it discriminates nothing.
-func (h *httpResult) refused() bool { return h.status >= 400 && h.status < 500 }
+func (h *httpResult) refused() bool {
+	// Too many requests and a request timeout are the server declining to
+	// answer now, not a judgement on the body; treating either as a
+	// refusal records the body's every field as rejected.
+	return h.status >= 400 && h.status < 500 && h.status != http.StatusTooManyRequests && h.status != http.StatusRequestTimeout
+}
 
 // object decodes the response body as a JSON object, nil when it is not
 // one.
