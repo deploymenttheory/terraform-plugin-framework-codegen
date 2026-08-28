@@ -48,6 +48,7 @@ func newAuditRunCommand() *cobra.Command {
 		out           string
 		baseURL       string
 		forceAPIAudit bool
+		entities      []string
 	)
 	cmd := &cobra.Command{
 		Use:   "run",
@@ -57,10 +58,13 @@ func newAuditRunCommand() *cobra.Command {
 			"base URL points at. Run it only against sandbox or non-production\n" +
 			"tenants; the toolkit does not police this — it is the operator's\n" +
 			"responsibility.",
-		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--force-api-audit]"),
+		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--entity KEY]... [--force-api-audit]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configuration, p, document, inputs, lock, err := auditPlan(dir, cfgFile)
 			if err != nil {
+				return err
+			}
+			if err := p.OnlyEntities(entities); err != nil {
 				return err
 			}
 			base, err := auditBaseURL(baseURL, configuration, dir)
@@ -133,6 +137,7 @@ func newAuditRunCommand() *cobra.Command {
 	cmd.Flags().StringVar(&cfgFile, "config", "tfpfgen.yaml", "config file naming the auth method and audit bounds")
 	cmd.Flags().StringVar(&out, "out", "audit/observations", "directory the observation files are written into")
 	cmd.Flags().StringVar(&baseURL, "base-url", "", "override the audited API's base URL")
+	cmd.Flags().StringArrayVar(&entities, "entity", nil, "audit only this entity and the parents its paths embed; repeatable, every other entity is listed as skipped")
 	cmd.Flags().BoolVar(&forceAPIAudit, "force-api-audit", false, "mutate even when the tenant already holds more foreign objects than audit.max_objects")
 	return cmd
 }

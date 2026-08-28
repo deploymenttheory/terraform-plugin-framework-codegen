@@ -242,3 +242,57 @@ func levenshtein(a, b string) int {
 func isEnvRef(v string) bool {
 	return strings.HasPrefix(v, envRefOpen) && strings.HasSuffix(v, envRefClose)
 }
+
+// OnlyEntities narrows the plan to the named entities and the parents their
+// paths embed; every other entity moves to Skipped with the reason. A name
+// that classifies as nothing is refused with a did-you-mean, because a typo
+// here would silently audit nothing.
+//
+// Parents come along because a child addresses its paths through an object
+// the parent's own recipe creates: without the parent in the plan the child
+// has nothing to resolve `$created:<parent>` against, and blocks before its
+// first request.
+func (p *Plan) OnlyEntities(names []string) error {
+	if len(names) == 0 {
+		return nil
+	}
+	known := make([]string, 0, len(p.Entities))
+	byKey := make(map[string]EntityPlan, len(p.Entities))
+	for _, ep := range p.Entities {
+		known = append(known, ep.Entity)
+		byKey[ep.Entity] = ep
+	}
+	keep := map[string]bool{}
+	var walk func(name string) error
+	walk = func(name string) error {
+		ep, ok := byKey[name]
+		if !ok {
+			return fmt.Errorf("--entity %q names no entity the plan carries%s", name, didYouMean(name, known))
+		}
+		if keep[name] {
+			return nil
+		}
+		keep[name] = true
+		for _, parent := range ep.Parents {
+			if err := walk(parent); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	for _, name := range names {
+		if err := walk(name); err != nil {
+			return err
+		}
+	}
+	kept := make([]EntityPlan, 0, len(keep))
+	for _, ep := range p.Entities {
+		if keep[ep.Entity] {
+			kept = append(kept, ep)
+			continue
+		}
+		p.Skipped = append(p.Skipped, Skipped{Entity: ep.Entity, Reason: "not named by --entity"})
+	}
+	p.Entities = kept
+	return nil
+}

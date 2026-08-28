@@ -229,6 +229,9 @@ single recorded exception.
   marker is the only way back.
 - Audit runs directory: `audit/runs/` holds the activity ledgers, one
   `<runid>.activity.jsonl` per run. Never committed.
+- Audit entity flag: `--entity <key>` on `tfpfgen audit run`, repeatable,
+  narrows the run to the named entities and the parents their paths embed;
+  every other entity is listed as skipped with the flag as the reason.
 - Audit force flag: `--force-api-audit` on `tfpfgen audit run` proceeds
   despite foreign objects beyond the object budget in the tenant. There is
   no consent environment variable: the audit creates and deletes real
