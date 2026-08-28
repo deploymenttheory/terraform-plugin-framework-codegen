@@ -90,6 +90,25 @@ Learned by hitting them; the schemas in `$A/schemas/` are authoritative.
   wider than its box is an error. Shorten copy before reaching for geometry
   controls; add at most one diagnosed control per repair.
 
+## CI proposes updates; you approve them
+
+`.github/workflows/diagrams.yml` runs when a push to `main` touches code one of
+the diagrams describes. It reads the change, asks Claude which diagrams it
+affects, re-renders, holds both gates, and opens a pull request with before and
+after screenshots of every diagram attached to the run.
+
+Claude edits `.json` sources only. The rendering, the gates and the pull request
+belong to the workflow, so a diagram cannot reach a branch without passing the
+same checks `make diagrams` runs here. What no check covers is whether the new
+wording is *true* — that is what the pull request is for.
+
+It authenticates by workload identity federation, exchanging the workflow's
+GitHub OIDC token rather than holding a static key. Two repository variables
+must exist, or the run stops at its first step and says so:
+
+    ANTHROPIC_FEDERATION_RULE_ID    fdrl_...
+    ANTHROPIC_ORGANIZATION_ID       the organisation UUID
+
 ## One diagram is allowed to scroll
 
 `ci.workflow` is exempt from the fit-on-screen check, via `DIAGRAMS_MAY_SCROLL`

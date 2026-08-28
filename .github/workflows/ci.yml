@@ -21,6 +21,7 @@ on:
       - '.github/workflows/40-acceptance.yml'
       - '.github/workflows/50-docs.yml'
       - '.github/workflows/60-release.yml'
+      - '.github/workflows/diagrams.yml'
       - '.github/workflows/release.yml'
       - '.github/actions/**'
       - 'LICENSE'
