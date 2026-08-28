@@ -63,9 +63,9 @@ func For(configuration *config.Config) (Backend, error) {
 	}
 }
 
-// semverRE extracts the leading version from a tool's version output, which
+// semverPattern extracts the leading version from a tool's version output, which
 // may carry build metadata after a plus (e.g. "1.34.1+heads/main...").
-var semverRE = regexp.MustCompile(`\d+\.\d+\.\d+`)
+var semverPattern = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 // runTool executes one tool invocation, capturing both streams so a failure
 // carries the tool's own explanation.
@@ -89,7 +89,7 @@ func toolVersion(ctx context.Context, name string, extraEnv []string, versionArg
 	if err != nil {
 		return "", err
 	}
-	v := semverRE.FindString(out)
+	v := semverPattern.FindString(out)
 	if v == "" {
 		return "", fmt.Errorf("could not read a version from `%s %s` output: %q",
 			name, strings.Join(versionArgs, " "), strings.TrimSpace(out))

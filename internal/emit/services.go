@@ -111,7 +111,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 			return nil, fmt.Errorf("resource %s: %w", r.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
-		out.Registrations.Resources.add(e.registration(kindResources, r.Names, "New"+r.Names.Pascal+"Resource"))
+		out.Registrations.Resources.add(e.registration(kindResources, r.Names, "New"+r.Names.PascalCase+"Resource"))
 		served[r.Names.Key] = true
 	}
 
@@ -130,7 +130,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 			return nil, fmt.Errorf("datasource %s: %w", ds.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
-		out.Registrations.Datasources.add(e.registration(kindDatasources, ds.Names, "New"+ds.Names.Pascal+"Datasource"))
+		out.Registrations.Datasources.add(e.registration(kindDatasources, ds.Names, "New"+ds.Names.PascalCase+"Datasource"))
 	}
 
 	for i := range m.ListResources {
@@ -160,7 +160,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 			return nil, fmt.Errorf("list resource %s: %w", lr.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
-		out.Registrations.ListResources.add(e.registration(kindListResources, lr.Names, "New"+lr.Names.Pascal+"ListResource"))
+		out.Registrations.ListResources.add(e.registration(kindListResources, lr.Names, "New"+lr.Names.PascalCase+"ListResource"))
 	}
 
 	for i := range m.Actions {
@@ -178,7 +178,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 			return nil, fmt.Errorf("action %s: %w", a.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
-		out.Registrations.Actions.add(e.registration(kindActions, a.Names, "New"+a.Names.Pascal+"Action"))
+		out.Registrations.Actions.add(e.registration(kindActions, a.Names, "New"+a.Names.PascalCase+"Action"))
 	}
 
 	out.KeptUnbound = e.keptUnbound

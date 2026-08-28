@@ -13,10 +13,10 @@ type Names struct {
 	// the model. The API version segment is factored out into
 	// APIVersionDirectory rather than living in the name.
 	Key string `json:"key"`
-	// Pascal is the exported Go type spelling, e.g. "HTTPServer".
-	Pascal string `json:"pascal"`
-	// Camel is the unexported Go spelling, e.g. "httpServer".
-	Camel string `json:"camel"`
+	// PascalCase is the exported Go type spelling, e.g. "HTTPServer".
+	PascalCase string `json:"pascal"`
+	// CamelCase is the unexported Go spelling, e.g. "httpServer".
+	CamelCase string `json:"camel"`
 	// TerraformType is "<provider>_<key>".
 	TerraformType string `json:"terraform_type"`
 	// Package is the Go package name: the key with its underscores
@@ -118,8 +118,8 @@ func deriveNames(provider, key, collectionPath string) Names {
 // spelling in step with the final key.
 func (names Names) withKey(provider, key string) Names {
 	names.Key = key
-	names.Pascal = pascalCase(key)
-	names.Camel = camelCase(key)
+	names.PascalCase = pascalCase(key)
+	names.CamelCase = camelCase(key)
 	names.TerraformType = provider + "_" + key
 	names.Package = packageName(provider, key)
 	return names

@@ -19,8 +19,8 @@ import (
 func names(key, pascal, service string) ir.Names {
 	return ir.Names{
 		Key:                 key,
-		Pascal:              pascal,
-		Camel:               "x",
+		PascalCase:          pascal,
+		CamelCase:           "x",
 		TerraformType:       "petstore_" + key,
 		Package:             "pkg" + service,
 		Service:             service,
@@ -186,7 +186,7 @@ func fictionalModel() *ir.Model {
 }
 
 // Post-prune access helpers for the kiota-shaped stub SDK.
-func kAccess(base, sdkType, convGet, convSet, parse string) sdkbind.FieldAccess {
+func kiotaAccess(base, sdkType, convGet, convSet, parse string) sdkbind.FieldAccess {
 	return sdkbind.FieldAccess{
 		Get: "Get" + base, Set: "Set" + base,
 		SDKType: sdkType, ConvertGet: convGet, ConvertSet: convSet, ParseFunc: parse,
@@ -202,23 +202,23 @@ func readOnly(a sdkbind.FieldAccess) sdkbind.FieldAccess {
 func httpServerFields() []sdkbind.FieldBinding {
 	return []sdkbind.FieldBinding{
 		{Attr: "id", Wire: "id", Kind: ir.TypeString,
-			Access: readOnly(kAccess("Id", "*string", "FromPtrString", "ToPtrString", ""))},
+			Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "ToPtrString", ""))},
 		{Attr: "name", Wire: "name", Kind: ir.TypeString,
-			Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")},
+			Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")},
 		{Attr: "enabled", Wire: "enabled", Kind: ir.TypeBool,
-			Access: kAccess("Enabled", "*bool", "FromPtrBool", "ToPtrBool", "")},
+			Access: kiotaAccess("Enabled", "*bool", "FromPtrBool", "ToPtrBool", "")},
 		{Attr: "port", Wire: "port", Kind: ir.TypeInt64,
-			Access: kAccess("Port", "*int32", "FromPtrInt32", "ToPtrInt32", "")},
+			Access: kiotaAccess("Port", "*int32", "FromPtrInt32", "ToPtrInt32", "")},
 		{Attr: "ratio", Wire: "ratio", Kind: ir.TypeFloat64,
-			Access: kAccess("Ratio", "*float64", "FromPtrFloat64", "ToPtrFloat64", "")},
+			Access: kiotaAccess("Ratio", "*float64", "FromPtrFloat64", "ToPtrFloat64", "")},
 		{Attr: "kind", Wire: "kind", Kind: ir.TypeString,
-			Access: kAccess("Kind", "*models.HttpServerKind", "FromPtrEnum", "ToPtrEnum", "models.ParseHttpServerKind")},
+			Access: kiotaAccess("Kind", "*models.HttpServerKind", "FromPtrEnum", "ToPtrEnum", "models.ParseHttpServerKind")},
 		{Attr: "tags", Wire: "tags", Kind: ir.TypeList, ElementType: ir.TypeString,
-			Access: kAccess("Tags", "[]string", "FromStringSlice", "ToStringSlice", "")},
+			Access: kiotaAccess("Tags", "[]string", "FromStringSlice", "ToStringSlice", "")},
 		{Attr: "protocols", Wire: "protocols", Kind: ir.TypeList, ElementType: ir.TypeString,
-			Access: kAccess("Protocols", "[]models.HttpServerProtocol", "FromEnumSlice", "ToEnumSlice", "models.ParseHttpServerProtocol")},
+			Access: kiotaAccess("Protocols", "[]models.HttpServerProtocol", "FromEnumSlice", "ToEnumSlice", "models.ParseHttpServerProtocol")},
 		{Attr: "seed", Wire: "seed", Kind: ir.TypeString,
-			Access: kAccess("Seed", "*string", "FromPtrString", "ToPtrString", "")},
+			Access: kiotaAccess("Seed", "*string", "FromPtrString", "ToPtrString", "")},
 		{Attr: "settings", Wire: "settings", Kind: ir.TypeObject,
 			Access:            sdkbind.FieldAccess{Get: "GetSettings", Set: "SetSettings", SDKType: "models.HttpServerSettingsable"},
 			NestedModel:       "models.HttpServerSettings",
@@ -226,9 +226,9 @@ func httpServerFields() []sdkbind.FieldBinding {
 			NestedConstructor: "models.NewHttpServerSettings()",
 			Nested: []sdkbind.FieldBinding{
 				{Attr: "retries", Wire: "retries", Kind: ir.TypeInt64,
-					Access: kAccess("Retries", "*int64", "FromPtrInt64", "ToPtrInt64", "")},
+					Access: kiotaAccess("Retries", "*int64", "FromPtrInt64", "ToPtrInt64", "")},
 				{Attr: "trace", Wire: "trace", Kind: ir.TypeBool,
-					Access: kAccess("Trace", "*bool", "FromPtrBool", "ToPtrBool", "")},
+					Access: kiotaAccess("Trace", "*bool", "FromPtrBool", "ToPtrBool", "")},
 			}},
 		{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject,
 			Access:            sdkbind.FieldAccess{Get: "GetRules", Set: "SetRules", SDKType: "[]models.HttpServerRuleable"},
@@ -237,10 +237,10 @@ func httpServerFields() []sdkbind.FieldBinding {
 			NestedConstructor: "models.NewHttpServerRule()",
 			Nested: []sdkbind.FieldBinding{
 				{Attr: "pattern", Wire: "pattern", Kind: ir.TypeString,
-					Access: kAccess("Pattern", "*string", "FromPtrString", "ToPtrString", "")},
+					Access: kiotaAccess("Pattern", "*string", "FromPtrString", "ToPtrString", "")},
 			}},
 		{Attr: "description", Wire: "description", Kind: ir.TypeString,
-			Access: kAccess("Description", "*string", "FromPtrString", "ToPtrString", "")},
+			Access: kiotaAccess("Description", "*string", "FromPtrString", "ToPtrString", "")},
 	}
 }
 
@@ -293,11 +293,11 @@ func fictionalBindings() *sdkbind.Bindings {
 				WriteConstructor: "models.NewAlertRule()",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
-						Access: readOnly(kAccess("Id", "*string", "FromPtrString", "ToPtrString", ""))},
+						Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "ToPtrString", ""))},
 					{Attr: "name", Wire: "name", Kind: ir.TypeString,
-						Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")},
+						Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")},
 					{Attr: "severity", Wire: "severity", Kind: ir.TypeInt64,
-						Access: kAccess("Severity", "*int64", "FromPtrInt64", "ToPtrInt64", "")},
+						Access: kiotaAccess("Severity", "*int64", "FromPtrInt64", "ToPtrInt64", "")},
 				},
 			},
 		},
@@ -312,11 +312,11 @@ func fictionalBindings() *sdkbind.Bindings {
 				ListWrapperKey:   "http_servers",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
-						Access: readOnly(kAccess("Id", "*string", "FromPtrString", "", ""))},
+						Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "", ""))},
 					{Attr: "name", Wire: "name", Kind: ir.TypeString,
-						Access: readOnly(kAccess("Name", "*string", "FromPtrString", "", ""))},
+						Access: readOnly(kiotaAccess("Name", "*string", "FromPtrString", "", ""))},
 					{Attr: "enabled", Wire: "enabled", Kind: ir.TypeBool,
-						Access: readOnly(kAccess("Enabled", "*bool", "FromPtrBool", "", ""))},
+						Access: readOnly(kiotaAccess("Enabled", "*bool", "FromPtrBool", "", ""))},
 				},
 			},
 			"license": {
@@ -327,9 +327,9 @@ func fictionalBindings() *sdkbind.Bindings {
 				ReadModel: "models.Licenseable",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "seats", Wire: "seats", Kind: ir.TypeInt64,
-						Access: readOnly(kAccess("Seats", "*int64", "FromPtrInt64", "", ""))},
+						Access: readOnly(kiotaAccess("Seats", "*int64", "FromPtrInt64", "", ""))},
 					{Attr: "expires", Wire: "expires", Kind: ir.TypeString,
-						Access: readOnly(kAccess("Expires", "*time.Time", "FromPtrTime", "", ""))},
+						Access: readOnly(kiotaAccess("Expires", "*time.Time", "FromPtrTime", "", ""))},
 				},
 			},
 		},
@@ -341,9 +341,9 @@ func fictionalBindings() *sdkbind.Bindings {
 				CollectionAccess: "GetValue()",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
-						Access: readOnly(kAccess("Id", "*string", "FromPtrString", "", ""))},
+						Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "", ""))},
 					{Attr: "name", Wire: "name", Kind: ir.TypeString,
-						Access: readOnly(kAccess("Name", "*string", "FromPtrString", "", ""))},
+						Access: readOnly(kiotaAccess("Name", "*string", "FromPtrString", "", ""))},
 				},
 			},
 		},

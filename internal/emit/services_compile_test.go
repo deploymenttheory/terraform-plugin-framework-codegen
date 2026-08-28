@@ -45,8 +45,8 @@ func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 			},
 		},
 		{
-			name: "openapi-generator with basic", pc: oagProviderCore(),
-			model: oagModel(), bindings: oagBindings(),
+			name: "openapi-generator with basic", pc: openAPIGeneratorProviderCore(),
+			model: openAPIGeneratorModel(), bindings: openAPIGeneratorBindings(),
 			stub: map[string]string{
 				"testdata/entitysdkoag/sdk.go": "internal/sdk/sdk.go",
 			},

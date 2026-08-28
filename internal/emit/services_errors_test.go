@@ -205,7 +205,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 			NestedWriteModel:  "models.Inner",
 			NestedConstructor: "models.NewInner()",
 			Nested: []sdkbind.FieldBinding{{Attr: "x", Wire: "x", Kind: ir.TypeString,
-				Access: kAccess("X", "*string", "FromPtrString", "ToPtrString", "")}},
+				Access: kiotaAccess("X", "*string", "FromPtrString", "ToPtrString", "")}},
 		}}
 	}
 	b.Resources["http_server"].Fields = append(b.Resources["http_server"].Fields,
@@ -418,7 +418,7 @@ func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) 
 		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Kind: ir.TypeString,
-		Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
+		Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
 
 	nodes := joinTree(tree, bound, map[string]bool{"owner": true})
 

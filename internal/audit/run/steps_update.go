@@ -69,7 +69,7 @@ func (r *runner) runUpdateField(ctx context.Context, entity *entityState, step *
 
 	if !res.ok() {
 		entity.ev.updRefused++
-		entity.ev.updProof = appendProof(entity.ev.updProof, res.excerpt)
+		entity.ev.updateProof = appendProof(entity.ev.updateProof, res.excerpt)
 		switch {
 		case res.refused() && res.mentions(step.Attribute):
 			// The API said no and named the field: refused-on-update is
@@ -148,7 +148,7 @@ func (r *runner) compareOmittedFields(entity *entityState, sent, before, after m
 			entity.ev.updOmittedKept = true
 		default:
 			entity.ev.updOmittedLost = true
-			entity.ev.updProof = appendProof(entity.ev.updProof, read.excerpt)
+			entity.ev.updateProof = appendProof(entity.ev.updateProof, read.excerpt)
 		}
 	}
 }

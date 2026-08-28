@@ -75,11 +75,11 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		Package:       lr.Names.Package,
 		PackagePath:   e.packagePath(kindListResources, lr.Names),
 		Key:           lr.Names.Key,
-		Pascal:        lr.Names.Pascal,
-		Type:          lr.Names.Pascal + "ListResource",
+		Pascal:        lr.Names.PascalCase,
+		Type:          lr.Names.PascalCase + "ListResource",
 		TerraformType: lr.Names.TerraformType,
 		ClientType:    "*sdk." + e.bindings.SDK.ClientTypeName,
-		ResourceCtor:  resourcePackageAlias + ".New" + lr.Names.Pascal + "Resource()",
+		ResourceCtor:  resourcePackageAlias + ".New" + lr.Names.PascalCase + "Resource()",
 		AuthGitHubApp: e.pc.AuthGitHubApp,
 		ProviderName:  e.pc.ProviderName,
 	}
@@ -134,7 +134,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	d.Imports = imports.render()
 
 	if len(configNodes) > 0 {
-		d.ConfigModel = renderModelDeclarations(buildModels(listConfigModelName, lr.Names.Pascal+"ListConfig", configNodes, nil))
+		d.ConfigModel = renderModelDeclarations(buildModels(listConfigModelName, lr.Names.PascalCase+"ListConfig", configNodes, nil))
 	}
 
 	listImports := newImportSet(e.pc.Module)

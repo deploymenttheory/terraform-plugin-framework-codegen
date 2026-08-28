@@ -42,7 +42,7 @@ func oagInfo() SDKInfo {
 // names builds the naming block by hand, the way derivation would.
 func names(key, service string) ir.Names {
 	return ir.Names{
-		Key: key, Pascal: exportedName(key), Camel: key,
+		Key: key, PascalCase: exportedName(key), CamelCase: key,
 		TerraformType: "example_" + key, Package: key,
 		Service: service, APIVersionDirectory: "v1",
 	}
@@ -177,7 +177,7 @@ func kiotaModel() *ir.Model {
 // oagModel is the intermediate representation the openapi-generator fake
 // SDK implements. The tags service area is deliberately misspelled
 // ("tag") so pruning has to repair the service field off the client.
-func oagModel() *ir.Model {
+func openAPIGeneratorModel() *ir.Model {
 	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
@@ -258,7 +258,7 @@ func prunedKiota(t *testing.T) (*Bindings, []Removal) {
 // prunedOAG binds and prunes the openapi-generator fixtures.
 func prunedOAG(t *testing.T) (*Bindings, []Removal) {
 	t.Helper()
-	b, err := openAPIGeneratorBinder{}.Bind(oagModel(), oagInfo())
+	b, err := openAPIGeneratorBinder{}.Bind(openAPIGeneratorModel(), oagInfo())
 	if err != nil {
 		t.Fatalf("Bind: %v", err)
 	}

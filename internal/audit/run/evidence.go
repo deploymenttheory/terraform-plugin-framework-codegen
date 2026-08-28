@@ -56,7 +56,7 @@ type evidence struct {
 	updRefused     int
 	updOmittedKept bool
 	updOmittedLost bool
-	updProof       []observe.Excerpt
+	updateProof    []observe.Excerpt
 	// proof excerpts for the finalize-time observations.
 	createProof *observe.Excerpt
 	readProof   *observe.Excerpt
@@ -389,13 +389,13 @@ func (r *runner) finalizeRequiredWhens(ev *evidence) {
 func (r *runner) finalizeUpdateStyle(entity string, ev *evidence) {
 	switch {
 	case ev.updSucceeded == 0 && ev.updRefused > 0:
-		r.record(entity, "", observe.KindUpdateStyle, "replace-only", nil, observe.OutcomeConfirmed, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, "replace-only", nil, observe.OutcomeConfirmed, ev.updateProof...)
 	case ev.updOmittedLost:
-		r.record(entity, "", observe.KindUpdateStyle, "put-full", nil, observe.OutcomeConfirmed, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, "put-full", nil, observe.OutcomeConfirmed, ev.updateProof...)
 	case ev.updSucceeded > 0 && ev.updOmittedKept:
-		r.record(entity, "", observe.KindUpdateStyle, "patch-merge", nil, observe.OutcomeConfirmed, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, "patch-merge", nil, observe.OutcomeConfirmed, ev.updateProof...)
 	case ev.updSucceeded > 0:
-		r.record(entity, "", observe.KindUpdateStyle, nil, nil, observe.OutcomeInconclusive, ev.updProof...)
+		r.record(entity, "", observe.KindUpdateStyle, nil, nil, observe.OutcomeInconclusive, ev.updateProof...)
 	}
 }
 
