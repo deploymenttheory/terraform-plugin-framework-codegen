@@ -143,7 +143,11 @@ func (sy valueSynthesiser) value(field string, s *specmodel.Schema, depth int, t
 	if NameBearing(field) && len(r.Enum) == 0 && r.Format == "" && r.Pattern == "" {
 		return sy.nameToken(field), true
 	}
-	if r.Example != nil {
+	// An object's own example is the vendor's statement of a whole element,
+	// optional members included, which is the attested form; the smaller
+	// form is built from the properties so it carries the required members
+	// alone.
+	if r.Example != nil && (sy.attested || !objectSchema(r)) {
 		return r.Example, true
 	}
 	if r.Default != nil {
@@ -156,6 +160,12 @@ func (sy valueSynthesiser) value(field string, s *specmodel.Schema, depth int, t
 		return v, true
 	}
 	return sy.typeValue(field, r, depth)
+}
+
+// objectSchema reports whether a schema describes an object: by type, by
+// declared properties, or by composition.
+func objectSchema(r *specmodel.Schema) bool {
+	return r.Type == "object" || len(r.Properties) > 0 || len(r.AllOf) > 0
 }
 
 // formatValue derives a value from a declared string format. Constants

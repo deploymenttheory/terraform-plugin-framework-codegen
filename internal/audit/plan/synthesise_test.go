@@ -465,6 +465,19 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
                   properties:
                     label:
                       type: string
+        agents:
+          type: array
+          items:
+            type: object
+            required: [agentId]
+            properties:
+              agentId:
+                type: string
+              sourceIpAddress:
+                type: string
+            example:
+              agentId: "125"
+              sourceIpAddress: 1.1.1.1
         unshaped:
           type: array
         tally:
@@ -478,6 +491,9 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
 		// Required members alone: none here, so an empty element.
 		"filters": []any{map[string]any{}},
 		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
+		// An object's own example is a whole element; the smaller form is
+		// built from the properties instead.
+		"agents": []any{map[string]any{"agentId": "sample-agentId"}},
 	}
 	wantAttested := map[string]any{
 		// Every member the document states a value for, none it does not.
@@ -485,6 +501,8 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
 		// An optional nested collection the document says nothing about is
 		// not a value the document attests, in either form.
 		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
+		// The whole example, optional members included.
+		"agents": []any{map[string]any{"agentId": "125", "sourceIpAddress": "1.1.1.1"}},
 	}
 	if !reflect.DeepEqual(minimal, wantMinimal) {
 		t.Errorf("minimal composites = %#v\nwant %#v", minimal, wantMinimal)
