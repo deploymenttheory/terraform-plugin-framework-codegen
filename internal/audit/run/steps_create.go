@@ -506,10 +506,34 @@ func (r *runner) addFieldsUntilAccepted(ctx context.Context, entity *entityState
 		if res == nil || (!res.refused() && res.status < 500) {
 			return bodyCorrection{res: res, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
 		}
-		// The API now objects to the field just added, so it is not one this
-		// create wants; the ones before it stay.
+		// The API now objects to the field just added. A composite added in
+		// its smaller form is tried once more with the members the document
+		// attests, which is what an object refused as incomplete wants;
+		// otherwise the field is not one this create wants, and the ones
+		// before it stay.
 		if res.mentions(field) {
-			delete(body, field)
+			if wider, ok := r.syntheses[entity.plan.Entity].attestedValue(field); ok && !reflect.DeepEqual(wider, body[field]) && i+1 < allowance {
+				i++
+				body[field] = wider
+				obj, res, err = r.createObject(ctx, entity, rec, body)
+				if err != nil {
+					return bodyCorrection{}, err
+				}
+				if obj != nil {
+					for _, added := range candidates[:len(tried)] {
+						if _, kept := body[added]; kept {
+							r.recordAdjustAdd(entity, added, "", "", res.excerpt)
+						}
+					}
+					return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: true}, nil
+				}
+				if res == nil || (!res.refused() && res.status < 500) {
+					return bodyCorrection{res: res, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
+				}
+			}
+			if res.mentions(field) {
+				delete(body, field)
+			}
 		}
 		last = res
 	}

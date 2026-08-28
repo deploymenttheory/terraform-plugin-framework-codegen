@@ -685,3 +685,41 @@ func TestUnit_Cycle_OnlyTheNamedEnumFieldsAreCycled(t *testing.T) {
 		t.Errorf("the held field was cycled: %+v", got)
 	}
 }
+
+func TestUnit_Adjust_AWordBeforeTheComplaintFallsBackOnTheDeclaredFieldNamed(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"repeat": {Field: "repeat", Type: "object"}, "duration": {Field: "duration", Type: "integer"},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"window": known}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "window"}}
+	body := map[string]any{"duration": 1, "name": "n"}
+	res := &httpResult{status: 400, body: []byte(`{"status":400,"title":"400 Bad Request\nrepeat conditions must be specified"}`)}
+	act := classifyRefusal(res)
+	if act.kind != adjustmentAdd {
+		t.Fatalf("classify = %+v, want an add", act)
+	}
+	if got := r.addField(entity, body, act, refusalMessage(res.body)); got != "repeat" {
+		t.Fatalf("addField = %q, want repeat", got)
+	}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, res, map[string]bool{}, false); !ok {
+		t.Fatal("the adjustment was not applied")
+	}
+	if _, has := body["repeat"]; !has {
+		t.Errorf("repeat was not added: %v", body)
+	}
+}
+
+func TestUnit_Adjust_ADeclaredNameTheRefusalQualifiesIsStillNamed(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"startDate": {Field: "startDate"}, "id": {Field: "id"}, "name": {Field: "name"},
+	}
+	if got := declaredSpelling("startDateTime", known); got != "startDate" {
+		t.Errorf("declaredSpelling(startDateTime) = %q, want startDate", got)
+	}
+	// Too short a declared name to claim a prefix.
+	if got := declaredSpelling("identifier", known); got != "" {
+		t.Errorf("declaredSpelling(identifier) = %q, want nothing", got)
+	}
+}

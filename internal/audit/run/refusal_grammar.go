@@ -132,7 +132,11 @@ func listedCandidates(list string) []string {
 
 // declaredSpelling answers the wire name an entity declares for a field a
 // refusal spelt in its own words — "query params" for queryParams — comparing
-// with case and punctuation removed. Empty when nothing declared matches.
+// with case and punctuation removed. A declared name the refusal's word
+// begins with also answers — "startDateTime" for startDate — since an API
+// that appends a qualifier to a property's name is still naming it; the
+// declared name has to be long enough that the prefix is not a coincidence.
+// Empty when nothing declared matches.
 func declaredSpelling(candidate string, known map[string]strategy.SyntheticValueRules) string {
 	wanted := lettersOf(candidate)
 	if wanted == "" {
@@ -145,6 +149,12 @@ func declaredSpelling(candidate string, known map[string]strategy.SyntheticValue
 	sort.Strings(names)
 	for _, name := range names {
 		if lettersOf(name) == wanted {
+			return name
+		}
+	}
+	const prefixFloor = 6
+	for _, name := range names {
+		if letters := lettersOf(name); len(letters) >= prefixFloor && strings.HasPrefix(wanted, letters) {
 			return name
 		}
 	}
