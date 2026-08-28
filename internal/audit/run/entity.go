@@ -1,6 +1,7 @@
 package run
 
 import (
+	"strconv"
 	"context"
 	"errors"
 	"fmt"
@@ -314,7 +315,19 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 		return nil, nil, err
 	}
 
-	seq, err := r.ledger.intent(rec.entity, nameOf(resolved, r.opts.NamePrefix), itemPath, rec.deleteQuery)
+	// A probe that names its object as the live minimal object is named is
+	// refused by an API that keeps names unique, for a reason that has
+	// nothing to do with what the probe exercises; the name takes the
+	// ledger sequence as a further suffix and keeps its prefix.
+	if live, ok := r.createdObjects[rec.entity]; ok && live.name != "" {
+		for field, value := range resolved {
+			if text, isString := value.(string); isString && text == live.name {
+				resolved[field] = text + "-" + strconv.Itoa(r.ledger.seq+1)
+			}
+		}
+	}
+	name := nameOf(resolved, r.opts.NamePrefix)
+	seq, err := r.ledger.intent(rec.entity, name, itemPath, rec.deleteQuery)
 	if err != nil {
 		return nil, nil, blockedError{reason: "the create could not be recorded in the ledger first: " + err.Error()}
 	}
@@ -345,7 +358,7 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 				entity.idUnknown = true
 			}
 		}
-		return &createdObject{entity: rec.entity, id: id, seq: seq}, res, nil
+		return &createdObject{entity: rec.entity, id: id, seq: seq, name: name}, res, nil
 	case res.refused():
 		r.ledger.resolve(seq, activityRejected, "", res.status)
 		return nil, res, nil

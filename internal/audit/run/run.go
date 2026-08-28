@@ -347,6 +347,9 @@ type createdObject struct {
 	entity string
 	id     string
 	seq    int
+	// name is the prefixed name the object was created under, so a later
+	// probe of the same entity does not reuse it while the object lives.
+	name string
 }
 
 // entityLifecycle is what re-creation and deletion need to know about an

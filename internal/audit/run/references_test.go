@@ -92,10 +92,19 @@ func TestUnit_References_CollectionsIndexTheRootPathPerNoun(t *testing.T) {
 		// Under a parent: unreadable without the parent's id, so not offered.
 		{Key: "account_groups_agent", CollectionPath: "/account-groups/{id}/agents", List: list},
 		{Key: "alerts_rule", CollectionPath: "/alerts/rules", List: list},
+		// A leaf noun no other path ends in stands for the path on its own.
+		{Key: "dashboards_filter", CollectionPath: "/dashboards/filters", List: list},
+		// Two paths ending in one noun make the leaf ambiguous.
+		{Key: "endpoint_label", CollectionPath: "/endpoint/labels", List: list},
+		{Key: "tests_label", CollectionPath: "/tests/labels", List: list},
 		{Key: "unlisted", CollectionPath: "/unlisted"},
 	}
 	got := referenceCollections(classified)
-	want := map[string]string{"agent": "/agents", "alertrule": "/alerts/rules"}
+	want := map[string]string{
+		"agent": "/agents", "alertrule": "/alerts/rules", "rule": "/alerts/rules",
+		"dashboardfilter": "/dashboards/filters", "filter": "/dashboards/filters",
+		"endpointlabel": "/endpoint/labels", "testlabel": "/tests/labels",
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("collections = %#v, want %#v", got, want)
 	}

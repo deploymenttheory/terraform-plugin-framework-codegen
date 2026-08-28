@@ -30,6 +30,10 @@ const BorrowToken = "$borrow:"
 // collection it references.
 func referenceCollections(classified []specmodel.Classification) map[string]string {
 	out := map[string]string{}
+	// A path's last segment names the collection on its own where no other
+	// path ends in the same noun — /dashboards/filters is what a field
+	// named globalFilterId refers to — and is ambiguous otherwise.
+	leaves := map[string][]string{}
 	for _, c := range classified {
 		// A collection under a parent cannot be read without the parent's
 		// id, which a borrow has no way to supply.
@@ -46,8 +50,25 @@ func referenceCollections(classified []specmodel.Classification) map[string]stri
 		if existing, taken := out[noun]; !taken || len(c.CollectionPath) < len(existing) {
 			out[noun] = c.CollectionPath
 		}
+		if leaf := leafNoun(c.CollectionPath); leaf != "" && leaf != noun {
+			leaves[leaf] = append(leaves[leaf], c.CollectionPath)
+		}
+	}
+	for leaf, paths := range leaves {
+		if _, taken := out[leaf]; !taken && len(paths) == 1 {
+			out[leaf] = paths[0]
+		}
 	}
 	return out
+}
+
+// leafNoun spells a collection path's last static segment as a noun.
+func leafNoun(path string) string {
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) == 0 {
+		return ""
+	}
+	return joinNoun(splitWords(segments[len(segments)-1]))
 }
 
 // pathNoun spells a collection path's static segments as one noun: each
