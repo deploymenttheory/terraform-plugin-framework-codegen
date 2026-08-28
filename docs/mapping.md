@@ -130,6 +130,15 @@ and would fail for saying so.
 A `create_with_ru_api` yields no datasource. There is nothing to look up: the
 object is one fixed thing, and the resource already reads it.
 
+**A query parameter an operation requires** belongs to the operation rather
+than to the object, so no attribute carries it. The generated call sends it as
+a constant — the parameter's own example first, then its schema's example,
+then its default — through the SDK's request configuration for that verb; the
+audit sends the same value on every delete, so an object whose delete confirms
+itself through one is not left in the tenant. A required parameter the
+document states no value for is left out: the document has not said what to
+send.
+
 ## Actions
 
 **`invoke_with_write_api`** is an entity whose whole surface is a single write —

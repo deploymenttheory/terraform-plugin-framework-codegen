@@ -57,9 +57,10 @@ func (kiotaBinder) call(operation *ir.Operation, n ir.Names, hasBody bool, info 
 	segs = append(segs, Segment{Name: verb, Call: true, Args: args})
 
 	c := &Call{
-		Segments:   segs,
-		Imports:    []string{info.ImportPath},
-		Parameters: parameters,
+		Segments:        segs,
+		Imports:         []string{info.ImportPath},
+		Parameters:      parameters,
+		QueryParameters: operation.QueryParameters,
 	}
 
 	// Drafted payload types, spelled from the entity name the way kiota

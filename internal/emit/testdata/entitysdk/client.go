@@ -73,6 +73,12 @@ func (b *HttpServerItemRequestBuilder) Patch(_ context.Context, _ models.HttpSer
 // Delete removes the item.
 func (b *HttpServerItemRequestBuilder) Delete(_ context.Context, _ any) error { return errStub }
 
+// HttpServerItemRequestBuilderDeleteQueryParameters is the query the delete
+// takes.
+type HttpServerItemRequestBuilderDeleteQueryParameters struct {
+	Confirm *bool `uriparametername:"confirm"`
+}
+
 // Restart reaches the restart action.
 func (b *HttpServerItemRequestBuilder) Restart() *HttpServerRestartRequestBuilder {
 	return &HttpServerRestartRequestBuilder{}

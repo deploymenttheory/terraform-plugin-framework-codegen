@@ -464,7 +464,9 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	if d.IdentitySets != "" {
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 	}
-	if d.CreateIDFromResponse != "" {
+	if d.CreateIDFromResponse != "" || strings.Contains(d.DeletePlan.ClosureBody, "convert.") ||
+		strings.Contains(d.CreatePlan.Assign, "convert.") || strings.Contains(d.UpdatePlan.Assign, "convert.") ||
+		strings.Contains(d.ReadPlan.Assign, "convert.") {
 		imports.add("", e.pc.Module+"/internal/services/common/convert")
 	}
 	e.addSDKImports(imports, d.CreatePlan.Assign, d.ReadPlan.Assign, d.DeletePlan.ClosureBody, d.UpdatePlan.Assign)

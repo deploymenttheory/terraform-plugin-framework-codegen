@@ -271,14 +271,16 @@ func fictionalBindings() *sdkbind.Bindings {
 
 	able := "models.HttpServerable"
 	return &sdkbind.Bindings{
-		SDK: info,
+		SDK:               info,
+		OperationPackages: map[string]string{"abstractions": "github.com/microsoft/kiota-abstractions-go"},
 		Resources: map[string]*sdkbind.ResourceBinding{
 			"http_server": {
 				Key:              "http_server",
 				Create:           call("client.HttpServers().Post(ctx, body, nil)", nil, able, able, "error"),
 				Read:             call("client.HttpServers().ByHttpServerId(httpServerId).Get(ctx, nil)", serverParam(), able, able, "error"),
 				Update:           call("client.HttpServers().ByHttpServerId(httpServerId).Patch(ctx, body, nil)", serverParam(), able, able, "error"),
-				Delete:           call("client.HttpServers().ByHttpServerId(httpServerId).Delete(ctx, nil)", serverParam(), "", "error"),
+				Delete: call("client.HttpServers().ByHttpServerId(httpServerId).Delete(ctx, &abstractions.RequestConfiguration[sdk.HttpServerItemRequestBuilderDeleteQueryParameters]"+
+					"{QueryParameters: &sdk.HttpServerItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true)}})", serverParam(), "", "error"),
 				ReadModel:        able,
 				WriteModel:       "models.HttpServer",
 				WriteConstructor: "models.NewHttpServer()",

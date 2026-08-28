@@ -701,3 +701,71 @@ func TestUnit_ListElementSchema_LeavesAResponseCarryingNoCollectionAlone(t *test
 		t.Fatal("no operation means no element")
 	}
 }
+
+func TestUnit_Operation_CarriesTheQueryParametersItRequiresWithTheDocumentsValue(t *testing.T) {
+	const document = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /vaults:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Vault'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Vault'}
+  /vaults/{vaultId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Vault'}
+    delete:
+      parameters:
+        - name: confirmDisabledObjects
+          in: query
+          required: true
+          schema: {type: boolean, default: false}
+          example: true
+        - name: reason
+          in: query
+          required: true
+          schema: {type: string, example: retired}
+        - name: dryRun
+          in: query
+          schema: {type: boolean}
+        - name: unstated
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Vault:
+      type: object
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string}
+`
+	r := resourceByKey(t, mustDerive(t, document, testConfig()), "vault")
+	got := r.Operations.Delete.QueryParameters
+	want := []QueryParameter{
+		// The parameter's own example outranks the schema's default; the
+		// schema's example serves where the parameter states none; an
+		// optional parameter and a required one with no stated value are
+		// left out.
+		{Name: "confirmDisabledObjects", Type: TypeBool, Value: true},
+		{Name: "reason", Type: TypeString, Value: "retired"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("delete query parameters = %#v, want %#v", got, want)
+	}
+	if r.Operations.Read.QueryParameters != nil {
+		t.Errorf("the read carries query parameters it does not require: %#v", r.Operations.Read.QueryParameters)
+	}
+}

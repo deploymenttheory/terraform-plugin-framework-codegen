@@ -52,6 +52,16 @@ func operation(kind ir.OperationKind, method, path, opID string, parameters ...i
 	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: parameters}
 }
 
+// deleteWithQuery gives a delete the query parameters the document
+// requires of it: a confirmation and a reason.
+func deleteWithQuery(operation *ir.Operation) *ir.Operation {
+	operation.QueryParameters = []ir.QueryParameter{
+		{Name: "confirm", Type: ir.TypeBool, Value: true},
+		{Name: "reason", Type: ir.TypeString, Value: "retired"},
+	}
+	return operation
+}
+
 func attribute(name, wire string, kind ir.AttributeType, participation ir.ComputedOptionalRequired) ir.Attribute {
 	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: participation}
 }
@@ -138,7 +148,7 @@ func kiotaModel() *ir.Model {
 					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
 					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
 					Update: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", tagID),
-					Delete: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID),
+					Delete: deleteWithQuery(operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID)),
 				},
 				Schema: tagSchema(),
 			},

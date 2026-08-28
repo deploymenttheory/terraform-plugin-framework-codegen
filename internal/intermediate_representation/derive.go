@@ -233,13 +233,49 @@ func (derivation *operationIndexer) operation(reference *specmodel.OperationRefe
 	}
 	full := derivation.full(reference)
 	return &Operation{
-		Kind:           kind,
-		Method:         reference.Method,
-		PathTemplate:   reference.Path,
-		OperationID:    reference.OperationID,
-		PathParameters: pathParameters(reference.Path, full),
-		SuccessCode:    successCode(full),
+		Kind:            kind,
+		Method:          reference.Method,
+		PathTemplate:    reference.Path,
+		OperationID:     reference.OperationID,
+		PathParameters:  pathParameters(reference.Path, full),
+		QueryParameters: requiredQueryParameters(full),
+		SuccessCode:     successCode(full),
 	}
+}
+
+// requiredQueryParameters lists an operation's required query parameters
+// with the value the document states for each, in declaration order. A
+// required parameter the document states no value for is left out: the
+// document has not said what to send.
+func requiredQueryParameters(operation *specmodel.Operation) []QueryParameter {
+	if operation == nil {
+		return nil
+	}
+	var out []QueryParameter
+	for _, declared := range operation.Parameters {
+		if declared.In != "query" || !declared.Required {
+			continue
+		}
+		value := declared.Example
+		if declared.Schema != nil {
+			resolved := declared.Schema.Resolved()
+			if value == nil {
+				value = resolved.Example
+			}
+			if value == nil {
+				value = resolved.Default
+			}
+		}
+		if value == nil {
+			continue
+		}
+		kind := scalarKind(declared.Schema)
+		if kind == "" {
+			kind = TypeString
+		}
+		out = append(out, QueryParameter{Name: declared.Name, Type: kind, Value: value})
+	}
+	return out
 }
 
 func (derivation *operationIndexer) resource(classification specmodel.Classification, names Names) Resource {

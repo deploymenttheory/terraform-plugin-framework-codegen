@@ -233,6 +233,10 @@ type Call struct {
 	// Results are the call's result types in order, error included, so
 	// the emitter renders the right assignment shape.
 	Results []string `json:"results,omitempty"`
+	// QueryParameters are the required query parameters the operation
+	// sends as constants, carried from the intermediate representation so
+	// pruning can settle them onto the SDK's request configuration type.
+	QueryParameters []ir.QueryParameter `json:"query_parameters,omitempty"`
 }
 
 // Segment is one hop of a call: a field selection or a method call.

@@ -192,6 +192,11 @@ type Operation struct {
 	PathTemplate   string        `json:"path_template"`
 	OperationID    string        `json:"operation_id,omitempty"`
 	PathParameters []Parameter   `json:"path_parameters,omitempty"`
+	// QueryParameters are the query parameters the operation requires,
+	// each with the value the document states for it. A generated call
+	// sends them as constants: they belong to the operation, not to the
+	// object, so no attribute carries them.
+	QueryParameters []QueryParameter `json:"query_parameters,omitempty"`
 	// SuccessCode is the first declared 2xx status, 0 when only a
 	// default response exists.
 	SuccessCode int `json:"success_code,omitempty"`
@@ -201,6 +206,16 @@ type Operation struct {
 type Parameter struct {
 	Name string        `json:"name"`
 	Type AttributeType `json:"type"`
+}
+
+// QueryParameter is one required query parameter and the value the
+// document states for it — the parameter's own example first, then the
+// schema's example, then its default — because a required parameter with
+// no stated value is one the document leaves a generator unable to send.
+type QueryParameter struct {
+	Name  string        `json:"name"`
+	Type  AttributeType `json:"type"`
+	Value any           `json:"value"`
 }
 
 // AttributeType is a terraform-plugin-framework attribute type.

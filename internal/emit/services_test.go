@@ -193,6 +193,12 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 
 	crud := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/crud.go").Content)
 	for _, want := range []string{
+		// A delete that the document requires a query parameter of sends it
+		// as a constant through the SDK's own request configuration, with
+		// the packages the expression names imported.
+		"Delete(ctx, &abstractions.RequestConfiguration[sdk.HttpServerItemRequestBuilderDeleteQueryParameters]{QueryParameters: &sdk.HttpServerItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true)}})",
+		`"github.com/microsoft/kiota-abstractions-go"`,
+		`"example.test/provider/internal/services/common/convert"`,
 		"const eventualConsistency = 30 * time.Second",
 		"opts.ConsistencyPredicate = consistencyPredicate",
 		"crud.DeleteWithRetry",

@@ -49,6 +49,17 @@ func TestPruneKiota(t *testing.T) {
 		}
 	})
 
+	t.Run("a delete sends the query parameters it requires through the SDK's types", func(t *testing.T) {
+		want := "client.Tags().ByTagId(tagId).Delete(ctx, &abstractions.RequestConfiguration[sdk.TagsItemRequestBuilderDeleteQueryParameters]" +
+			`{QueryParameters: &sdk.TagsItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true), Reason: convert.PointerTo("retired")}})`
+		if rb.Delete.Expr != want {
+			t.Errorf("delete Expr = %q\nwant %q", rb.Delete.Expr, want)
+		}
+		if b.OperationPackages["abstractions"] != "example.com/kiotasdk/abstractions" {
+			t.Errorf("the request configuration's package was not recorded: %v", b.OperationPackages)
+		}
+	})
+
 	t.Run("scalar widths settle to the SDK's", func(t *testing.T) {
 		count := findField(t, rb.Fields, "count")
 		if count.Access.SDKType != "*int32" || count.Access.ConvertGet != "FromPtrInt32" ||
