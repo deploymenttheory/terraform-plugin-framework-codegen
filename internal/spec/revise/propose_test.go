@@ -339,7 +339,7 @@ func TestUnit_Propose_RefusesWhenNothingIsPinned(t *testing.T) {
 }
 
 // TestIntegration_Propose_FullLoopConverges walks the whole evidence loop:
-// quirkserver-flavoured observations compile into proposals, a human accepts
+// test API server-flavoured observations compile into proposals, a human accepts
 // them, WriteRevision folds them into the revised spec, and a re-propose
 // against that spec yields nothing — the fixed point re-auditing relies on.
 func TestIntegration_Propose_FullLoopConverges(t *testing.T) {

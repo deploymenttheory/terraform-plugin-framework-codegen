@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Ledger_IntentIsDurableBeforeTheRequestIsSent is the ledger's
@@ -17,7 +17,7 @@ import (
 // sending and reading the response cannot strand an unrecorded object.
 func TestUnit_Ledger_IntentIsDurableBeforeTheRequestIsSent(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
 	ledgerPath := filepath.Join(opts.RunsDir, "testrun1"+activityFileSuffix)

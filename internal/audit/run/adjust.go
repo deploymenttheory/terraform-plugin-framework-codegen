@@ -9,7 +9,7 @@ package run
 // accordingly, and retries — bounded hard, so a server that keeps refusing can
 // never spin the loop forever.
 //
-// The classification grammar is the quirk server's stable 400 vocabulary
+// The classification grammar is the test API server's stable 400 vocabulary
 // (documented on its validators), parsed defensively so a real API that
 // phrases the same fact differently still lands on the right action:
 //

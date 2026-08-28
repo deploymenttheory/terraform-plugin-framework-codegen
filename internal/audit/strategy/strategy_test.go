@@ -165,7 +165,7 @@ components:
           dns: '#/components/schemas/Dns'
 `
 
-// monitorLikeSpec mirrors the quirkserver monitor: a three-value discriminator
+// monitorLikeSpec mirrors the test API server monitor: a three-value discriminator
 // (kind) and seven writable fields, so its compiled program is the multi-variant
 // shape whose budget the live rehearsal found under-sized.
 const monitorLikeSpec = `openapi: 3.0.3

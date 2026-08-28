@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // syncWriter is a threadsafe buffer: the serving goroutine writes while the
@@ -35,7 +35,7 @@ func (w *syncWriter) String() string {
 	return w.buffer.String()
 }
 
-var servingAt = regexp.MustCompile(`quirkserver serving at (http://\S+)`)
+var servingAt = regexp.MustCompile(`test API server serving at (http://\S+)`)
 
 // awaitBaseURL polls the announcement line for the server's address.
 func awaitBaseURL(t *testing.T, out *syncWriter) string {
@@ -51,11 +51,11 @@ func awaitBaseURL(t *testing.T, out *syncWriter) string {
 	return ""
 }
 
-// TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel runs the
+// TestUnit_ServeTestAPIServer_ServesWritesTheSpecAndStopsOnCancel runs the
 // full hidden verb through the command tree: it must write the document,
 // announce a base URL that answers the documented surface, and return
 // cleanly when its context ends — the programmatic stand-in for SIGINT.
-func TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel(t *testing.T) {
+func TestUnit_ServeTestAPIServer_ServesWritesTheSpecAndStopsOnCancel(t *testing.T) {
 	t.Parallel()
 	specPath := filepath.Join(t.TempDir(), "openapi.yaml")
 	out := &syncWriter{}
@@ -63,7 +63,7 @@ func TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel(t *testing.T)
 	root := newRootCommand()
 	root.SetOut(out)
 	root.SetErr(out)
-	root.SetArgs([]string{"__serve-quirkserver", "--addr", "127.0.0.1:0", "--spec", specPath})
+	root.SetArgs([]string{"__serve-test-api-server", "--addr", "127.0.0.1:0", "--spec", specPath})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -76,8 +76,8 @@ func TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel(t *testing.T)
 	if err != nil {
 		t.Fatalf("the spec was not written: %v", err)
 	}
-	if !bytes.Equal(written, quirkserver.Spec()) {
-		t.Error("the written spec differs from quirkserver.Spec()")
+	if !bytes.Equal(written, testapiserver.Spec()) {
+		t.Error("the written spec differs from testapiserver.Spec()")
 	}
 
 	// The announced URL serves the documented surface. A private transport,
@@ -112,22 +112,22 @@ func TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel(t *testing.T)
 	}
 }
 
-// TestUnit_ServeQuirkserver_HiddenFromHelp holds the verb to its bargain:
+// TestUnit_ServeTestAPIServer_HiddenFromHelp holds the verb to its bargain:
 // development machinery appears in no help output.
-func TestUnit_ServeQuirkserver_HiddenFromHelp(t *testing.T) {
+func TestUnit_ServeTestAPIServer_HiddenFromHelp(t *testing.T) {
 	t.Parallel()
 	code, stdout, stderr := run(t, "--help")
 	if code != ExitOK {
 		t.Fatalf("--help exited %d: %s", code, stderr)
 	}
-	if strings.Contains(stdout, "quirkserver") {
+	if strings.Contains(stdout, "test API server") {
 		t.Fatalf("help mentions the hidden verb:\n%s", stdout)
 	}
 }
 
-// TestUnit_ServeQuirkserver_RefusesAnUnusableAddress asserts the listen
+// TestUnit_ServeTestAPIServer_RefusesAnUnusableAddress asserts the listen
 // failure comes back as a failure exit, not a hang.
-func TestUnit_ServeQuirkserver_RefusesAnUnusableAddress(t *testing.T) {
+func TestUnit_ServeTestAPIServer_RefusesAnUnusableAddress(t *testing.T) {
 	t.Parallel()
 	err := serveQuirkserver(context.Background(), "not-an-address", "", &bytes.Buffer{})
 	if err == nil || !strings.Contains(err.Error(), "cannot listen") {
@@ -135,13 +135,13 @@ func TestUnit_ServeQuirkserver_RefusesAnUnusableAddress(t *testing.T) {
 	}
 }
 
-// TestUnit_ServeQuirkserver_RefusesAnUnwritableSpecPath asserts a spec path
+// TestUnit_ServeTestAPIServer_RefusesAnUnwritableSpecPath asserts a spec path
 // that cannot be written fails the verb before it settles into serving.
-func TestUnit_ServeQuirkserver_RefusesAnUnwritableSpecPath(t *testing.T) {
+func TestUnit_ServeTestAPIServer_RefusesAnUnwritableSpecPath(t *testing.T) {
 	t.Parallel()
 	missing := filepath.Join(t.TempDir(), "no-such-dir", "openapi.yaml")
 	err := serveQuirkserver(context.Background(), "127.0.0.1:0", missing, &bytes.Buffer{})
-	if err == nil || !strings.Contains(err.Error(), "writing the quirkserver document") {
+	if err == nil || !strings.Contains(err.Error(), "writing the test API server document") {
 		t.Fatalf("err = %v, want a spec-write refusal", err)
 	}
 }

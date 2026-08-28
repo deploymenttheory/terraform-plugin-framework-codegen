@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 import (
 	_ "embed"
@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 )
 
-// embeddedDocument is the OpenAPI 3 document the quirk server implements — the
+// embeddedDocument is the OpenAPI 3 document the test API server implements — the
 // /things surface, described the way a vendor would describe it. It lives
 // under testdata because it is fixture data, not machinery.
 //
@@ -24,14 +24,14 @@ func Spec() []byte {
 	return out
 }
 
-// Standalone starts a quirk server listening on addr, for running the
+// Standalone starts a test API server listening on addr, for running the
 // fixture as a real HTTP process rather than inside a test — the stand-in
 // live API when the whole pipeline is exercised without credentials. The
 // caller owns the returned server and must Close it.
 func Standalone(addr string, q Quirks) (*Server, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("quirkserver cannot listen on %s: %w", addr, err)
+		return nil, fmt.Errorf("test API server cannot listen on %s: %w", addr, err)
 	}
 
 	s := &Server{

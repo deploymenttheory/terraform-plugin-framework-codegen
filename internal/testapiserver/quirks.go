@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 // Conditional describes a requirement that depends on another field's value.
 //

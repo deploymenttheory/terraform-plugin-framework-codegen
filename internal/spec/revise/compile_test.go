@@ -12,7 +12,7 @@ import (
 )
 
 // tagSpec is the fixture document every propose test compiles against: one
-// full-lifecycle entity, "tag", shaped the way the quirkserver exhibits its
+// full-lifecycle entity, "tag", shaped the way the test API server exhibits its
 // misbehaviours — an enum to disagree with, an optional field the server
 // defaults, a field create accepts and update refuses.
 const tagSpec = `openapi: 3.0.3

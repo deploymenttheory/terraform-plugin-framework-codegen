@@ -12,16 +12,16 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Run_HappyPathDerivesTheExpectedObservations is the package's
-// backbone: a full derived plan against a quirk server whose behaviour is
+// backbone: a full derived plan against a test API server whose behaviour is
 // known by construction, asserting that each configured quirk comes out
 // as exactly the observation it should.
 func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		SilentlyDiscards:         []string{"notes"},
 		ImmutableAfterCreate:     []string{"color"},
 		ConstantDefaults:         map[string]any{"retention": 30},
@@ -29,7 +29,7 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 		NormalisesCase:           []string{"code"},
 		RequiredButUndeclared:    []string{"name"},
 		ClosedEnum:               map[string][]string{"mode": {"basic", "advanced"}},
-		ConditionallyRequired:    &quirkserver.Conditional{WhenField: "mode", WhenValue: "advanced", Then: "query"},
+		ConditionallyRequired:    &testapiserver.Conditional{WhenField: "mode", WhenValue: "advanced", Then: "query"},
 		SilentlyDiscardsOnUpdate: []string{"label"},
 	})
 
@@ -159,7 +159,7 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 // read-after-write lag to come out non-zero.
 func TestUnit_Run_EventuallyConsistentReadsMeasureTheLag(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{EventuallyConsistentReads: 2})
+	s := testapiserver.New(t, testapiserver.Quirks{EventuallyConsistentReads: 2})
 
 	obs, summary := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 
@@ -184,9 +184,9 @@ func TestUnit_Run_EventuallyConsistentReadsMeasureTheLag(t *testing.T) {
 // halving the optional set.
 func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		RejectsDocumentedValue: map[string]string{"color": "sample-color"},
-		ErrorBody:              quirkserver.ErrorBodyEmpty,
+		ErrorBody:              testapiserver.ErrorBodyEmpty,
 	})
 
 	p := derivedPlan(t)
@@ -212,7 +212,7 @@ func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 // an update clears what its body omits.
 func TestUnit_Run_PutFullReplaceIsObserved(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		PutClearsOmitted: true,
 		ConstantDefaults: map[string]any{"retention": 30},
 	})
@@ -230,7 +230,7 @@ func TestUnit_Run_PutFullReplaceIsObserved(t *testing.T) {
 // logs — for the bearer token. Nothing may carry it.
 func TestUnit_Run_RedactionHoldsEndToEnd(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		ClosedEnum: map[string][]string{"mode": {"basic", "advanced"}},
 	})
 
@@ -268,7 +268,7 @@ func TestUnit_Run_RedactionHoldsEndToEnd(t *testing.T) {
 // fail.
 func TestUnit_Run_MissingEnvVarBlocksTheEntityAndTheRunContinues(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	seeded := s.Seed(map[string]any{"name": "pre-existing"})
 
 	p := thingPlan(resourceSteps(), 60)
@@ -303,7 +303,7 @@ func TestUnit_Run_MissingEnvVarBlocksTheEntityAndTheRunContinues(t *testing.T) {
 // parent from its recipe, use it, and remove it at the end.
 func TestUnit_Run_CreatedChainingRecreatesTheParent(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	p := thingPlan(resourceSteps(), 60)
 	p.Entities = append(p.Entities, plan.EntityPlan{
@@ -335,7 +335,7 @@ func TestUnit_Run_CreatedChainingRecreatesTheParent(t *testing.T) {
 // timeoutExhausted, the next entity still runs, and Run reports no error.
 func TestUnit_Run_BudgetExhaustionRecordsAndMovesOn(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	seeded := s.Seed(map[string]any{"name": "lookup-target"})
 
 	p := thingPlan(resourceSteps(), 2)
@@ -377,7 +377,7 @@ func TestUnit_Run_BudgetExhaustionRecordsAndMovesOn(t *testing.T) {
 // run-level failure Run does surface.
 func TestUnit_Run_CancelledContextStillReportsAnError(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, _, err := Run(ctx, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))

@@ -6,7 +6,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 func TestUnit_Evidence_NormalisedForm(t *testing.T) {
@@ -61,7 +61,7 @@ func TestUnit_Evidence_SmallHelpers(t *testing.T) {
 // needs the authenticator and the summary maps, nothing else.
 func evidenceRunner(t *testing.T) *runner {
 	t.Helper()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatal(err)

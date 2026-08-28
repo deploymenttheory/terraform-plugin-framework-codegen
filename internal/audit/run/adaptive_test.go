@@ -17,11 +17,11 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
-// shapesSpec is the honest-but-partial document for the quirk server's shape
+// shapesSpec is the honest-but-partial document for the test API server's shape
 // resources: monitors declare their fields flat with only kind required (the
 // audit must discover that interval is really required and that kind gates the
 // per-variant fields), and assignments declare agent_id a plain required
@@ -241,7 +241,7 @@ func strategyConfig() *config.Config {
 // strategyOptions builds a strategy-driven run: the plan is derived and its
 // polls shrunk, and Doc plus Config are set so Run replaces the uniform
 // program with each entity's compiled strategy.
-func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Options {
+func strategyOptions(t *testing.T, s *testapiserver.Server, logs *bytes.Buffer) Options {
 	t.Helper()
 	document, err := specmodel.Load([]byte(shapesSpec))
 	if err != nil {
@@ -304,7 +304,7 @@ func hasAdjustment(summary Summary, entity string, action infer.AdjustAction, fi
 // observation to show for it.
 func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	obs, summary := mustRun(t, strategyOptions(t, s, nil))
 
@@ -329,7 +329,7 @@ func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 // id, and the create succeeds — the garbage-then-borrow path.
 func TestUnit_Adaptive_AssignmentBorrowsARealAgentID(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
@@ -353,7 +353,7 @@ func TestUnit_Adaptive_AssignmentBorrowsARealAgentID(t *testing.T) {
 // API says is not valid for the kind under test — the validWhen signal.
 func TestUnit_Adaptive_MaximalRemovesWrongVariantFields(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
@@ -375,7 +375,7 @@ func TestUnit_Adaptive_MaximalRemovesWrongVariantFields(t *testing.T) {
 // fallback synthesis fills domain without a strategy.
 func TestUnit_Adaptive_RequiresFieldIsAdded(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	item := map[string]string{"monitorId": "$created:monitor"}
 	steps := []plan.Step{
@@ -410,7 +410,7 @@ func TestUnit_Adaptive_RequiresFieldIsAdded(t *testing.T) {
 // than spinning it; the entity blocks, and a later entity still runs.
 func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		// The /things create refuses without a parseable "field X" sentence.
 		RequiredButUndeclared: []string{"serial"},
 	})
@@ -471,7 +471,7 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 // files, the summary, the debug logs — for the bearer token.
 func TestUnit_Adaptive_RedactionHoldsEndToEnd(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	var logs bytes.Buffer
 	obs, summary := mustRun(t, strategyOptions(t, s, &logs))
@@ -513,7 +513,7 @@ func TestUnit_Adaptive_RedactionHoldsEndToEnd(t *testing.T) {
 // reach an accepted create at all.
 func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		// Demanded by the API, absent from the document, and named in a
 		// sentence the loop can act on.
 		RequiredButUndeclared:    []string{"serial"},
@@ -561,7 +561,7 @@ func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 // alone never leaves the plan.
 func TestUnit_Adaptive_AnOperatorValueReachesTheWire(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	opts := strategyOptions(t, s, nil)
 	opts.Inputs = &plan.Inputs{Entities: map[string]plan.EntityInputs{
 		"monitor": {Values: map[string]any{"interval": 42}},
@@ -597,7 +597,7 @@ func TestUnit_Adaptive_AFieldTheAPIDemandedTeachesTheDocument(t *testing.T) {
 	t.Parallel()
 	// serial is refused when absent and declared by no schema. The refusal
 	// names it in prose, which is the shape the grammar reads.
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		RequiredButUndeclared:    []string{"serial"},
 		NamesRefusedFieldInProse: true,
 	})
@@ -646,7 +646,7 @@ func TestUnit_Adaptive_AGuessedFieldIsNotAssertedUntilTheAPITakesIt(t *testing.T
 	t.Parallel()
 	// serial is demanded and named, so the grammar adds it — but no value the
 	// run can invent is accepted, so no create ever carries it successfully.
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		RequiredButUndeclared:    []string{"serial"},
 		NamesRefusedFieldInProse: true,
 		ClosedEnum:               map[string][]string{"serial": {"only-this-one"}},

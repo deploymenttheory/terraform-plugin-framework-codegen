@@ -7,7 +7,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Steps_RefusedMinimalCreateBlocksTheEntity: an API that
@@ -15,7 +15,7 @@ import (
 // claims record blocked with the refusal as proof.
 func TestUnit_Steps_RefusedMinimalCreateBlocksTheEntity(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		// A required field the plan's minimal body does not carry.
 		RequiredButUndeclared: []string{"serial"},
 	})
@@ -42,7 +42,7 @@ func TestUnit_Steps_RefusedMinimalCreateBlocksTheEntity(t *testing.T) {
 // inconclusive and blocks what needed the read.
 func TestUnit_Steps_UnreadableObjectBlocksDownstream(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{EventuallyConsistentReads: 100000})
+	s := testapiserver.New(t, testapiserver.Quirks{EventuallyConsistentReads: 100000})
 
 	p := thingPlan(resourceSteps(), 60)
 	p.Entities[0].Steps[1].Poll = &plan.Poll{Interval: "10ms", Timeout: "50ms"}
@@ -70,7 +70,7 @@ func TestUnit_Steps_UnreadableObjectBlocksDownstream(t *testing.T) {
 // entity's creations.
 func TestUnit_Steps_CleanupDeleteEndsTheEntityAtZero(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	item := map[string]string{"thingId": "$created:thing"}
 	steps := []plan.Step{
 		{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
@@ -94,7 +94,7 @@ func TestUnit_Steps_CleanupDeleteEndsTheEntityAtZero(t *testing.T) {
 // a clean removal.
 func TestUnit_Steps_FailingDeletesLeaveOrphansReported(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{DeleteFails: true})
+	s := testapiserver.New(t, testapiserver.Quirks{DeleteFails: true})
 
 	obs, summary, err := Run(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
@@ -118,7 +118,7 @@ func TestUnit_Steps_FailingDeletesLeaveOrphansReported(t *testing.T) {
 // reason.
 func TestUnit_Steps_LookupReadOfAMissingKeyBlocks(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	p := thingPlan(nil, 10)
 	p.Entities[0].AuditShape = "lookupByKey"
 	p.Entities[0].Steps = []plan.Step{{
@@ -142,7 +142,7 @@ func TestUnit_Steps_LookupReadOfAMissingKeyBlocks(t *testing.T) {
 // rather than silently skipping.
 func TestUnit_Steps_UnknownStepKindBlocks(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	p := thingPlan([]plan.Step{{Kind: plan.StepKind("teleport"), Method: "GET", Path: "/things"}}, 10)
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.RunsDir = ""
@@ -161,7 +161,7 @@ func TestUnit_Steps_UnknownStepKindBlocks(t *testing.T) {
 // keyed to the injected field's value.
 func TestUnit_Steps_UnknownFieldRejectionIsReported(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		RejectsDocumentedValue: map[string]string{"tfpfgen_unknown_field": "true"},
 	})
 	item := map[string]string{"thingId": "$created:thing"}
@@ -184,7 +184,7 @@ func TestUnit_Steps_UnknownFieldRejectionIsReported(t *testing.T) {
 // between reads claims nothing.
 func TestUnit_Steps_UndocumentedResponseFieldIsObserved(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		// "serial" appears in every response and no thingSpec schema
 		// declares it.
 		ConstantDefaults: map[string]any{"serial": "sn-100"},
@@ -204,7 +204,7 @@ func TestUnit_Steps_UndocumentedResponseFieldIsObserved(t *testing.T) {
 
 	// A plan with no schema knowledge claims nothing.
 	p2 := thingPlan(resourceSteps(), 60)
-	s2 := quirkserver.New(t, quirkserver.Quirks{ConstantDefaults: map[string]any{"serial": "sn-100"}})
+	s2 := testapiserver.New(t, testapiserver.Quirks{ConstantDefaults: map[string]any{"serial": "sn-100"}})
 	obs2, _ := mustRun(t, testOptions(t, s2, p2, testEnv(), nil))
 	if o := findObs(obs2, "thing", "serial", observe.KindUndocumentedFieldInSpec); o != nil {
 		t.Errorf("a plan with no declared properties still claimed %+v", o)
@@ -216,9 +216,9 @@ func TestUnit_Steps_UndocumentedResponseFieldIsObserved(t *testing.T) {
 // pinned on the field.
 func TestUnit_Steps_RefusalWithoutTheFieldNameIsInconclusive(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		RequiredButUndeclared: []string{"serial"},
-		ErrorBody:             quirkserver.ErrorBodyEmpty,
+		ErrorBody:             testapiserver.ErrorBodyEmpty,
 	})
 	item := map[string]string{"thingId": "$created:thing"}
 	steps := []plan.Step{
@@ -240,7 +240,7 @@ func TestUnit_Steps_RefusalWithoutTheFieldNameIsInconclusive(t *testing.T) {
 // from nothing sent.
 func TestUnit_Steps_ForcedValueOnUpdateIsServerForced(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		Forces: map[string]any{"power": "house-voltage"},
 	})
 	item := map[string]string{"thingId": "$created:thing"}

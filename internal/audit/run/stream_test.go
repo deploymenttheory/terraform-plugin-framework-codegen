@@ -13,11 +13,11 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
-// streamSpec is the honest-but-partial document for the quirk server's stream
+// streamSpec is the honest-but-partial document for the test API server's stream
 // shape resource: format and mode are declared plain required enums, with no
 // hint that format value-gates which mode is valid. The audit discovers the
 // value-conditional rule by cycling mode against the format when the API refuses
@@ -110,7 +110,7 @@ components:
 // streamOptions builds a strategy-driven run against the stream fixture, so Run
 // replaces the uniform program with the compiled per-resource strategy — the
 // path value-cycling lives on.
-func streamOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Options {
+func streamOptions(t *testing.T, s *testapiserver.Server, logs *bytes.Buffer) Options {
 	t.Helper()
 	document, err := specmodel.Load([]byte(streamSpec))
 	if err != nil {
@@ -177,7 +177,7 @@ func validWhenFor(obs []observe.Observation, entity, subject, gateField, gateVal
 // accepted under json, refused under avro.
 func TestUnit_Adaptive_StreamCyclesValueAndConfirmsConfiguration(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	obs, summary := mustRun(t, streamOptions(t, s, nil))
 
@@ -213,7 +213,7 @@ func TestUnit_Adaptive_StreamCyclesValueAndConfirmsConfiguration(t *testing.T) {
 // validConfiguration among them.
 func TestUnit_Adaptive_StreamUnsatisfiableFormatRecordsInconclusive(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	obs, summary := mustRun(t, streamOptions(t, s, nil))
 
@@ -239,9 +239,9 @@ func TestUnit_Adaptive_StreamUnsatisfiableFormatRecordsInconclusive(t *testing.T
 // introduces no run-to-run wobble.
 func TestUnit_Adaptive_StreamRunIsDeterministic(t *testing.T) {
 	t.Parallel()
-	a := quirkserver.New(t, quirkserver.Quirks{})
+	a := testapiserver.New(t, testapiserver.Quirks{})
 	obsA, _ := mustRun(t, streamOptions(t, a, nil))
-	b := quirkserver.New(t, quirkserver.Quirks{})
+	b := testapiserver.New(t, testapiserver.Quirks{})
 	obsB, _ := mustRun(t, streamOptions(t, b, nil))
 
 	if !reflect.DeepEqual(observationIndex(obsA), observationIndex(obsB)) {
@@ -321,7 +321,7 @@ func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 // token — the value-cycling probes must not leak it into an excerpt.
 func TestUnit_Adaptive_StreamRedactionHolds(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	var logs bytes.Buffer
 	obs, _ := mustRun(t, streamOptions(t, s, &logs))

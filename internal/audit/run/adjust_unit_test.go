@@ -7,7 +7,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Borrow_BorrowsCachesAndReportsEmpty covers the borrower's three
@@ -16,7 +16,7 @@ import (
 // does not exist.
 func TestUnit_Borrow_BorrowsCachesAndReportsEmpty(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestUnit_Borrow_BorrowsCachesAndReportsEmpty(t *testing.T) {
 }
 
 // TestUnit_Adjust_ClassifyRefusalGrammar pins the whole refusal-classification
-// table: each sentence the quirk server's stable grammar emits, plus the
+// table: each sentence the test API server's stable grammar emits, plus the
 // envelope variants a real API might wrap it in, and the unintelligible case.
 func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 	t.Parallel()

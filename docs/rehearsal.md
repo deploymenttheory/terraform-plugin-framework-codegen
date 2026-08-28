@@ -3,7 +3,7 @@
 This is the record of the first full local run of the v2 audit engine —
 strategy compiler, adaptive executor, triangulating inference, and the
 corrections-plus-validators layer of Waves 1–4 — driven against the
-quirkserver's shape resources with a `tfpfgen` built from `main` after
+test API server's shape resources with a `tfpfgen` built from `main` after
 `#42` (stock-idiom conditional validators). The goal was the project's
 central claim, now for a *multi-variant* API: supply the spec, and
 everything cascades — import, audit, revision, SDK, provider, verification —
@@ -11,7 +11,7 @@ with no hand-written provider code and the one human step the design demands
 (accepting or rejecting proposed corrections).
 
 **Verdict: the v2 chain works end to end, and is deterministic.** Every
-verb ran against a real HTTP server (the quirkserver's `monitor` /
+verb ran against a real HTTP server (the test API server's `monitor` /
 `assignment` / `agent` shapes), a real kiota 1.34.1, and a real Go
 toolchain; the adaptive executor self-healed the optional-but-required
 field and borrowed a live reference, the inference emitted the conditional
@@ -31,12 +31,12 @@ rebased branch.
 | Piece | Value |
 |---|---|
 | Toolkit | built from `main` after `#41`, `#42`, plus the three fixes in `#43` |
-| Live API stand-in | `tfpfgen __serve-quirkserver --addr 127.0.0.1:PORT --spec ./monitor.openapi.yaml` (hidden dev verb) |
+| Live API stand-in | `tfpfgen __serve-test-api-server --addr 127.0.0.1:PORT --spec ./monitor.openapi.yaml` (hidden dev verb) |
 | Shapes served | `monitor` (multi-variant, `kind` ∈ {ping, web, dns} gating which siblings are valid), `assignment` (its `agent_id` must reference a live `/agents` object), `agent` (a fixed read-only pool). The legacy `/things` quirk surface is also served. |
 | Provider under rehearsal | `orbit` (`registry_namespace: deploymenttheory`), `auth.method: bearer_token`, `sdk.backend: kiota@1.34.1` |
 | Credential | a synthetic `TFPFGEN_AUTH_TOKEN`, distinctive so redaction could be grepped for |
 
-The quirkserver writes the OpenAPI document it implements at boot; that
+The test API server writes the OpenAPI document it implements at boot; that
 file is what `spec import` pinned (sha256 `d47ccb0bcc54`). The document is
 honest-but-partial: it declares `monitor`'s fields flat, marks only `kind`
 required, and says nothing of the variant structure, the real requirement of
@@ -154,7 +154,7 @@ it against the live wrapped server — remains deferred.
 
 ## Determinism
 
-Two independent full chains, each against a fresh quirkserver process, were
+Two independent full chains, each against a fresh test API server process, were
 run end to end. Their `spec/revised.yaml` and their entire generated
 provider tree (`internal/**`, `go.mod`, `manifest.json`, `spec/corrections/**`)
 were **byte-identical** (aggregate tree hash matched). The only per-run

@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 import (
 	"encoding/json"
