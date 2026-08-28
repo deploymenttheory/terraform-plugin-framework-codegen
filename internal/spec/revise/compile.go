@@ -57,6 +57,15 @@ type compiler struct {
 	// vetoes marks entity/attribute pairs where a confirmed derivedDefault
 	// observation blocks a static serverDefault correction.
 	vetoes map[[2]string]bool
+	// restated maps each document pointer an accepted correction wrote to
+	// the evidence that wrote it, so an observation recompiling its own
+	// accepted correction — its value moved — is told from another
+	// entity's observation landing on the same shared site.
+	restated map[string]string
+	// defaulted maps each server-default site this run has already
+	// compiled a value for to that value, so a second entity observing a
+	// different default on a shared site in the same run proposes nothing.
+	defaulted map[string]any
 	// variants gathers, per (entity, gate field), the validWhen edges the
 	// run confirmed: gate value -> the subject fields valid under it. A
 	// validConfiguration correction reads it to assemble its per-value field
@@ -305,14 +314,35 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 	// in the document. And `default` says what the document declares, which
 	// nothing in the generation path reads — the attribute's presence is
 	// decided from writability and from this extension.
+	path := site.propPtr + "/" + specmodel.ExtServerDefault
+	// A different value another entity observed on the same site, whether
+	// accepted earlier or compiled earlier in this run: the property's
+	// schema is shared between entities and each stores its own default —
+	// eight test types sharing one schema whose type property defaults to
+	// each one's own kind. That is a fact about each entity, and the
+	// document has one site for the property, so no correction states it;
+	// proposing one would only replace the other entity's value and be
+	// replaced in turn. A value this observation's own correction wrote, or
+	// the document's own wrong reading, is still corrected.
+	shared := "another entity's value on this shared property; a default that differs by entity has no site in the document"
+	if by, ok := c.restated[path]; ok && by != evidenceReference(o) {
+		return stated(fmt.Sprintf("the document already declares %s with %s", specmodel.ExtServerDefault, shared))
+	}
+	if earlier, ok := c.defaulted[path]; ok && !jsonEqual(earlier, o.Value) {
+		return stated(fmt.Sprintf("this run already compiled %s with %s", specmodel.ExtServerDefault, shared))
+	}
 	if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtServerDefault); extension != nil {
 		var current any
 		if extension.Decode(&current) == nil && jsonEqual(current, o.Value) {
 			return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtServerDefault))
 		}
 	}
+	if c.defaulted == nil {
+		c.defaulted = map[string]any{}
+	}
+	c.defaulted[path] = o.Value
 	return compiled{
-		operations: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
+		operations: []correction.Operation{{Op: "add", Path: path, Value: o.Value}},
 		justification: fmt.Sprintf("the audit confirmed a serverDefault observation on %s.%s: omitting the "+
 			"property stores %s, so the generated attribute is Optional and Computed (%s)",
 			o.Entity, o.Attribute, literalSpelling(o.Value), specmodel.ExtServerDefault),

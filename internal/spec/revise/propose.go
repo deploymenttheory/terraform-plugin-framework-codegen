@@ -163,7 +163,11 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 	}
 
 	observe.Sort(obs)
-	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs), variants: variantSets(obs)}
+	restated, err := acceptedEvidence(correctionsDir)
+	if err != nil {
+		return p, err
+	}
+	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs), variants: variantSets(obs), restated: restated}
 
 	type candidate struct {
 		written Written
@@ -219,7 +223,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 
 		corr := correction.Correction{
 			Justification: res.justification,
-			Evidence:      "audit/observations/" + o.Entity + observe.FileSuffix + "#" + o.ID,
+			Evidence:      evidenceReference(o),
 			Operations:    res.operations,
 		}
 		// Later compilations see this correction's effect, so two
@@ -548,4 +552,30 @@ func writeCorrection(path string, corr correction.Correction) error {
 		return fmt.Errorf("encoding %s: %w", path, err)
 	}
 	return os.WriteFile(path, buffer.Bytes(), 0o600)
+}
+
+// evidenceReference is the pointer a correction carries to the observation
+// that proves it: the entity's observation file and the observation's id.
+func evidenceReference(o observe.Observation) string {
+	return "audit/observations/" + o.Entity + observe.FileSuffix + "#" + o.ID
+}
+
+// acceptedEvidence indexes every document pointer an accepted correction
+// wrote by the evidence that wrote it, so a recompiled observation is
+// recognised as revisiting its own correction rather than another's.
+func acceptedEvidence(correctionsDir string) (map[string]string, error) {
+	accepted, err := correction.Load(correctionsDir)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, corr := range accepted {
+		if corr.Evidence == "" {
+			continue
+		}
+		for _, operation := range corr.Operations {
+			out[operation.Path] = corr.Evidence
+		}
+	}
+	return out, nil
 }
