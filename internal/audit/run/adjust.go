@@ -48,9 +48,11 @@ import (
 
 // maxBodyCorrectionAttempts bounds one create-or-update attempt's adjustments. Combined
 // with the no-progress guard and the entity request budget, it guarantees the
-// loop terminates: six sequential edits is already more than any single body
-// the compiler emits can legitimately need.
-const maxBodyCorrectionAttempts = 6
+// loop terminates. Sized for an API that names one missing field per refusal
+// and requires several the document does not declare: each such field is one
+// edit, and a body that needs twelve of them is one the document has all but
+// left out.
+const maxBodyCorrectionAttempts = 12
 
 // bodyCorrection is the outcome of a bounded adjustment loop.
 type bodyCorrection struct {
