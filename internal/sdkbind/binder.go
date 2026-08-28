@@ -65,7 +65,7 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 
 	for _, ds := range m.Datasources {
 		read, _, _ := d.models(ds.Names, info)
-		db := &DatasourceBinding{Key: ds.Names.Key, ReadModel: read, EnvelopeKey: ds.ListEnvelopeKey}
+		db := &DatasourceBinding{Key: ds.Names.Key, ReadModel: read, ListWrapperKey: ds.ListEnvelopeKey}
 		if ds.Operations.Read != nil {
 			db.Read = d.call(ds.Operations.Read, ds.Names, false, info)
 		}

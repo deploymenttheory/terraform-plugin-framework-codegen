@@ -58,12 +58,12 @@ type Lock struct {
 // ShortSHA renders the pin the way messages quote it.
 func (l Lock) ShortSHA() string { return shortSHA(l.SHA256) }
 
-// Outcome is what an import did.
-type Outcome int
+// ImportAction is what an import did.
+type ImportAction int
 
 const (
 	// Pinned: the first import — nothing was pinned before.
-	Pinned Outcome = iota
+	Pinned ImportAction = iota
 	// Unchanged: the document is already pinned byte-for-byte; nothing was
 	// written.
 	Unchanged
@@ -74,7 +74,7 @@ const (
 
 // Result reports one import.
 type Result struct {
-	Outcome Outcome
+	Outcome ImportAction
 	Lock    Lock
 	// Previous is the lock a repin replaced; nil otherwise.
 	Previous *Lock

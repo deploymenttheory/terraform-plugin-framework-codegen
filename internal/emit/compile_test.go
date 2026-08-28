@@ -86,9 +86,10 @@ func installStubSDK(t *testing.T, name, root string) {
 	}
 }
 
-// offlineSignatures are the toolchain messages that mean "no network",
-// not "broken template".
-var offlineSignatures = []string{
+// offlineToolchainMessages are the toolchain messages that mean "no network",
+// not "broken template". providergen carries the same list: emit cannot import
+// it, because providergen imports emit and the test would close a cycle.
+var offlineToolchainMessages = []string{
 	"module lookup disabled",
 	"dial tcp",
 	"no such host",
@@ -111,7 +112,7 @@ func runGo(t *testing.T, dir string, args ...string) {
 		return
 	}
 
-	for _, signature := range offlineSignatures {
+	for _, signature := range offlineToolchainMessages {
 		if strings.Contains(string(out), signature) {
 			t.Skipf("go %s needs the network and cannot reach it:\n%s", strings.Join(args, " "), out)
 		}

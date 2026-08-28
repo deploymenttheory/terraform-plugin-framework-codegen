@@ -13,7 +13,7 @@ import (
 // generated delete logic should treat not-found as already done.
 func (r *runner) runDeleteWithConfirmation(ctx context.Context, ent *entityState, step *plan.Step) error {
 	entity := ent.plan.Entity
-	obj := r.registry[entity]
+	obj := r.createdObjects[entity]
 	if obj != nil && obj.id == "" {
 		// The object was created but its id was never learned, so it cannot be
 		// deleted by id here — the boundary prefix pass is what removes it. The

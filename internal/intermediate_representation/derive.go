@@ -33,7 +33,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		return nil, errors.New("intermediate_representation: provider.name is empty; every terraform type name derives from it")
 	}
 
-	derivation := &deriver{index: indexOperations(document)}
+	derivation := &operationIndexer{index: indexOperations(document)}
 	model := &Model{Provider: Provider{Name: configuration.Provider.Name}}
 
 	excluded := map[string]bool{}
@@ -69,7 +69,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		}
 		claimed[names.Key] = classification.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
-			model.Excluded = append(model.Excluded, Exclusion{Key: names.Key, Reason: configExcludedReason})
+			model.Excluded = append(model.Excluded, UnsupportedEntity{Key: names.Key, Reason: configExcludedReason})
 			continue
 		}
 		parentKey[classification.CollectionPath] = names.Key
@@ -78,7 +78,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 	}
 	for _, excluded := range classifications.Excluded {
 		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath)
-		model.Excluded = append(model.Excluded, Exclusion{Key: names.Key, Reason: excluded.Reason})
+		model.Excluded = append(model.Excluded, UnsupportedEntity{Key: names.Key, Reason: excluded.Reason})
 	}
 
 	// A collision family that generates more than one entity co-manages
@@ -198,8 +198,8 @@ func sortModel(model *Model) {
 	})
 }
 
-// deriver carries the operation index every entity builder reads.
-type deriver struct {
+// operationIndexer carries the operation index every entity builder reads.
+type operationIndexer struct {
 	index map[string]*specmodel.Operation
 }
 
@@ -218,7 +218,7 @@ func indexOperations(document *specmodel.Document) map[string]*specmodel.Operati
 
 // full resolves a classification operation reference to the document's
 // operation, nil for a nil reference.
-func (derivation *deriver) full(reference *specmodel.OperationReference) *specmodel.Operation {
+func (derivation *operationIndexer) full(reference *specmodel.OperationReference) *specmodel.Operation {
 	if reference == nil {
 		return nil
 	}
@@ -227,7 +227,7 @@ func (derivation *deriver) full(reference *specmodel.OperationReference) *specmo
 
 // operation renders one operation reference into the dialect-neutral form binders
 // key on, nil for a nil reference.
-func (derivation *deriver) operation(reference *specmodel.OperationReference, kind OperationKind) *Operation {
+func (derivation *operationIndexer) operation(reference *specmodel.OperationReference, kind OperationKind) *Operation {
 	if reference == nil {
 		return nil
 	}
@@ -242,7 +242,7 @@ func (derivation *deriver) operation(reference *specmodel.OperationReference, ki
 	}
 }
 
-func (derivation *deriver) resource(classification specmodel.Classification, names Names) Resource {
+func (derivation *operationIndexer) resource(classification specmodel.Classification, names Names) Resource {
 	createFull, readFull := derivation.full(classification.Create), derivation.full(classification.Read)
 	updateFull, deleteFull := derivation.full(classification.Update), derivation.full(classification.Delete)
 
@@ -314,11 +314,11 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 		EventualConsistency: maxEventualConsistency(createFull, readFull, updateFull, deleteFull),
 		DeleteNotFoundOK:    deleteNotFoundOK,
 		Timeouts:            defaultTimeouts(),
-		ListEnvelopeKey:     listEnvelopeKey(derivation.full(classification.List)),
+		ListWrapperKey:      listWrapperKey(derivation.full(classification.List)),
 	}
 }
 
-// listEnvelopeKey is the wire property a list response wraps its item array
+// listWrapperKey is the wire property a list response wraps its item array
 // under: empty when the response is a bare array (or absent), otherwise the
 // wrapping key. The generated list mock keys its envelope on this instead of
 // assuming every API wraps under "value" — the SDK's collection accessor is
@@ -330,7 +330,7 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 // wrong. Absent it, the schema is read as before — the first array-typed
 // property of a wrapping object — so an unaudited document behaves exactly
 // as it did.
-func listEnvelopeKey(list *specmodel.Operation) string {
+func listWrapperKey(list *specmodel.Operation) string {
 	if list == nil {
 		return ""
 	}
@@ -381,7 +381,7 @@ func listElementSchema(list *specmodel.Operation) *specmodel.Schema {
 		return flattened.items
 	}
 
-	key := listEnvelopeKey(list)
+	key := listWrapperKey(list)
 	if key == "" {
 		return body
 	}
@@ -396,7 +396,7 @@ func listElementSchema(list *specmodel.Operation) *specmodel.Schema {
 	return body
 }
 
-func (derivation *deriver) datasource(classification specmodel.Classification, names Names) Datasource {
+func (derivation *operationIndexer) datasource(classification specmodel.Classification, names Names) Datasource {
 	readFull := derivation.full(classification.Read)
 	var readBody *specmodel.Schema
 	if readFull != nil {
@@ -453,14 +453,14 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 		Names:           names,
 		Operations:      Operations{Read: derivation.operation(classification.Read, OperationRead), List: listOperation},
 		Schema:          companionTree,
-		ListEnvelopeKey: listEnvelopeKey(derivation.full(classification.List)),
+		ListEnvelopeKey: listWrapperKey(derivation.full(classification.List)),
 	}
 }
 
 // listResource derives the list capability of a managed resource: terraform
 // matches it to that resource by type name, so it carries the entity's own
 // Names and exists only where the resource does.
-func (derivation *deriver) listResource(classification specmodel.Classification, names Names) ListResource {
+func (derivation *operationIndexer) listResource(classification specmodel.Classification, names Names) ListResource {
 	listFull := derivation.full(classification.List)
 	element := listElementSchema(listFull)
 	listOperation := *derivation.operation(classification.List, OperationList)
@@ -485,11 +485,11 @@ func (derivation *deriver) listResource(classification specmodel.Classification,
 		ListOperation:    listOperation,
 		Schema:           tree,
 		AddressingSchema: addressing,
-		ListEnvelopeKey:  listEnvelopeKey(listFull),
+		ListEnvelopeKey:  listWrapperKey(listFull),
 	}
 }
 
-func (derivation *deriver) action(classification specmodel.Classification, names Names, parentKey map[string]string) Action {
+func (derivation *operationIndexer) action(classification specmodel.Classification, names Names, parentKey map[string]string) Action {
 	createFull := derivation.full(classification.Create)
 	var request *AttributeTree
 	if createFull != nil && createFull.RequestBody != nil {

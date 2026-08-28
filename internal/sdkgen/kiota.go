@@ -48,7 +48,7 @@ func (b kiotaBackend) CheckTool(ctx context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	return gate("kiota", have, b.RequiredVersion(cfg))
+	return refuseVersionMismatch("kiota", have, b.RequiredVersion(cfg))
 }
 
 func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *config.Config, outDir string) error {

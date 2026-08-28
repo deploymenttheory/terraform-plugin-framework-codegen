@@ -155,10 +155,10 @@ type ListResponseShape struct {
 // Wrapped reports whether the response wraps its items under Key.
 func (s ListResponseShape) Wrapped() bool { return s.Envelope == ListEnvelopeWrapped }
 
-// extensionShapes maps each known key to its value parser. The shape is
+// extensionParsers maps each known key to its value parser. The shape is
 // checked once at load, against the document, where the error can carry a
 // location — not at access time, where it could only panic or lie.
-var extensionShapes = map[string]func(n *yaml.Node, at string) (any, error){
+var extensionParsers = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtCreateOnly:              extBool,
 	ExtRequiredWhen:            extRequiredWhen,
 	ExtEventualConsistency:     extDuration,
@@ -187,7 +187,7 @@ func parseExtensions(n *yaml.Node, at string) (Extensions, error) {
 		if !strings.HasPrefix(key, "x-tfpfgen-") {
 			continue
 		}
-		parse, ok := extensionShapes[key]
+		parse, ok := extensionParsers[key]
 		if !ok {
 			return nil, fmt.Errorf("%s: unknown extension %q%s", at, key, suggestExtension(key))
 		}
@@ -207,7 +207,7 @@ func parseExtensions(n *yaml.Node, at string) (Extensions, error) {
 // nothing when no known key is a plausible target.
 func suggestExtension(got string) string {
 	best, bestDist := "", len(got)/2+1
-	for k := range extensionShapes {
+	for k := range extensionParsers {
 		if d := levenshtein(got, k); d < bestDist {
 			best, bestDist = k, d
 		}

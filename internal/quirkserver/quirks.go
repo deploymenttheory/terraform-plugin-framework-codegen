@@ -127,8 +127,8 @@ type Quirks struct {
 	// refusals teach the auditor what the create needs.
 	NamesRefusedFieldInProse bool
 
-	// ErrorEnvelope selects which shape errors take. Defaults to problem+json.
-	ErrorEnvelope Envelope
+	// ErrorBody selects which shape errors take. Defaults to problem+json.
+	ErrorBody ErrorBodyShape
 
 	// ClosedEnum rejects values outside the listed set, per field.
 	ClosedEnum map[string][]string

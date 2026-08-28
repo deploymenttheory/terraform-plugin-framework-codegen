@@ -34,7 +34,7 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 		items = append(items, s.project(id, r))
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{envelopeKey: items})
+	writeJSON(w, http.StatusOK, map[string]any{listWrapperKey: items})
 }
 
 func (s *Server) create(w http.ResponseWriter, r *http.Request) {

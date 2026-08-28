@@ -137,9 +137,9 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 // property finds the attribute the observation is about, create request
 // schema first, read response schema second — the same order downstream
 // derivation folds the two views in.
-func (c *compiler) property(loc *locator, cls specmodel.Classification, o observe.Observation) (propSite, compiled, bool) {
+func (c *compiler) property(loc *locator, cls specmodel.Classification, o observe.Observation) (propertyLocation, compiled, bool) {
 	if o.Attribute == "" {
-		return propSite{}, unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind)), false
+		return propertyLocation{}, unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind)), false
 	}
 	if node, ptr, ok := loc.requestSchema(cls.Create); ok {
 		if site, ok := loc.findProperty(node, ptr, o.Attribute); ok {
@@ -151,7 +151,7 @@ func (c *compiler) property(loc *locator, cls specmodel.Classification, o observ
 			return site, compiled{}, true
 		}
 	}
-	return propSite{}, unplaceable(fmt.Sprintf(
+	return propertyLocation{}, unplaceable(fmt.Sprintf(
 		"no schema of %s declares a property %q", o.Entity, o.Attribute)), false
 }
 

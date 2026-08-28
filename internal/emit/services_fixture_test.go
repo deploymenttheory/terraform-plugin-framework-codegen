@@ -99,7 +99,7 @@ func fictionalModel() *ir.Model {
 				UpdateStyle:         ir.UpdateStylePatchMerge,
 				EventualConsistency: 30 * time.Second,
 				DeleteNotFoundOK:    true,
-				ListEnvelopeKey:     "value",
+				ListWrapperKey:      "value",
 				Timeouts: ir.Timeouts{
 					Create: 30 * time.Minute, Read: 5 * time.Minute,
 					Update: 30 * time.Minute, Delete: 30 * time.Minute,
@@ -309,7 +309,7 @@ func fictionalBindings() *sdkbind.Bindings {
 				ReadModel:        able,
 				ElementType:      able,
 				CollectionAccess: "GetHttpServers()",
-				EnvelopeKey:      "http_servers",
+				ListWrapperKey:   "http_servers",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
 						Access: readOnly(kAccess("Id", "*string", "FromPtrString", "", ""))},

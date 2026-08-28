@@ -20,7 +20,7 @@ import (
 // built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.primaryGate(ent))
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.gateFieldFor(ent))
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		// started from is the document's guess, which is what needed healing
 		// in the first place.
 		ent.recipe.minimalBody = cloneAnyMap(rr.body)
-		r.registry[ent.plan.Entity] = rr.obj
+		r.createdObjects[ent.plan.Entity] = rr.obj
 		ent.createdAt = time.Now()
 		ent.ev.sent = sent
 		ent.ev.sentStatus = rr.res.status
@@ -63,7 +63,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
 		return nil
 	}
-	if _, exists := r.registry[ent.plan.Entity]; exists {
+	if _, exists := r.createdObjects[ent.plan.Entity]; exists {
 		// A prior variant already made the object everything reads; this
 		// variant's create could not be built, which is not a reason to
 		// abandon the entity.
@@ -114,7 +114,7 @@ func minimalRefusedReason(status int, tried []string) string {
 // field the loop can act on, a bounded bisection names the culprit.
 func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.primaryGate(ent))
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.gateFieldFor(ent))
 	if err != nil {
 		return err
 	}

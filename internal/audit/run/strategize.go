@@ -29,14 +29,6 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
-// undocumentedEnumValue and undeclaredSpecFieldName mirror the plan package's
-// negative-probe constants, so a strategy-driven run sends the same
-// recognisable markers the uniform derivation did.
-const (
-	undocumentedEnumValue   = "tfpfgen-undocumented"
-	undeclaredSpecFieldName = "tfpfgen_unknown_field"
-)
-
 // strategize rewrites every entity of p to execute its compiled strategy,
 // returning the new plan, the per-entity field synthesis hints the adjustment
 // loop draws on when it has to add a field live, and the compiled strategies
@@ -209,11 +201,11 @@ func translateProgram(compiled *strategy.Strategy, addr addressing, entity, pref
 			steps = append(steps, collectionStep(s.Kind, s.Field, addr, body, nil))
 		case plan.StepUndocumentedEnumValue:
 			body := cloneAnyMap(baseMinimal)
-			body[s.Field] = undocumentedEnumValue
+			body[s.Field] = plan.UndocumentedEnumValue
 			steps = append(steps, collectionStep(s.Kind, s.Field, addr, body, nil))
 		case plan.StepUndeclaredSpecField:
 			body := cloneAnyMap(baseMinimal)
-			body[undeclaredSpecFieldName] = true
+			body[plan.UndeclaredSpecFieldName] = true
 			steps = append(steps, collectionStep(s.Kind, "", addr, body, nil))
 		case plan.StepCreatePerEnumValue:
 			steps = append(steps, perValueStep(s, addr, hints, baseMinimal))

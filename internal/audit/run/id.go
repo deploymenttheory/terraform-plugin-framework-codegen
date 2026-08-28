@@ -41,7 +41,7 @@ func learnID(entity string, res *httpResult) string {
 	if id := idFromObject(entity, obj); id != "" {
 		return id
 	}
-	for _, wrapper := range envelopeKeys(entity) {
+	for _, wrapper := range listWrapperKeys(entity) {
 		if inner, ok := obj[wrapper].(map[string]any); ok {
 			if id := idFromObject(entity, inner); id != "" {
 				return id
@@ -138,11 +138,11 @@ func lastPathSegment(path string) string {
 	return path
 }
 
-// envelopeKeys names the single-object wrappers a create response may nest the
+// listWrapperKeys names the single-object wrappers a create response may nest the
 // created object under, entity-specific first so a "<entity>" wrapper is
 // preferred over the generic ones, and otherwise in a fixed order for
 // determinism.
-func envelopeKeys(entity string) []string {
+func listWrapperKeys(entity string) []string {
 	keys := []string{"data", "item", "result"}
 	if entity != "" {
 		keys = append([]string{entity}, keys...)

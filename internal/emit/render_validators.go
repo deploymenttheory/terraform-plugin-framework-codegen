@@ -317,20 +317,20 @@ func orList(values []string) string {
 // than "value" would otherwise get a mock the generated SDK cannot parse.
 // slice is the expression yielding the item slice (a variable such as "items"
 // or a literal such as "[]map[string]any{object()}").
-func listPayloadExpr(envelopeKey, slice string) string {
-	if envelopeKey == "" {
+func listPayloadExpr(listWrapperKey, slice string) string {
+	if listWrapperKey == "" {
 		return slice
 	}
-	return fmt.Sprintf("map[string]any{%s: %s}", strconv.Quote(envelopeKey), slice)
+	return fmt.Sprintf("map[string]any{%s: %s}", strconv.Quote(listWrapperKey), slice)
 }
 
 // listResponseJSON renders the committed list-response fixture the list mock
 // serves: the item wrapped under the observed envelope key, or a bare array
 // when the response is a bare array. Mirrors listPayloadExpr for the fixture
 // file, so the mock and the fixture agree on the envelope.
-func listResponseJSON(envelopeKey, item string) string {
-	if envelopeKey == "" {
+func listResponseJSON(listWrapperKey, item string) string {
+	if listWrapperKey == "" {
 		return "[\n" + reindentJSON(item, "  ") + "\n]\n"
 	}
-	return "{\n  " + strconv.Quote(envelopeKey) + ": [\n" + reindentJSON(item, "    ") + "\n  ]\n}\n"
+	return "{\n  " + strconv.Quote(listWrapperKey) + ": [\n" + reindentJSON(item, "    ") + "\n  ]\n}\n"
 }

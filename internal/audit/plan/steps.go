@@ -7,20 +7,20 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
-// undocumentedEnumValue is what the undocumented-value check sends: a
+// UndocumentedEnumValue is what the undocumented-value check sends: a
 // string no sane document lists, recognisably the toolkit's.
-const undocumentedEnumValue = "tfpfgen-undocumented"
+const UndocumentedEnumValue = "tfpfgen-undocumented"
 
-// undeclaredSpecFieldName is the field the unknown-field check adds to an
+// UndeclaredSpecFieldName is the field the unknown-field check adds to an
 // otherwise valid body.
-const undeclaredSpecFieldName = "tfpfgen_unknown_field"
+const UndeclaredSpecFieldName = "tfpfgen_unknown_field"
 
 // resourcePlan derives one resource's full lifecycle: create minimal,
 // read with retry, read consecutive, per-field updates, delete with
 // confirmation, create maximal, the negative checks, the per-enum-value
 // creates, and the cleanup delete. The step order is fixed; the caps in
 // derive.go bound each rule.
-func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped) {
+func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped) {
 	ei := d.inputs.forEntity(c.Key)
 	sy := synth{entity: c.Key, prefix: d.cfg.Audit.NamePrefix, inputs: ei}
 
@@ -98,7 +98,7 @@ func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped
 // lookupPlan derives a lookup datasource's read checks: fetch by the
 // operator-supplied key, then read twice for volatility. Nothing is
 // created, so a missing key is a graceful skip, not an error.
-func (d *deriver) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipped) {
+func (d *planBuilder) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipped) {
 	ei := d.inputs.forEntity(c.Key)
 	values, parents, reason := d.pathValues(c.ItemPath, "", ei)
 	if reason != "" {
@@ -153,7 +153,7 @@ func declaredProperties(schemas ...*specmodel.Schema) []string {
 // updateSteps derives one update per writable scalar field, capped. Each
 // body is the minimal body with that one field moved to a variant value,
 // so a refusal names the field and nothing else.
-func (d *deriver) updateSteps(c specmodel.Classification, sy synth, schema *specmodel.Schema, minimal map[string]any, itemValues map[string]string) []Step {
+func (d *planBuilder) updateSteps(c specmodel.Classification, sy synth, schema *specmodel.Schema, minimal map[string]any, itemValues map[string]string) []Step {
 	props, _ := flatProps(schema)
 	var steps []Step
 	for _, p := range props {
@@ -169,7 +169,7 @@ func (d *deriver) updateSteps(c specmodel.Classification, sy synth, schema *spec
 				base = v
 			}
 		}
-		variant, ok := sy.variant(p.Name, p.Schema, base)
+		variant, ok := sy.alternateValue(p.Name, p.Schema, base)
 		if !ok {
 			continue
 		}
@@ -213,13 +213,13 @@ func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(S
 			continue
 		}
 		body := cloneBody(minimal)
-		body[p.Name] = undocumentedEnumValue
+		body[p.Name] = UndocumentedEnumValue
 		steps = append(steps, post(StepUndocumentedEnumValue, p.Name, body))
 		break
 	}
 
 	body := cloneBody(minimal)
-	body[undeclaredSpecFieldName] = true
+	body[UndeclaredSpecFieldName] = true
 	steps = append(steps, post(StepUndeclaredSpecField, "", body))
 	return steps
 }

@@ -49,11 +49,11 @@ func TestUnit_Install_MissingStagedFileFails(t *testing.T) {
 	}
 }
 
-func TestUnit_RemoveOrphans_MissingOrphanIsQuietlySkipped(t *testing.T) {
+func TestUnit_RemoveUnproducedFiles_AMissingFileIsQuietlySkipped(t *testing.T) {
 	root := t.TempDir()
-	removeOrphans(root, []string{"already/gone.go"})
+	removeUnproducedFiles(root, []string{"already/gone.go"})
 	if _, err := os.Stat(filepath.Join(root, "already")); !os.IsNotExist(err) {
-		t.Error("removeOrphans invented a directory")
+		t.Error("removeUnproducedFiles invented a directory")
 	}
 }
 
@@ -154,7 +154,7 @@ func TestUnit_Run_UncreatableStagingFails(t *testing.T) {
 	}
 }
 
-func TestUnit_Run_UnstatableOrphanFails(t *testing.T) {
+func TestUnit_Run_AnUnstatableFileFails(t *testing.T) {
 	root, opts := curatedRepo(t, "kiota")
 	if _, err := Run(context.Background(), opts); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -162,7 +162,7 @@ func TestUnit_Run_UnstatableOrphanFails(t *testing.T) {
 	seedManifestEntry(t, root, "main.go/impossible")
 
 	if _, err := Run(context.Background(), opts); err == nil {
-		t.Fatal("Run answered despite an orphan it cannot examine")
+		t.Fatal("Run answered despite a file it cannot examine")
 	}
 }
 

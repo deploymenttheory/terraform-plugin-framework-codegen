@@ -69,9 +69,9 @@ type Server struct {
 const (
 	collectionPath = "/things"
 	itemPrefix     = "/things/"
-	// envelopeKey is the key a list response wraps its items under, which the
+	// listWrapperKey is the key a list response wraps its items under, which the
 	// auditor discovers rather than assumes.
-	envelopeKey = "things"
+	listWrapperKey = "things"
 )
 
 // New starts a quirk server. It is closed when the test finishes.
@@ -88,7 +88,7 @@ func New(t interface {
 		nextID:  1,
 		reads:   map[string]int{},
 	}
-	s.initShapes()
+	s.initCollections()
 
 	s.Server = httptest.NewServer(http.HandlerFunc(s.handle))
 	t.Cleanup(s.Close)
@@ -176,7 +176,7 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	default:
 		// The v2 shape resources live off the /things routes and answer for
 		// themselves; only when none of them claims the request is it a 405.
-		if s.routeShape(w, r, path) {
+		if s.routeCollection(w, r, path) {
 			return
 		}
 		s.fail(w, http.StatusMethodNotAllowed, "unsupported", "")

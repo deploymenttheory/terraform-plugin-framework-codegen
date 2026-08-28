@@ -33,7 +33,7 @@ type Model struct {
 	// Excluded lists every entity that yields nothing, with the reason:
 	// classification exclusions pass through, and entities dropped by
 	// services.exclude are recorded as "excluded by configuration".
-	Excluded []Exclusion `json:"excluded,omitempty"`
+	Excluded []UnsupportedEntity `json:"excluded,omitempty"`
 }
 
 // Provider is the identity the generated provider publishes under.
@@ -41,10 +41,10 @@ type Provider struct {
 	Name string `json:"name"`
 }
 
-// Exclusion is one entity that became nothing, and why. The reasons are
+// UnsupportedEntity is one entity that became nothing, and why. The reasons are
 // for people: a surprising omission traces to the document or the config,
 // never to a hunch.
-type Exclusion struct {
+type UnsupportedEntity struct {
 	Key    string `json:"key"`
 	Reason string `json:"reason"`
 }
@@ -98,11 +98,11 @@ type Resource struct {
 	// the generated schema description verbatim. Empty for an entity with
 	// no siblings.
 	CoManagementNote string `json:"co_management_note,omitempty"`
-	// ListEnvelopeKey is the wire property the list response wraps its item
+	// ListWrapperKey is the wire property the list response wraps its item
 	// array under, read from the list operation's response schema; empty when
 	// the response is a bare array. It drives the generated list-mock
 	// envelope, replacing the assumption that every API wraps under "value".
-	ListEnvelopeKey string `json:"list_envelope_key,omitempty"`
+	ListWrapperKey string `json:"list_wrapper_key,omitempty"`
 }
 
 // Datasource is one entity readable outside Terraform's ownership. Every
@@ -127,7 +127,7 @@ type Datasource struct {
 	CoManagementNote string `json:"co_management_note,omitempty"`
 	// ListEnvelopeKey is the list response's item-array wrapper key; see
 	// Resource. Empty for a bare array or a lookup-by-key datasource.
-	ListEnvelopeKey string `json:"list_envelope_key,omitempty"`
+	ListEnvelopeKey string `json:"list_wrapper_key,omitempty"`
 }
 
 // ListResource is a list-only entity: enumerable but not addressable.
@@ -144,7 +144,7 @@ type ListResource struct {
 	CoManagementNote string `json:"co_management_note,omitempty"`
 	// ListEnvelopeKey is the list response's item-array wrapper key; see
 	// Resource. Empty for a bare array.
-	ListEnvelopeKey string `json:"list_envelope_key,omitempty"`
+	ListEnvelopeKey string `json:"list_wrapper_key,omitempty"`
 }
 
 // Action is a POST with no lifecycle complement — an invocation.

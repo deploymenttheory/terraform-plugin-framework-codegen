@@ -280,7 +280,7 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 
 	var element types.Type
 	if db.List != nil {
-		elem, why := p.resolveListElement(db.List, &db.ElementType, &db.CollectionAccess, db.EnvelopeKey)
+		elem, why := p.resolveListElement(db.List, &db.ElementType, &db.CollectionAccess, db.ListWrapperKey)
 		if why != "" {
 			p.remove(kind, db.Key, "", why)
 			return false

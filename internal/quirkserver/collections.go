@@ -126,10 +126,10 @@ var seededAgents = []struct {
 	{"agent-3", map[string]any{"name": "charlie", "region": "ap-south"}},
 }
 
-// initShapes builds the shape stores and seeds the fixed agent set. Called by
+// initCollections builds the shape stores and seeds the fixed agent set. Called by
 // both constructors so the standalone process and the in-test server serve an
 // identical surface.
-func (s *Server) initShapes() {
+func (s *Server) initCollections() {
 	s.monitors = newCollection("monitor-")
 	s.assignments = newCollection("assignment-")
 	s.agents = newCollection("agent-")
@@ -139,57 +139,57 @@ func (s *Server) initShapes() {
 	}
 }
 
-// routeShape dispatches a request the /things routes did not claim to one of
+// routeCollection dispatches a request the /things routes did not claim to one of
 // the shape resources, answering whether it handled it. Every route holds the
 // shared lock: the shape stores are plain maps, and the audit exercises them
 // concurrently.
-func (s *Server) routeShape(w http.ResponseWriter, r *http.Request, path string) bool {
+func (s *Server) routeCollection(w http.ResponseWriter, r *http.Request, path string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	switch {
 	case path == "/monitors" && r.Method == http.MethodPost:
-		s.shapeCreate(w, r, s.monitors, s.validateMonitor)
+		s.handleCreate(w, r, s.monitors, s.validateMonitor)
 	case path == "/monitors" && r.Method == http.MethodGet:
-		s.shapeList(w, s.monitors, "monitors")
+		s.handleList(w, s.monitors, "monitors")
 	case strings.HasPrefix(path, "/monitors/") && r.Method == http.MethodGet:
-		s.shapeRead(w, s.monitors, path, "/monitors/")
+		s.handleRead(w, s.monitors, path, "/monitors/")
 	case strings.HasPrefix(path, "/monitors/") &&
 		(r.Method == http.MethodPut || r.Method == http.MethodPatch):
-		s.shapeUpdate(w, r, s.monitors, path, "/monitors/", s.validateMonitor)
+		s.handleUpdate(w, r, s.monitors, path, "/monitors/", s.validateMonitor)
 	case strings.HasPrefix(path, "/monitors/") && r.Method == http.MethodDelete:
-		s.shapeDelete(w, s.monitors, path, "/monitors/")
+		s.handleDelete(w, s.monitors, path, "/monitors/")
 
 	case path == "/assignments" && r.Method == http.MethodPost:
-		s.shapeCreate(w, r, s.assignments, s.validateAssignment)
+		s.handleCreate(w, r, s.assignments, s.validateAssignment)
 	case path == "/assignments" && r.Method == http.MethodGet:
-		s.shapeList(w, s.assignments, "assignments")
+		s.handleList(w, s.assignments, "assignments")
 	case strings.HasPrefix(path, "/assignments/") && r.Method == http.MethodGet:
-		s.shapeRead(w, s.assignments, path, "/assignments/")
+		s.handleRead(w, s.assignments, path, "/assignments/")
 	case strings.HasPrefix(path, "/assignments/") &&
 		(r.Method == http.MethodPut || r.Method == http.MethodPatch):
-		s.shapeUpdate(w, r, s.assignments, path, "/assignments/", s.validateAssignment)
+		s.handleUpdate(w, r, s.assignments, path, "/assignments/", s.validateAssignment)
 	case strings.HasPrefix(path, "/assignments/") && r.Method == http.MethodDelete:
-		s.shapeDelete(w, s.assignments, path, "/assignments/")
+		s.handleDelete(w, s.assignments, path, "/assignments/")
 
 	case path == "/streams" && r.Method == http.MethodPost:
-		s.shapeCreate(w, r, s.streams, s.validateStream)
+		s.handleCreate(w, r, s.streams, s.validateStream)
 	case path == "/streams" && r.Method == http.MethodGet:
-		s.shapeList(w, s.streams, "streams")
+		s.handleList(w, s.streams, "streams")
 	case strings.HasPrefix(path, "/streams/") && r.Method == http.MethodGet:
-		s.shapeRead(w, s.streams, path, "/streams/")
+		s.handleRead(w, s.streams, path, "/streams/")
 	case strings.HasPrefix(path, "/streams/") &&
 		(r.Method == http.MethodPut || r.Method == http.MethodPatch):
-		s.shapeUpdate(w, r, s.streams, path, "/streams/", s.validateStream)
+		s.handleUpdate(w, r, s.streams, path, "/streams/", s.validateStream)
 	case strings.HasPrefix(path, "/streams/") && r.Method == http.MethodDelete:
-		s.shapeDelete(w, s.streams, path, "/streams/")
+		s.handleDelete(w, s.streams, path, "/streams/")
 
 	// agents are read-only: a fixed set to be listed and looked up, the pool
 	// assignment.agent_id draws from.
 	case path == "/agents" && r.Method == http.MethodGet:
-		s.shapeList(w, s.agents, "agents")
+		s.handleList(w, s.agents, "agents")
 	case strings.HasPrefix(path, "/agents/") && r.Method == http.MethodGet:
-		s.shapeRead(w, s.agents, path, "/agents/")
+		s.handleRead(w, s.agents, path, "/agents/")
 
 	default:
 		return false
@@ -203,31 +203,31 @@ func (s *Server) routeShape(w http.ResponseWriter, r *http.Request, path string)
 // each validator rather than here.
 type validator func(body map[string]any) string
 
-// shapeInvalid is the single 400 path every shape validator funnels through:
+// handleInvalid is the single 400 path every shape validator funnels through:
 // the honest problem+json envelope the rest of the server already speaks, with
 // the parseable sentence in `detail`.
-func (s *Server) shapeInvalid(w http.ResponseWriter, detail string) {
+func (s *Server) handleInvalid(w http.ResponseWriter, detail string) {
 	s.fail(w, http.StatusBadRequest, "invalid configuration", detail)
 }
 
-func (s *Server) shapeCreate(w http.ResponseWriter, r *http.Request, c *collection, validate validator) {
+func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request, c *collection, validate validator) {
 	body, err := readJSON(r)
 	if err != nil {
 		s.fail(w, http.StatusBadRequest, "malformed body", "")
 		return
 	}
 	if detail := validate(body); detail != "" {
-		s.shapeInvalid(w, detail)
+		s.handleInvalid(w, detail)
 		return
 	}
 	writeJSON(w, http.StatusCreated, c.create(body))
 }
 
-func (s *Server) shapeList(w http.ResponseWriter, c *collection, key string) {
+func (s *Server) handleList(w http.ResponseWriter, c *collection, key string) {
 	writeJSON(w, http.StatusOK, map[string]any{key: c.all()})
 }
 
-func (s *Server) shapeRead(w http.ResponseWriter, c *collection, path, prefix string) {
+func (s *Server) handleRead(w http.ResponseWriter, c *collection, path, prefix string) {
 	id := strings.TrimPrefix(path, prefix)
 	obj, ok := c.get(id)
 	if !ok {
@@ -237,7 +237,7 @@ func (s *Server) shapeRead(w http.ResponseWriter, c *collection, path, prefix st
 	writeJSON(w, http.StatusOK, obj)
 }
 
-func (s *Server) shapeUpdate(w http.ResponseWriter, r *http.Request, c *collection, path, prefix string, validate validator) {
+func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request, c *collection, path, prefix string, validate validator) {
 	id := strings.TrimPrefix(path, prefix)
 
 	body, err := readJSON(r)
@@ -253,13 +253,13 @@ func (s *Server) shapeUpdate(w http.ResponseWriter, r *http.Request, c *collecti
 	// update re-runs exactly the create-time validation. An audit that learned
 	// the shape from create meets the same rules on update.
 	if detail := validate(body); detail != "" {
-		s.shapeInvalid(w, detail)
+		s.handleInvalid(w, detail)
 		return
 	}
 	writeJSON(w, http.StatusOK, c.store(id, body))
 }
 
-func (s *Server) shapeDelete(w http.ResponseWriter, c *collection, path, prefix string) {
+func (s *Server) handleDelete(w http.ResponseWriter, c *collection, path, prefix string) {
 	id := strings.TrimPrefix(path, prefix)
 	if !c.remove(id) {
 		s.notFound(w)

@@ -421,7 +421,7 @@ func (o *Observation) Validate() error {
 		return fmt.Errorf("%s (%s): id %q does not match the computed %q — hand-edited or corrupted", at, o.Kind, o.ID, want)
 	}
 	if o.Outcome == OutcomeConfirmed {
-		if err := valueShape(o.Kind, o.Value); err != nil {
+		if err := validateValueForKind(o.Kind, o.Value); err != nil {
 			return fmt.Errorf("%s (%s): %w", at, o.Kind, err)
 		}
 	}
@@ -433,10 +433,10 @@ func (o *Observation) Validate() error {
 	return nil
 }
 
-// valueShape refuses a value the kind cannot mean. It accepts both the
+// validateValueForKind refuses a value the kind cannot mean. It accepts both the
 // typed shapes an executor constructs and the decoded shapes a JSON read
 // produces, because both pass through Validate.
-func valueShape(kind Kind, v any) error {
+func validateValueForKind(kind Kind, v any) error {
 	switch kind {
 	case KindWritable, KindImmutable, KindRequiredByAPI, KindRequiredWhen,
 		KindDerivedDefault, KindIgnoredOnUpdate, KindServerForced,
@@ -473,7 +473,7 @@ func valueShape(kind Kind, v any) error {
 			return fmt.Errorf("value must be a JSON type name (string, number, boolean, object, array), got %v", v)
 		}
 	case KindValues:
-		return valuesShape(v)
+		return validateValuesValue(v)
 	case KindDependsOn:
 		s, ok := v.(string)
 		if !ok || s == "" {
@@ -549,9 +549,9 @@ func listShape(v any) error {
 	return nil
 }
 
-// valuesShape accepts a Values record in either its typed or its decoded
+// validateValuesValue accepts a Values record in either its typed or its decoded
 // form.
-func valuesShape(v any) error {
+func validateValuesValue(v any) error {
 	switch t := v.(type) {
 	case Values:
 		return nil

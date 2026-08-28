@@ -82,8 +82,8 @@ func readConvert(fb *sdkbind.FieldBinding) (string, error) {
 		fb.Attr, fb.Access.ConvertGet, fb.Access.SDKType)
 }
 
-// writePlan is one resolved write-direction conversion.
-type writePlan struct {
+// writeConversion is one resolved write-direction conversion.
+type writeConversion struct {
 	fn         string
 	needsCtx   bool
 	returnsErr bool
@@ -93,8 +93,8 @@ type writePlan struct {
 }
 
 // writeConvert resolves one write-direction shorthand.
-func writeConvert(fb *sdkbind.FieldBinding) (writePlan, error) {
-	simple := map[string]writePlan{
+func writeConvert(fb *sdkbind.FieldBinding) (writeConversion, error) {
+	simple := map[string]writeConversion{
 		"ToPtrString":                {fn: "FrameworkToAPIString"},
 		"ToString":                   {fn: "FrameworkToAPIStringValue"},
 		"ToPtrBool":                  {fn: "FrameworkToAPIBool"},
@@ -134,25 +134,25 @@ func writeConvert(fb *sdkbind.FieldBinding) (writePlan, error) {
 	switch fb.Access.ConvertSet {
 	case "ToPtrEnum":
 		if kiotaEnum(fb.Access.ParseFunc) {
-			return writePlan{fn: "FrameworkToAPIEnum", returnsErr: true, parser: fb.Access.ParseFunc}, nil
+			return writeConversion{fn: "FrameworkToAPIEnum", returnsErr: true, parser: fb.Access.ParseFunc}, nil
 		}
-		return writePlan{fn: "FrameworkToAPIEnumString"}, nil
+		return writeConversion{fn: "FrameworkToAPIEnumString"}, nil
 	case "ToEnum":
 		if !kiotaEnum(fb.Access.ParseFunc) {
-			return writePlan{fn: "FrameworkToAPIEnumStringValue"}, nil
+			return writeConversion{fn: "FrameworkToAPIEnumStringValue"}, nil
 		}
 	case "ToEnumSlice":
 		if kiotaEnum(fb.Access.ParseFunc) {
-			return writePlan{fn: "FrameworkToAPIEnumSlice", needsCtx: true, returnsErr: true, parser: fb.Access.ParseFunc}, nil
+			return writeConversion{fn: "FrameworkToAPIEnumSlice", needsCtx: true, returnsErr: true, parser: fb.Access.ParseFunc}, nil
 		}
-		return writePlan{fn: "FrameworkToAPIEnumStringSlice", needsCtx: true, returnsErr: true}, nil
+		return writeConversion{fn: "FrameworkToAPIEnumStringSlice", needsCtx: true, returnsErr: true}, nil
 	}
-	return writePlan{}, fmt.Errorf("attribute %s: the conversion catalog has no write bridge for %q (SDK type %s)",
+	return writeConversion{}, fmt.Errorf("attribute %s: the conversion catalog has no write bridge for %q (SDK type %s)",
 		fb.Attr, fb.Access.ConvertSet, fb.Access.SDKType)
 }
 
 // call renders the finished conversion call for one write.
-func (p writePlan) call(value, setter string) string {
+func (p writeConversion) call(value, setter string) string {
 	args := []string{value}
 	if p.needsCtx {
 		args = []string{"ctx", value}

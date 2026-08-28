@@ -37,7 +37,7 @@ func TestUnit_Manifest_LoadSurfacesAReadFailure(t *testing.T) {
 	}
 }
 
-func TestUnit_Manifest_OrphansOfSurfacesAStatFailure(t *testing.T) {
+func TestUnit_Manifest_UnproducedFilesOfSurfacesAStatFailure(t *testing.T) {
 	root := t.TempDir()
 	// blocker is a file; blocker/child then fails Stat with ENOTDIR, which
 	// is not not-exist and must surface.
@@ -45,7 +45,7 @@ func TestUnit_Manifest_OrphansOfSurfacesAStatFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := New("v0.1.0", []Entry{{Path: "blocker/child.go", SHA256: "c"}})
-	if _, err := m.OrphansOf(root, "", nil); err == nil {
+	if _, err := m.UnproducedFilesOf(root, "", nil); err == nil {
 		t.Fatal("a stat failure was swallowed")
 	}
 }

@@ -69,7 +69,7 @@ func (b openAPIGeneratorBackend) CheckTool(ctx context.Context, cfg *config.Conf
 	if err != nil {
 		return err
 	}
-	return gate(name, have, b.RequiredVersion(cfg))
+	return refuseVersionMismatch(name, have, b.RequiredVersion(cfg))
 }
 
 func (b openAPIGeneratorBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *config.Config, outDir string) error {

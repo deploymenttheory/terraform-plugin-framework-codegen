@@ -89,7 +89,7 @@ func (c *compiler) dependsOn(loc *locator, cls specmodel.Classification, o obser
 // dependentRequired compiles a co-requirement into the standard JSON-Schema
 // dependentRequired keyword on the declaring schema, extending the map when
 // it already exists rather than clobbering a sibling dependency.
-func (c *compiler) dependentRequired(site propSite, o observe.Observation, requires string) compiled {
+func (c *compiler) dependentRequired(site propertyLocation, o observe.Observation, requires string) compiled {
 	just := fmt.Sprintf("the audit confirmed a dependsOn observation on %s.%s: "+
 		"the property is settable only when %s is also present (dependentRequired)",
 		o.Entity, o.Attribute, requires)

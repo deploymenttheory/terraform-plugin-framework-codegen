@@ -49,7 +49,7 @@ func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *en
 		// conditional constraint. Give up without spending a request.
 		return nil, nil, false, nil
 	}
-	gate := r.primaryGate(ent)
+	gate := r.gateFieldFor(ent)
 	if gate == "" {
 		gate = held
 	}
@@ -163,9 +163,9 @@ func (r *runner) recordConditionalInconclusive(ent *entityState, gateField, gate
 	r.record(ent.plan.Entity, subject, observe.KindValidWhen, nil, cond, observe.OutcomeInconclusive, ex)
 }
 
-// primaryGate is the field the entity's strategy ranked as the likeliest
+// gateFieldFor is the field the entity's strategy ranked as the likeliest
 // discriminator, or "" on a non-strategy run.
-func (r *runner) primaryGate(ent *entityState) string {
+func (r *runner) gateFieldFor(ent *entityState) string {
 	if s := r.strategies[ent.plan.Entity]; s != nil && len(s.Gates) > 0 {
 		return s.Gates[0].Field
 	}

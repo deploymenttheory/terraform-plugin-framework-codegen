@@ -263,7 +263,7 @@ func itemValuesFor(rec *entityRecipe, id string) map[string]string {
 // deleted it — a parent entity ends at zero live objects before its
 // children run, so re-creation is the only way a child can exist.
 func (r *runner) resolveCreated(ctx context.Context, ent *entityState, entity string) (string, error) {
-	if obj, ok := r.registry[entity]; ok {
+	if obj, ok := r.createdObjects[entity]; ok {
 		return obj.id, nil
 	}
 	rec, ok := r.recipes[entity]
@@ -281,7 +281,7 @@ func (r *runner) resolveCreated(ctx context.Context, ent *entityState, entity st
 	if obj == nil {
 		return "", blockedError{reason: fmt.Sprintf("re-creating the %s parent object was refused", entity)}
 	}
-	r.registry[entity] = obj
+	r.createdObjects[entity] = obj
 	return obj.id, nil
 }
 
@@ -381,8 +381,8 @@ func (r *runner) deleteObject(ctx context.Context, ent *entityState, rec *entity
 	}
 	if res.ok() || res.status == 404 {
 		r.ledger.resolve(obj.seq, activityDeleted, obj.id, res.status)
-		if live, ok := r.registry[obj.entity]; ok && live.seq == obj.seq {
-			delete(r.registry, obj.entity)
+		if live, ok := r.createdObjects[obj.entity]; ok && live.seq == obj.seq {
+			delete(r.createdObjects, obj.entity)
 		}
 	}
 	return res, nil
