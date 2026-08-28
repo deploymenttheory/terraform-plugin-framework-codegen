@@ -200,7 +200,7 @@ func TestUnit_StateLines_ANormalisedStringKeepsTheConfiguredSpelling(t *testing.
 		{attribute: ir.Attribute{Name: "name", Kind: ir.TypeString},
 			fb: &sdkbind.FieldBinding{Attr: "name", Wire: "name", Kind: ir.TypeString, Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}},
 	}
-	got, err := stateLines(nodes, "Thing", "remote", "data", 1)
+	got, err := stateLines(nodes, "Thing", "data")
 	if err != nil {
 		t.Fatal(err)
 	}

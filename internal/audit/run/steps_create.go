@@ -163,7 +163,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 		return err
 	}
 	if rr.obj != nil {
-		return r.settleMaximal(ctx, entity, rr.body, rr.obj, rr.res)
+		return r.settleMaximal(ctx, entity, rr.obj, rr.res)
 	}
 	if rr.res == nil || !rr.res.refused() {
 		return nil
@@ -182,7 +182,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 // then serves the object in another representation, and a field the read
 // never carries is one the generated state cannot hold. The read is one
 // request; where it fails, the create response stands in.
-func (r *runner) settleMaximal(ctx context.Context, entity *entityState, body map[string]any, obj *createdObject, res *httpResult) error {
+func (r *runner) settleMaximal(ctx context.Context, entity *entityState, obj *createdObject, res *httpResult) error {
 	sent := obj.body
 	got := res.object()
 	if obj.id != "" && entity.recipe.itemPath != "" {
@@ -614,7 +614,7 @@ func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityStat
 			return err
 		}
 		if obj != nil {
-			return r.settleMaximal(ctx, entity, body, obj, res)
+			return r.settleMaximal(ctx, entity, obj, res)
 		}
 		if res == nil || !res.refused() {
 			return nil

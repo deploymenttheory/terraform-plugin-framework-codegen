@@ -352,7 +352,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	d.ConstructImports = constructImports.render()
 
 	// State.
-	stateBody, err := stateLines(nodes, d.Pascal, "remote", "data", 1)
+	stateBody, err := stateLines(nodes, d.Pascal, "data")
 	if err != nil {
 		return err
 	}

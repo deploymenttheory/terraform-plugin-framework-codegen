@@ -208,11 +208,15 @@ func constructNested(namer *modelNamer, path string, n node, source, destination
 	return b.String(), true, nil
 }
 
+// remoteValue is the local every generated read maps from: the SDK value
+// the call answered.
+const remoteValue = "remote"
+
 // stateLines renders the body statements mapping one level of SDK fields
-// onto the framework model. src is the readable SDK value ("remote"),
-// dst the model expression ("data", "rulesElement").
-func stateLines(nodes []node, modelPrefix string, source, destination string, depth int) (string, error) {
-	return stateLinesWith(newModelNamer(modelPrefix, nodes), "", nodes, source, destination, depth)
+// onto the framework model, from the remote value onto dst, the model
+// expression ("data", "item").
+func stateLines(nodes []node, modelPrefix string, destination string) (string, error) {
+	return stateLinesWith(newModelNamer(modelPrefix, nodes), "", nodes, remoteValue, destination, 1)
 }
 
 // stateLinesWith is stateLines' recursion, carrying the entity's resolved
