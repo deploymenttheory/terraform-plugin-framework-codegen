@@ -740,9 +740,10 @@ func revalued(rule revalueRule, current any, h strategy.SyntheticValueRules) (an
 		if _, ok := observe.ParseTimestamp(text); !ok {
 			return nil, false
 		}
-		// Whole minutes: an API storing to the minute then answers the
-		// value as sent, and the probe learns nothing false about it.
-		ahead := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Minute)
+		// Whole seconds, so an API storing to the minute is seen to: what
+		// it answers for a value with seconds is the normalisation the
+		// generated state has to read through.
+		ahead := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Second)
 		if len(text) == len("2006-01-02") {
 			return ahead.Format("2006-01-02"), true
 		}

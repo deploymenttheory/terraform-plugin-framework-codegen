@@ -81,6 +81,10 @@ type Entry struct {
 	// own, which generated state reads back as the configured value: a
 	// replay keeps the value sent rather than the one answered.
 	Normalised bool
+	// Minimum and Maximum are the bounds the document declares on a
+	// number, which the generated schema validates before any request: a
+	// replayed value outside them keeps the derived value instead.
+	Minimum, Maximum *float64
 
 	// synthesised is the prefixed name this entry carries or would carry
 	// had the document declared no example; empty for a value a format
@@ -382,6 +386,8 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			ElementType:              a.ElementType,
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
 			Normalised:               a.Normalisation != "",
+			Minimum:                  a.Minimum,
+			Maximum:                  a.Maximum,
 		}
 		switch {
 		case a.Nested != nil:
