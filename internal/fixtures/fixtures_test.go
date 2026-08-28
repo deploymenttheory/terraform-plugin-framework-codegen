@@ -535,9 +535,11 @@ func TestUnit_Fixturespec_AReplayedBodyCarriesWhatTheAPITook(t *testing.T) {
 
 	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
 
-	// The values are the ones the request carried, not the ones derived.
-	if v := valueByName(t, got, "name").Scalar; v != "the-name-it-took" {
-		t.Errorf("name = %#v, want the value the API took", v)
+	// The values are the ones the request carried, not the ones derived —
+	// except a name, which goes back to the invented one: the one the API
+	// took is taken for good.
+	if v := valueByName(t, got, "name").Scalar; v != NamePrefix+"name" {
+		t.Errorf("name = %#v, want the invented name back", v)
 	}
 	if v := valueByName(t, got, "colour").Scalar; v != "#FF0000" {
 		t.Errorf("colour = %#v, want the value the API took", v)
@@ -591,21 +593,25 @@ func TestUnit_Fixturespec_AReplayDropsWhatTheAPINeverReturns(t *testing.T) {
 
 func TestUnit_Fixturespec_AReplayedRequiredPropertyTakesTheAPIsSpelling(t *testing.T) {
 	spec := Derive(acceptedTree())
-	// The API stores the required name in its own spelling and answers the
-	// colour masked: the name takes the spelling, the masked colour stays
-	// because the create needs it.
+	// The API stores the required colour in its own spelling: the colour
+	// takes the spelling. Answered masked instead, it stays as sent because
+	// the create needs it.
 	got := spec.FromAcceptedRequestBody(
-		map[string]any{"name": "host", "colour": "#FF0000"},
-		map[string]any{"name": "https://host/", "colour": "*****"},
+		map[string]any{"name": "n", "colour": "#ff0000"},
+		map[string]any{"name": "n", "colour": "#FF0000"},
 		map[string]bool{"name": true, "colour": true})
-	if v := valueByName(t, got, "name").Scalar; v != "https://host/" {
-		t.Errorf("name = %#v, want the spelling the API stored", v)
-	}
 	if v := valueByName(t, got, "colour").Scalar; v != "#FF0000" {
+		t.Errorf("colour = %#v, want the spelling the API stored", v)
+	}
+	masked := spec.FromAcceptedRequestBody(
+		map[string]any{"name": "n", "colour": "#ff0000"},
+		map[string]any{"name": "n", "colour": "*****"},
+		map[string]bool{"name": true, "colour": true})
+	if v := valueByName(t, masked, "colour").Scalar; v != "#ff0000" {
 		t.Errorf("colour = %#v, want the value sent, since the create needs it", v)
 	}
-	if len(got.Omissions) != 0 {
-		t.Errorf("a required property was dropped: %#v", got.Omissions)
+	if len(got.Omissions) != 0 || len(masked.Omissions) != 0 {
+		t.Errorf("a required property was dropped: %#v %#v", got.Omissions, masked.Omissions)
 	}
 }
 

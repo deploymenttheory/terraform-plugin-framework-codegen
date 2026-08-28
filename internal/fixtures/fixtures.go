@@ -78,10 +78,10 @@ type Entry struct {
 	// attribute, which no literal spells.
 	Expression string
 
-	// synthesised is the prefixed name this entry would carry had the
-	// document declared no example, and is empty unless the example is what
-	// displaced it. The prefix guard restores it when nothing else in the
-	// entity carries the prefix.
+	// synthesised is the prefixed name this entry carries or would carry
+	// had the document declared no example; empty for a value a format
+	// spells. The prefix guard restores it when nothing else in the entity
+	// carries the prefix, and a replay restores it on a name-bearing entry.
 	synthesised string
 }
 
@@ -457,7 +457,10 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) (any, strin
 				return example, name
 			}
 		}
-		return name, ""
+		// The invented name is remembered as such even when nothing
+		// displaces it now: a replayed body displaces it later, and a
+		// name-bearing entry goes back to it whichever way it was lost.
+		return name, name
 	}
 }
 
