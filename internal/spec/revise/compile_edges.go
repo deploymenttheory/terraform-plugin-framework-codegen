@@ -164,18 +164,11 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 	}
 	edges := c.variants[[2]string{o.Entity, o.Attribute}]
 	variantMap := map[string]any{}
-	gated := 0
 	sort.Strings(values)
 	for _, v := range values {
 		fields := append([]string(nil), edges[v]...)
 		sort.Strings(fields)
 		variantMap[v] = toAnyList(uniqueStrings(fields))
-		gated += len(fields)
-	}
-	// A set whose every variant admits nothing in particular gates nothing:
-	// the values are the property's own set, which the enum already states.
-	if gated == 0 {
-		return stated(fmt.Sprintf("no field is valid only under one value of %s.%s; the values are the property's own set", o.Entity, o.Attribute))
 	}
 	value := map[string]any{"discriminator": o.Attribute, "variants": variantMap}
 	if extension := mapValue(site.declaration, specmodel.ExtValidConfiguration); extension != nil {

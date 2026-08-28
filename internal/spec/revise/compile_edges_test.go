@@ -281,15 +281,6 @@ func TestUnit_Compile_AValidConfigurationGatesOnAStringWithSomethingToGate(t *te
 		t.Errorf("an integer gate compiled to %+v, want it unplaceable", res)
 	}
 
-	// size has values but no field is valid only under one of them.
-	res, err = comp.compile(confirmedObs("size", observe.KindValidConfiguration, []string{"small", "large"}, nil, lock.SHA256))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.category != catAlreadyStated || !strings.Contains(res.reason, "no field is valid only under") {
-		t.Errorf("a gate with nothing to gate compiled to %+v, want nothing", res)
-	}
-
 	// mode gates port under manual: the correction is the one variant set.
 	res, err = comp.compile(confirmedObs("mode", observe.KindValidConfiguration, []string{"manual", "auto"}, nil, lock.SHA256))
 	if err != nil {
