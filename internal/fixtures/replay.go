@@ -51,11 +51,21 @@ func suffixedEntries(values []Entry) []Entry {
 	copy(out, values)
 	for i := range out {
 		if text, ok := out[i].Scalar.(string); ok && strings.HasPrefix(text, NamePrefix) {
-			out[i].Scalar = text + "-" + RunSuffixExpr
+			out[i].Scalar = suffixed(text)
 		}
 		out[i].Nested = suffixedEntries(out[i].Nested)
 	}
 	return out
+}
+
+// suffixed appends the run suffix to an invented value: at the end of a
+// name, and before the domain of an invented address, where a suffix after
+// the domain would spell an address no API accepts.
+func suffixed(text string) string {
+	if at := strings.Index(text, "@"); at >= 0 {
+		return text[:at] + "-" + RunSuffixExpr + text[at:]
+	}
+	return text + "-" + RunSuffixExpr
 }
 
 // FromAcceptedRequestBody answers the entries a recorded create actually

@@ -606,6 +606,17 @@ func TestUnit_Fixturespec_TheRunSuffixOnlyTouchesInventedNames(t *testing.T) {
 	}
 }
 
+func TestUnit_Fixturespec_TheRunSuffixSitsBeforeAnAddressesDomain(t *testing.T) {
+	spec := Derive(acceptedTree())
+	spec.Entries[1].Scalar = NamePrefix + "user@example.invalid"
+
+	got := spec.WithRunSuffix()
+
+	if v := got.Entries[1].Scalar; v != NamePrefix+"user-"+RunSuffixExpr+"@example.invalid" {
+		t.Errorf("an invented address = %#v, want the suffix in its local part", v)
+	}
+}
+
 func TestUnit_Fixturespec_AReplayedNameGoesBackToTheInventedOne(t *testing.T) {
 	spec := Derive(exampleTree())
 	// What the audit sent and the API took: the document's own example, which
