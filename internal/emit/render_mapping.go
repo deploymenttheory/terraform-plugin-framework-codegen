@@ -483,23 +483,15 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 	// the same way — a repository's owner block beside the owner segment of
 	// its path — and reading a value out of it does not compile.
 	//
-	// The id attribute answers last: a parent parameter the document also
-	// spells `id` is answered by the attribute named for that parent, which
-	// carries the same wire name, and the resource's own identity is what
-	// remains when nothing else claims the parameter.
-	var id *node
-	for i := range nodes {
-		n := nodes[i]
+	// The first attribute carrying the parameter's wire name answers it.
+	// Addressing attributes sit ahead of the id, so a parent the document
+	// also spells `id` is answered by the attribute named for that parent;
+	// an object's own key, which the document may declare as a property
+	// too, is answered by the id, which the create and the import fill.
+	for _, n := range nodes {
 		if n.attribute.WireName == p.Wire && n.attribute.Nested == nil {
-			if n.attribute.Name == idAttributeName {
-				id = &nodes[i]
-				continue
-			}
 			return n, nil
 		}
-	}
-	if id != nil {
-		return *id, nil
 	}
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {

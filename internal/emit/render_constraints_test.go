@@ -211,3 +211,25 @@ func TestUnit_StateLines_ANormalisedStringKeepsTheConfiguredSpelling(t *testing.
 		t.Errorf("state lines = %q, want the plain read for the other attribute", got)
 	}
 }
+
+func TestUnit_ParameterNode_TheFirstAttributeCarryingTheWireNameAnswers(t *testing.T) {
+	// A parent spelled id sits ahead of the resource's own id.
+	nodes := []node{
+		{attribute: ir.Attribute{Name: "template_id", WireName: "id", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+	}
+	got, err := parameterNode(sdkbind.CallParameter{Wire: "id"}, nodes, true)
+	if err != nil || got.attribute.Name != "template_id" {
+		t.Errorf("parameterNode(id) = %q, %v; want the parent attribute ahead of the id", got.attribute.Name, err)
+	}
+	// An object's key the document also declares as a property is answered
+	// by the id, which the create and the import fill.
+	nodes = []node{
+		{attribute: ir.Attribute{Name: "id", WireName: "testId", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "test_id", WireName: "testId", Kind: ir.TypeString}},
+	}
+	got, err = parameterNode(sdkbind.CallParameter{Wire: "testId"}, nodes, true)
+	if err != nil || got.attribute.Name != "id" {
+		t.Errorf("parameterNode(testId) = %q, %v; want the id", got.attribute.Name, err)
+	}
+}
