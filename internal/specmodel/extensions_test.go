@@ -211,11 +211,6 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	}
 }
 
-// x-tfpfgen-list-response-shape round-trips through the loader in each of
-// its legal forms: wrapped under a key, bare, and either with the pagination
-// style omitted — which reads as "none", the same spelling the compiled
-// correction writes, so a hand-authored document and a generated one settle
-// on one value.
 // x-tfpfgen-list-wrapper and x-tfpfgen-list-pagination round-trip through the
 // loader in each of their legal forms. They are separate keys because
 // wrapping and pagination are unrelated facts about one response: an API can

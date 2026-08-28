@@ -148,11 +148,10 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 }
 
 // assertBeaconListWrapper holds the generated beacon datasource to the
-// envelope the fixture's x-tfpfgen-list-response-shape declares. The
-// document's own list response is a bare array, so a schema-derived envelope
-// would be empty: every wrapper below exists only because the extension
-// carried the audit's finding all the way through derivation into the
-// emitted list code.
+// wrapper the fixture's x-tfpfgen-list-wrapper declares. The document's own
+// list response is a bare array, so a schema-derived wrapper would be empty:
+// every wrapper below exists only because the extension carried the audit's
+// finding all the way through derivation into the emitted list code.
 func assertBeaconListWrapper(t *testing.T, root string) {
 	t.Helper()
 	read := func(parts ...string) string {
