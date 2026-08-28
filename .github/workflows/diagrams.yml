@@ -161,7 +161,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Open a pull request when a diagram moved
+      - name: Open a pull request when a diagram changed
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
