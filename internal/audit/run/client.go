@@ -76,8 +76,19 @@ func (h *httpResult) object() map[string]any {
 // mentions reports whether the response body names the attribute — what
 // lets a refusal be written down as being about the field rather than
 // about anything at all.
+//
+// Matched with case, spaces and punctuation removed on both sides, because
+// an API writes the field's name back in its own prose — "bandwidth
+// measurements" for bandwidthMeasurements — and a refusal that names the
+// field in words is still a refusal that names it.
 func (h *httpResult) mentions(attribute string) bool {
-	return attribute != "" && bytes.Contains(bytes.ToLower(h.body), []byte(strings.ToLower(attribute)))
+	if attribute == "" {
+		return false
+	}
+	if bytes.Contains(bytes.ToLower(h.body), []byte(strings.ToLower(attribute))) {
+		return true
+	}
+	return strings.Contains(lettersOf(string(h.body)), lettersOf(attribute))
 }
 
 // do sends one request: substitution, budget spend, host allowlist, rate

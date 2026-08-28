@@ -261,3 +261,14 @@ func TestUnit_Steps_AProbeBodyIsRebasedOnTheAcceptedMinimal(t *testing.T) {
 		t.Errorf("rebased without an accepted body = %#v", got)
 	}
 }
+
+func TestUnit_Evidence_ARefusalMentionsAFieldSpeltInWords(t *testing.T) {
+	t.Parallel()
+	res := &httpResult{body: []byte(`{"title":"Cloud Agents are not supported for bandwidth measurements."}`)}
+	if !res.mentions("bandwidthMeasurements") {
+		t.Error("a field spelt in words was not recognised")
+	}
+	if res.mentions("mtuMeasurements") || res.mentions("") {
+		t.Error("a field the refusal does not name was recognised")
+	}
+}
