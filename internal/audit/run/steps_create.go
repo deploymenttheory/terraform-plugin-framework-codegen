@@ -372,10 +372,19 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 			return nil
 		}
 		v := entity.ev.valuesFor(step.Attribute)
-		if accepted {
+		switch {
+		case accepted:
 			v.Accepted = append(v.Accepted, fmt.Sprint(cond.Equals))
-		} else {
+		case res.mentions(step.Attribute) || res.mentions(fmt.Sprint(cond.Equals)):
+			// The refusal names the field or the value: the value is what
+			// was refused.
 			v.Rejected = append(v.Rejected, fmt.Sprint(cond.Equals))
+		default:
+			// Refused without naming either — a conflict with an object
+			// that already exists, a complaint about a sibling — which says
+			// nothing about the value. Claiming a rejection would strip a
+			// documented value from the document on no evidence.
+			return nil
 		}
 		entity.ev.valuesProof[step.Attribute] = appendProof(entity.ev.valuesProof[step.Attribute], res.excerpt)
 		return nil
