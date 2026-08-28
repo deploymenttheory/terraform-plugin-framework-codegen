@@ -2,6 +2,8 @@ package emit
 
 import (
 	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
 	"testing"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
@@ -165,5 +167,27 @@ func TestUnit_Validators_AListOfEnumeratedStringsValidatesEachMember(t *testing.
 	}
 	if len(got[0].Imports) != 2 {
 		t.Errorf("imports = %+v, want listvalidator and stringvalidator", got[0].Imports)
+	}
+}
+
+func TestUnit_CheckLines_AddressMapsByKeyAndReferencesByPresence(t *testing.T) {
+	spec := fixtures.Fixture{Entries: []fixtures.Entry{
+		{Name: "template_id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Expression: "petstore_template.template.id"},
+		{Name: "labels", Kind: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional, Scalar: "one"},
+		{Name: "tags", Kind: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional, Scalar: map[string]any{"b": "2", "a": "1"}},
+	}}
+	got := checkLines("petstore_thing.test", spec, fixtures.ConfigMaximal)
+	for _, want := range []string{
+		`resource.TestCheckResourceAttrSet("petstore_thing.test", "template_id")`,
+		`resource.TestCheckResourceAttr("petstore_thing.test", "labels.labels", "one")`,
+		`resource.TestCheckResourceAttr("petstore_thing.test", "tags.a", "1")`,
+		`resource.TestCheckResourceAttr("petstore_thing.test", "tags.b", "2")`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("checks = %q, want %s", got, want)
+		}
+	}
+	if strings.Contains(got, `"tags", `) || strings.Contains(got, `"labels", `) {
+		t.Errorf("a map was checked whole: %q", got)
 	}
 }

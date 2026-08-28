@@ -680,16 +680,56 @@ func (e *serviceRenderer) resourceChecks(d *resourceData, spec fixtures.Fixture)
 }
 
 // checkLines renders value checks for the form's top-level scalars.
+//
+// A map is checked entry by entry, which is the only way the test helper
+// addresses one; a value the configuration takes from another block is
+// checked for presence, since the fixture does not know it.
 func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 	var b strings.Builder
 	for _, v := range spec.Entries {
 		if !valueWanted(v, a) || v.Nested != nil || v.Kind == ir.TypeList {
 			continue
 		}
-		fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
-			address, v.Name, strconv.Quote(checkValue(v.Scalar)))
+		switch {
+		case v.Expression != "":
+			fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttrSet(%q, %q),\n", address, v.Name)
+		case v.Kind == ir.TypeMap:
+			for _, key := range mapKeys(v) {
+				fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
+					address, v.Name+"."+key.name, strconv.Quote(checkValue(key.value)))
+			}
+		default:
+			fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
+				address, v.Name, strconv.Quote(checkValue(v.Scalar)))
+		}
 	}
 	return b.String()
+}
+
+// mapEntry is one key and value of a map fixture, in key order.
+type mapEntry struct {
+	name  string
+	value any
+}
+
+// mapKeys is a map fixture's entries as the configuration spells them: the
+// keys a replayed body carried, or the one entry a derived fixture keys by
+// the attribute's own name.
+func mapKeys(v fixtures.Entry) []mapEntry {
+	carried, ok := v.Scalar.(map[string]any)
+	if !ok {
+		return []mapEntry{{name: v.Name, value: v.Scalar}}
+	}
+	keys := make([]string, 0, len(carried))
+	for key := range carried {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	out := make([]mapEntry, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, mapEntry{name: key, value: carried[key]})
+	}
+	return out
 }
 
 // valueWanted mirrors the fixture form selection for check building.

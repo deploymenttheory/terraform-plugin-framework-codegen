@@ -146,11 +146,16 @@ func APIToFrameworkStringMapAdditionalData(carrier additionalDataCarrier) types.
 	}
 	elements := make(map[string]attr.Value, len(values))
 	for k, v := range values {
-		typed, ok := v.(string)
-		if !ok {
-			continue
+		// A parsed response carries its additional data as pointers; a
+		// model assembled in process carries values. Both are the string.
+		switch typed := v.(type) {
+		case string:
+			elements[k] = types.StringValue(typed)
+		case *string:
+			if typed != nil {
+				elements[k] = types.StringValue(*typed)
+			}
 		}
-		elements[k] = types.StringValue(typed)
 	}
 	return types.MapValueMust(types.StringType, elements)
 }
@@ -188,11 +193,14 @@ func APIToFrameworkBoolMapAdditionalData(carrier additionalDataCarrier) types.Ma
 	}
 	elements := make(map[string]attr.Value, len(values))
 	for k, v := range values {
-		typed, ok := v.(bool)
-		if !ok {
-			continue
+		switch typed := v.(type) {
+		case bool:
+			elements[k] = types.BoolValue(typed)
+		case *bool:
+			if typed != nil {
+				elements[k] = types.BoolValue(*typed)
+			}
 		}
-		elements[k] = types.BoolValue(typed)
 	}
 	return types.MapValueMust(types.BoolType, elements)
 }
