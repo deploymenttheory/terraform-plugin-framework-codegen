@@ -36,6 +36,11 @@ type entityState struct {
 	// correction loop changed it. A later step's body was built on it, and
 	// is rebased onto the body the API accepted before it is sent.
 	plannedMinimal map[string]any
+	// refusedGateValues records, per gate field, the values whose own
+	// pinned create the API refused, so the probes conditional on such a
+	// value are not sent: each would be refused for the value, and would
+	// spend the budget learning nothing about its own field.
+	refusedGateValues map[string]map[string]bool
 	// preflighted marks the foreign-object pre-flight as done.
 	preflighted bool
 	// idUnknown records that a create succeeded but no id could be learned

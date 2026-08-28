@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
@@ -721,5 +722,25 @@ func TestUnit_Adjust_ADeclaredNameTheRefusalQualifiesIsStillNamed(t *testing.T) 
 	// Too short a declared name to claim a prefix.
 	if got := declaredSpelling("identifier", known); got != "" {
 		t.Errorf("declaredSpelling(identifier) = %q, want nothing", got)
+	}
+}
+
+func TestUnit_Steps_AProbeUnderARefusedGateValueIsNotSent(t *testing.T) {
+	t.Parallel()
+	r := &runner{}
+	entity := &entityState{
+		plan:              &plan.EntityPlan{Entity: "rule"},
+		recipe:            &entityLifecycle{minimalBody: map[string]any{"alertType": "http-server"}},
+		refusedGateValues: map[string]map[string]bool{"alertType": {"bgp": true}},
+	}
+	step := &plan.Step{
+		Kind: plan.StepCreatePerEnumValue, Attribute: "direction",
+		Body:      map[string]any{"alertType": "bgp", "direction": "to-target"},
+		Condition: &observe.Condition{Attribute: "alertType", Equals: "bgp"},
+	}
+	// A runner with no client would fail the moment a request was built;
+	// returning cleanly proves nothing was sent.
+	if err := r.runCreatePerEnumValue(context.Background(), entity, step); err != nil {
+		t.Fatalf("a probe under a refused gate value was sent: %v", err)
 	}
 }

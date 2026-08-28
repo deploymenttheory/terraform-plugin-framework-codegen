@@ -374,6 +374,12 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 	held := ""
 	if step.Condition != nil {
 		held = step.Condition.Attribute
+		// A probe conditional on a gate value the API refused outright
+		// would be refused for the value again; it says nothing about the
+		// field it exercises.
+		if step.Condition.Attribute != step.Attribute && entity.refusedGateValues[held][fmt.Sprint(step.Condition.Equals)] {
+			return nil
+		}
 	}
 	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, held)
 	if err != nil {
@@ -404,6 +410,15 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 			// refused as sent, with no adjustment, is a genuine rejection and
 			// falls through to be recorded.
 			return nil
+		}
+		if !accepted {
+			if entity.refusedGateValues == nil {
+				entity.refusedGateValues = map[string]map[string]bool{}
+			}
+			if entity.refusedGateValues[step.Attribute] == nil {
+				entity.refusedGateValues[step.Attribute] = map[string]bool{}
+			}
+			entity.refusedGateValues[step.Attribute][fmt.Sprint(cond.Equals)] = true
 		}
 		v := entity.ev.valuesFor(step.Attribute)
 		switch {
