@@ -35,6 +35,10 @@
         ],
         "note": "The document says what the fields are called. Only the live API says what it accepts."
       }
+    ],
+    "viewBox": [
+      1180,
+      628
     ]
   },
   "components": [

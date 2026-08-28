@@ -7,7 +7,7 @@
     "quality_profile": "showcase",
     "viewBox": [
       1080,
-      700
+      590
     ],
     "views": [
       {
@@ -83,7 +83,7 @@
       "label": "imported.pin.json",
       "sublabel": "hash + source",
       "stage": 1,
-      "row": 3
+      "row": 2
     },
     {
       "id": "observations",

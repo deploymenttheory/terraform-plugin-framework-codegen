@@ -5,8 +5,8 @@
     "title": "Correcting a create the API refused",
     "output": "refused-body.sequence.html",
     "viewBox": [
-      860,
-      780
+      1050,
+      560
     ],
     "quality_profile": "showcase",
     "views": [
@@ -67,18 +67,18 @@
   ],
   "segments": [
     {
-      "from": 150,
-      "to": 300,
+      "from": 152,
+      "to": 272,
       "label": "Refused as sent"
     },
     {
-      "from": 320,
-      "to": 520,
+      "from": 278,
+      "to": 399,
       "label": "Corrected and retried"
     },
     {
-      "from": 540,
-      "to": 700,
+      "from": 405,
+      "to": 483,
       "label": "Recorded"
     }
   ],
@@ -87,7 +87,7 @@
       "id": "minimal",
       "from": "executor",
       "to": "api",
-      "y": 185,
+      "y": 170,
       "label": "POST the minimal body",
       "variant": "emphasis"
     },
@@ -95,7 +95,7 @@
       "id": "refused",
       "from": "api",
       "to": "executor",
-      "y": 232,
+      "y": 212,
       "label": "400 field interval is required",
       "variant": "security"
     },
@@ -103,7 +103,7 @@
       "id": "classify",
       "from": "executor",
       "to": "parser",
-      "y": 278,
+      "y": 254,
       "label": "classify the refusal",
       "variant": "default"
     },
@@ -111,7 +111,7 @@
       "id": "instruction",
       "from": "parser",
       "to": "executor",
-      "y": 355,
+      "y": 296,
       "label": "add interval",
       "variant": "return",
       "note": "One of four: add, remove, requires, borrow. Anything else stops the entity."
@@ -120,7 +120,7 @@
       "id": "retry",
       "from": "executor",
       "to": "api",
-      "y": 405,
+      "y": 339,
       "label": "POST again, interval added",
       "variant": "emphasis"
     },
@@ -128,7 +128,7 @@
       "id": "accepted",
       "from": "api",
       "to": "executor",
-      "y": 452,
+      "y": 381,
       "label": "201 created",
       "variant": "return"
     },
@@ -136,7 +136,7 @@
       "id": "record",
       "from": "executor",
       "to": "observations",
-      "y": 575,
+      "y": 423,
       "label": "requiredByAPI on interval",
       "variant": "emphasis",
       "note": "The document called it optional. The API required it. That difference is the finding."
@@ -145,7 +145,7 @@
       "id": "cleanup",
       "from": "executor",
       "to": "api",
-      "y": 640,
+      "y": 465,
       "label": "DELETE what was created",
       "variant": "security"
     }
@@ -153,14 +153,14 @@
   "activations": [
     {
       "participant": "executor",
-      "from": 170,
-      "to": 660,
+      "from": 156,
+      "to": 479,
       "type": "backend"
     },
     {
       "participant": "parser",
-      "from": 268,
-      "to": 365,
+      "from": 244,
+      "to": 306,
       "type": "security"
     }
   ],

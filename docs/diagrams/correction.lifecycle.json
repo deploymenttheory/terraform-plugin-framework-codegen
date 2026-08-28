@@ -5,8 +5,8 @@
     "title": "The life of a correction",
     "output": "correction.lifecycle.html",
     "viewBox": [
-      980,
-      660
+      1080,
+      630
     ],
     "quality_profile": "showcase",
     "views": [
@@ -191,8 +191,8 @@
       "dot": "emerald",
       "title": "Merging accepts, closing rejects",
       "items": [
-        "One pull request answers every finding of one kind on one entity",
-        "A merge moves the correction to accepted; only then does it reach the revised document"
+        "One pull request answers one kind of finding on one entity",
+        "A merge accepts it, and only then does it reach the document"
       ]
     },
     {
@@ -200,15 +200,15 @@
       "title": "A rejection is permanent",
       "items": [
         "Closing writes a marker naming the observation and the reason",
-        "The marker suppresses re-proposal for good \u2014 deleting it is the only way back"
+        "The marker stops re-proposal; deleting it is the only way back"
       ]
     },
     {
       "dot": "amber",
       "title": "A withdrawal is not a rejection",
       "items": [
-        "A later run that no longer proposes the correction closes its request and records nothing",
-        "The observation stays free to be proposed again, which is the whole difference"
+        "A later run that stops proposing it just closes the request",
+        "The observation stays free to be proposed again"
       ]
     }
   ]

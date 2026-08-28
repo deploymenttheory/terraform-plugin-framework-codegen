@@ -23,27 +23,28 @@ Hand-editing an `.html` is a defect, not a change — the same rule
 
 ## Regenerating
 
-Install archify once, anywhere outside this repository:
+archify is an agent skill, installed into this repository from the version
+recorded in `skills-lock.json`:
 
 ```bash
-git clone https://github.com/tt-a1i/archify.git ~/GitHub/archify
-node ~/GitHub/archify/archify/bin/archify.mjs doctor    # expect "Archify is ready."
+npx skills add tt-a1i/archify     # installs into .agents/skills/archify
 ```
 
-Node 18 or later. No `npm install` is needed — the package's
-`devDependencies` are for archify's own build scripts, not for rendering.
+The installer needs Node 22.20 or later; archify itself renders on 18. The
+installed tree is git-ignored — `skills-lock.json` is what is tracked, so every
+machine and CI run resolves the same version.
 
 Then, from this repository:
 
 ```bash
-make diagrams                        # re-render all five
-make diagrams ARCHIFY=/some/path     # if you cloned it elsewhere
+make diagrams                        # re-render all five, and check they fit
+make diagrams ARCHIFY=/some/path     # against a clone instead
 ```
 
 ## Authoring a change
 
 ```bash
-A=~/GitHub/archify/archify
+A=.agents/skills/archify
 
 # 1. edit the .json, then validate. A showcase pass reports all 9 artifact
 #    checks with 0 composition errors and 0 warnings. A receipt showing only
@@ -52,6 +53,12 @@ node $A/bin/archify.mjs validate <kind> <source.json> --quality showcase
 
 # 2. render, atomically replacing the artifact
 node $A/bin/archify.mjs deliver <kind> <source.json> <output.html> --quality showcase
+
+# 3. check it fits on screen. `validate` cannot see this: it reads the source,
+#    while this opens the real artifact in headless Chrome and measures it at
+#    1440x900, 1600x1000, 1920x1080 and 2048x1320 in both themes. A diagram can
+#    pass all 9 artifact checks and still overflow every one of them.
+node $A/bin/archify.mjs visual-check <output.html>
 
 # live-reload while authoring
 node $A/bin/archify.mjs preview <kind> <source.json> /tmp/preview.html
@@ -82,3 +89,15 @@ Learned by hitting them; the schemas in `$A/schemas/` are authoritative.
 - **all kinds** — `views[].note` is capped at 140 characters, and a node label
   wider than its box is an error. Shorten copy before reaching for geometry
   controls; add at most one diagnosed control per repair.
+
+## One diagram is allowed to scroll
+
+`ci.workflow` is exempt from the fit-on-screen check, via `DIAGRAMS_MAY_SCROLL`
+in the makefile. The workflow renderer fixes a lane at 104px and a lane row at
+640px wide, so its six lanes only fit a 900px-tall viewport at a `viewBox` wide
+enough to push node text under the 6px floor `validate` enforces. The two
+checks cannot both hold for that renderer.
+
+Six lanes stay because each one names the workflow file that runs that stage.
+Three lanes would fit, and would file a stage under a workflow that does not
+run it.
