@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"sort"
 	"strings"
@@ -179,16 +180,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 		return err
 	}
 	if rr.obj != nil {
-		sent, err := r.resolveBody(ctx, entity, rr.body)
-		if err != nil {
-			return err
-		}
-		entity.ev.maximalSent = sent
-		entity.ev.maximalGot = rr.res.object()
-		entity.ev.maximalStatus = rr.res.status
-		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
-		_, _ = r.deleteObject(ctx, entity, entity.recipe, rr.obj)
-		return nil
+		return r.settleMaximal(ctx, entity, rr.body, rr.obj, rr.res)
 	}
 	if rr.res == nil || !rr.res.refused() {
 		return nil
@@ -199,6 +191,34 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 		return err
 	}
 	return r.dropFieldsUntilAccepted(ctx, entity, rr.body, rr.res)
+}
+
+// settleMaximal records an accepted maximal create and deletes its object.
+// The evidence for what the API stores is the object read back, not the
+// create response: an API answers a create with the body it was sent and
+// then serves the object in another representation, and a field the read
+// never carries is one the generated state cannot hold. The read is one
+// request; where it fails, the create response stands in.
+func (r *runner) settleMaximal(ctx context.Context, entity *entityState, body map[string]any, obj *createdObject, res *httpResult) error {
+	sent, err := r.resolveBody(ctx, entity, body)
+	if err != nil {
+		return err
+	}
+	got := res.object()
+	if obj.id != "" && entity.recipe.itemPath != "" {
+		read, readErr := r.do(ctx, entity, reqSpec{
+			method: http.MethodGet, path: entity.recipe.itemPath, pathValues: itemValuesFor(entity.recipe, obj.id),
+		})
+		if readErr == nil && read.ok() && read.object() != nil {
+			got = read.object()
+		}
+	}
+	entity.ev.maximalSent = sent
+	entity.ev.maximalGot = got
+	entity.ev.maximalStatus = res.status
+	entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(body))
+	_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
+	return nil
 }
 
 // narrowRefusedField narrows a refused maximal create to the optional field
@@ -564,16 +584,7 @@ func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityStat
 			return err
 		}
 		if obj != nil {
-			sent, err := r.resolveBody(ctx, entity, body)
-			if err != nil {
-				return err
-			}
-			entity.ev.maximalSent = sent
-			entity.ev.maximalGot = res.object()
-			entity.ev.maximalStatus = res.status
-			entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(body))
-			_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
-			return nil
+			return r.settleMaximal(ctx, entity, body, obj, res)
 		}
 		if res == nil || !res.refused() {
 			return nil
