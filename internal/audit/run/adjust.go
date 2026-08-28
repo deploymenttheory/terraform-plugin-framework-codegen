@@ -33,6 +33,7 @@ package run
 // emits the observation the existing vocabulary already carries.
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -281,13 +282,18 @@ func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityS
 		// value-cycle — a free-form conditional refusal that names an enum
 		// field the entity declares is often satisfied by another of that
 		// field's values.
-		wobj, wres, err := r.retryAttestedComposites(ctx, entity, rec, body, applied)
+		wobj, wres, widened, err := r.retryAttestedComposites(ctx, entity, rec, body, res, applied)
 		if err != nil {
 			return bodyCorrection{}, err
 		}
 		if wobj != nil {
 			adjusted = true
 			return accepted(wobj, wres), nil
+		}
+		if widened {
+			pending = wres
+			adjusted = true
+			continue
 		}
 		sobj, sres, progressed, err := r.retryCollectionSegments(ctx, entity, rec, body, held, res, applied)
 		if err != nil {
@@ -358,10 +364,16 @@ func withoutAdd(adds []pendingAdd, field string) []pendingAdd {
 // members the document attests — an element the API refuses as incomplete is
 // routinely taken once it carries the documented values. Each field is
 // widened once; a widening the API refuses is undone before the next.
-func (r *runner) retryAttestedComposites(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, applied map[string]bool) (*createdObject, *httpResult, error) {
+//
+// A widened field the API answers with a different refusal — one no longer
+// naming the field — has moved the create on: the wider value stays in the
+// body, the new refusal is answered for the loop to classify, and widened
+// reports it. Restoring the smaller value would put the next adjustment on
+// a body the API had already refused for the field.
+func (r *runner) retryAttestedComposites(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
 	synthesis, ok := r.syntheses[entity.plan.Entity]
 	if !ok {
-		return nil, nil, nil
+		return nil, nil, false, nil
 	}
 	fields := make([]string, 0, len(body))
 	for field := range body {
@@ -381,17 +393,20 @@ func (r *runner) retryAttestedComposites(ctx context.Context, entity *entityStat
 		body[field] = wider
 		obj, res, err := r.createObject(ctx, entity, rec, body)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, false, err
 		}
 		if obj != nil {
-			return obj, res, nil
+			return obj, res, false, nil
+		}
+		if res != nil && res.refused() && !res.mentions(field) && (refusal == nil || !bytes.Equal(res.body, refusal.body)) {
+			return nil, res, true, nil
 		}
 		body[field] = smaller
 		if res == nil || !res.refused() {
 			break
 		}
 	}
-	return nil, nil, nil
+	return nil, nil, false, nil
 }
 
 // pendingAdd is one field the grammar added to a body, held until the API

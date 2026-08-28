@@ -260,3 +260,41 @@ func TestUnit_Propose_DependentRequiredExtendsAndConverges(t *testing.T) {
 		t.Errorf("a declared dependency did not converge: %+v", p.AlreadyStated)
 	}
 }
+
+func TestUnit_Compile_AValidConfigurationGatesOnAStringWithSomethingToGate(t *testing.T) {
+	t.Parallel()
+	_, specDir, lock := pinnedTree(t)
+	state, entities, err := revisedState(specDir, filepath.Join(specDir, correction.DirName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	comp := &compiler{entities: entities, state: state, vetoes: map[[2]string]bool{},
+		variants: map[[2]string]map[string][]string{{"tag", "mode"}: {"manual": {"port"}}}, restated: map[string]string{}}
+
+	// port is an integer: the generated gate compares a string.
+	res, err := comp.compile(confirmedObs("port", observe.KindValidConfiguration, []string{"1", "2"}, nil, lock.SHA256))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.category != catUnplaceable || !strings.Contains(res.reason, "integer property") {
+		t.Errorf("an integer gate compiled to %+v, want it unplaceable", res)
+	}
+
+	// size has values but no field is valid only under one of them.
+	res, err = comp.compile(confirmedObs("size", observe.KindValidConfiguration, []string{"small", "large"}, nil, lock.SHA256))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.category != catAlreadyStated || !strings.Contains(res.reason, "no field is valid only under") {
+		t.Errorf("a gate with nothing to gate compiled to %+v, want nothing", res)
+	}
+
+	// mode gates port under manual: the correction is the one variant set.
+	res, err = comp.compile(confirmedObs("mode", observe.KindValidConfiguration, []string{"manual", "auto"}, nil, lock.SHA256))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.operations) != 1 {
+		t.Errorf("a real gate compiled to %+v, want its correction", res)
+	}
+}

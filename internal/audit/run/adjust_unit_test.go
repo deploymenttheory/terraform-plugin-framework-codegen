@@ -729,9 +729,9 @@ func TestUnit_Steps_AProbeUnderARefusedGateValueIsNotSent(t *testing.T) {
 	t.Parallel()
 	r := &runner{}
 	entity := &entityState{
-		plan:              &plan.EntityPlan{Entity: "rule"},
-		recipe:            &entityLifecycle{minimalBody: map[string]any{"alertType": "http-server"}},
-		refusedGateValues: map[string]map[string]bool{"alertType": {"bgp": true}},
+		plan:                &plan.EntityPlan{Entity: "rule"},
+		recipe:              &entityLifecycle{minimalBody: map[string]any{"alertType": "http-server"}},
+		unreachedGateValues: map[string]map[string]bool{"alertType": {"bgp": true}},
 	}
 	step := &plan.Step{
 		Kind: plan.StepCreatePerEnumValue, Attribute: "direction",

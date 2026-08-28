@@ -147,6 +147,9 @@ components:
           readOnly: true
         name:
           type: string
+        matchType:
+          type: string
+          enum: [and, or]
         filters:
           type: array
           items:
@@ -216,6 +219,13 @@ func (a *labelAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 						return
 					}
 				}
+			}
+			// The element being whole is what lets the API get as far as
+			// the next complaint, worded for the bare-absence grammar.
+			if _, has := body["matchType"]; !has {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]any{"title": "400 Bad Request\nmatchType must be specified"})
+				return
 			}
 		}
 		if parts[0] == "windows" {
@@ -302,6 +312,11 @@ func TestUnit_Adaptive_ARefusedElementIsWidenedToTheDocumentedMembers(t *testing
 	}
 	if element, _ := filters[0].(map[string]any); element["key"] != "network" {
 		t.Errorf("accepted element = %#v, want the documented members", element)
+	}
+	// The widening moved the refusal on to a field the grammar then added:
+	// the widened element stayed in the body while it did.
+	if minimal["matchType"] == nil {
+		t.Errorf("accepted minimal = %#v, want the field the API asked for after the widening", minimal)
 	}
 }
 

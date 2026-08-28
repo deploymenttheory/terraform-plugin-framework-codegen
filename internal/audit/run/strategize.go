@@ -72,7 +72,7 @@ func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *
 			values:             inputs.ValuesFor(ep.Entity),
 			composites:         composites,
 			attestedComposites: attested,
-			references:         references,
+			references:         withoutCollection(references, addr.collectionPath),
 		}
 		ep.Steps = translateProgram(compiled, addr, synthesis)
 		ep.Budget = plan.Budget{Requests: compiled.Budget.Requests}
@@ -684,4 +684,22 @@ func fieldNarrowingAttemptLimit(optional int) int {
 		return 0
 	}
 	return bits.Len(uint(optional-1)) + 1
+}
+
+// withoutCollection is the reference index less the entity's own
+// collection: a body's list named for that collection's noun — a DNS test's
+// dnsServers, a label's labels — names its own members, not other objects of
+// its kind, and the collection is empty exactly when the first is being
+// created.
+func withoutCollection(references map[string]string, collectionPath string) map[string]string {
+	if collectionPath == "" {
+		return references
+	}
+	out := make(map[string]string, len(references))
+	for noun, path := range references {
+		if path != collectionPath {
+			out[noun] = path
+		}
+	}
+	return out
 }

@@ -133,13 +133,13 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
 		{Property: "ghost", Equals: "x", Required: []string{"name"}}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
+	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A conditional requirement on a non-string attribute.
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
 		{Property: "enabled", Equals: "true", Required: []string{"name"}}}
-	expectRenderError(t, pc, m, b, "http_server", "enabled")
+	expectRenderExclusion(t, pc, m, b, "http_server", "enabled")
 
 	// A conditional requirement requiring a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
@@ -151,7 +151,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ConditionalValidities = []ir.ConditionalValidity{
 		{Property: "ghost", Equals: "x", Valid: []string{"name"}}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
+	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A valid-when allowing a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
@@ -173,7 +173,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
 		{Discriminator: "ghost", Variants: []ir.ConfigVariant{{Value: "x", Valid: []string{"name"}}}}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
+	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A valid configuration admitting a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()

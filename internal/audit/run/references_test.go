@@ -173,3 +173,15 @@ func TestUnit_References_ANestedReferenceNothingServesIsLeftOut(t *testing.T) {
 		t.Errorf("labels = %#v, want the unsatisfiable element left out", labels)
 	}
 }
+
+func TestUnit_References_AnEntityNeverBorrowsFromItsOwnCollection(t *testing.T) {
+	t.Parallel()
+	references := map[string]string{"dns server": "/tests/dns-server", "agent": "/agents"}
+	got := withoutCollection(references, "/tests/dns-server")
+	if _, has := got["dns server"]; has || got["agent"] != "/agents" {
+		t.Errorf("withoutCollection = %v, want the entity's own collection left out", got)
+	}
+	if same := withoutCollection(references, ""); len(same) != 2 {
+		t.Errorf("no collection path changed the index: %v", same)
+	}
+}

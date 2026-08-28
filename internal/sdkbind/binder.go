@@ -145,12 +145,16 @@ func fieldBindings(d dialect, t *ir.AttributeTree, mode accessMode) []FieldBindi
 		// A property the document declares write-only is never read back,
 		// whatever the response model offers: an API that declares one
 		// answers it masked or not at all, and neither is the value sent.
+		// Its members are write-only with it — a member only a response
+		// carries can never be read through a root that is not.
+		nestedMode := mode
 		if a.WriteOnly && fb.Access.Set != "" {
 			fb.Access.Get = ""
 			fb.KeptFromPlan = true
+			nestedMode = accessWriteOnly
 		}
 		if a.Nested != nil {
-			fb.Nested = fieldBindings(d, a.Nested, mode)
+			fb.Nested = fieldBindings(d, a.Nested, nestedMode)
 		}
 		out = append(out, fb)
 	}
