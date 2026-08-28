@@ -765,12 +765,15 @@ func checkValue(scalar any) string {
 
 // importVerifyIgnores renders the attributes an import verification cannot
 // compare: the root attributes whose state keeps the planned value, which an
-// imported state has no value for. Rendered as the tail of a Go string
-// slice literal, so a template appends it to the names it always ignores.
+// imported state has no value for, and the ones the API stores in a
+// spelling of its own, which an imported state carries as stored while a
+// created one keeps the configured spelling. Rendered as the tail of a Go
+// string slice literal, so a template appends it to the names it always
+// ignores.
 func importVerifyIgnores(nodes []node) string {
 	var b strings.Builder
 	for _, n := range nodes {
-		if n.fb != nil && n.fb.KeptFromPlan {
+		if n.fb != nil && (n.fb.KeptFromPlan || n.attribute.Normalisation != "") {
 			fmt.Fprintf(&b, ", %q", n.attribute.Name)
 		}
 	}

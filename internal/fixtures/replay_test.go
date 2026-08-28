@@ -89,3 +89,25 @@ func TestUnit_Fixturespec_AFutureDateRendersATimeOffset(t *testing.T) {
 		t.Errorf("block = %q", FutureDateBlock("start_date"))
 	}
 }
+
+func TestUnit_Fixturespec_AnEmptyListTheAPITookIsLeftOut(t *testing.T) {
+	spec := Derive(acceptedTree())
+	got := spec.FromAcceptedRequestBody(
+		map[string]any{"name": "n", "labels": []any{}},
+		map[string]any{"name": "n", "labels": []any{}},
+		map[string]bool{"name": true})
+	for _, e := range got.Entries {
+		if e.Name == "labels" {
+			t.Fatalf("an empty list was replayed as %#v", e)
+		}
+	}
+	var explained bool
+	for _, o := range got.Omissions {
+		if strings.Contains(o.Name, "labels") && strings.Contains(o.Reason, "no value in it") {
+			explained = true
+		}
+	}
+	if !explained {
+		t.Errorf("the empty list was not explained: %#v", got.Omissions)
+	}
+}

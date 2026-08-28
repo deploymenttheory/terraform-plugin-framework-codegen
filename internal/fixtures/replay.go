@@ -238,7 +238,14 @@ func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[
 			return v
 		}
 	case []any:
-		if v.Nested != nil && len(nested) > 0 {
+		// A list the body carried empty carries nothing for a configuration
+		// to replay: rendered from the derivation instead it would send a
+		// member the API never saw.
+		if len(nested) == 0 {
+			v.Scalar, v.Nested = nil, nil
+			return v
+		}
+		if v.Nested != nil {
 			if first, ok := nested[0].(map[string]any); ok {
 				var inner []Omission
 				v.Nested, inner = overlayEntries(v.Nested, first, nil, requiredWire, at, retained)
@@ -247,9 +254,7 @@ func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[
 			}
 		}
 		// A list of scalars: the fixture carries one element.
-		if len(nested) > 0 {
-			v.Scalar = nested[0]
-		}
+		v.Scalar = nested[0]
 		return v
 	}
 	if v.Nested == nil {

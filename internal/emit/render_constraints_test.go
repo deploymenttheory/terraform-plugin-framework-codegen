@@ -233,3 +233,15 @@ func TestUnit_ParameterNode_TheFirstAttributeCarryingTheWireNameAnswers(t *testi
 		t.Errorf("parameterNode(testId) = %q, %v; want the id", got.attribute.Name, err)
 	}
 }
+
+func TestUnit_ImportVerifyIgnores_HeldAndNormalisedAttributes(t *testing.T) {
+	nodes := []node{
+		{attribute: ir.Attribute{Name: "agents"}, fb: &sdkbind.FieldBinding{Attr: "agents", KeptFromPlan: true}},
+		{attribute: ir.Attribute{Name: "server", Normalisation: "extended"}, fb: &sdkbind.FieldBinding{Attr: "server"}},
+		{attribute: ir.Attribute{Name: "name"}, fb: &sdkbind.FieldBinding{Attr: "name"}},
+		{attribute: ir.Attribute{Name: "owner_id"}},
+	}
+	if got := importVerifyIgnores(nodes); got != `, "agents", "server"` {
+		t.Errorf("importVerifyIgnores = %q, want the held and the normalised attribute", got)
+	}
+}
