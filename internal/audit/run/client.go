@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 )
@@ -300,24 +301,74 @@ func (r *runner) resolveValue(ctx context.Context, entity *entityState, v string
 	if entityKey, ok := strings.CutPrefix(v, "$created:"); ok {
 		return r.resolveCreated(ctx, entity, entityKey)
 	}
+	if path, ok := strings.CutPrefix(v, BorrowToken); ok {
+		id, found := r.borrowFromPath(ctx, entity, path)
+		if !found {
+			return "", blockedError{reason: fmt.Sprintf("the %s collection holds no object to reference, and a synthesised id is refused by construction", path)}
+		}
+		return id, nil
+	}
 	return v, nil
 }
 
-// resolveBody substitutes tokens through the body's string values.
+// resolveReference resolves one body value under its field name, recording
+// a borrow adjustment the first time a bound reference is satisfied: the
+// inference reads the adjustment as the signal that the field holds a live
+// id, whether the loop borrowed it after a refusal or synthesis bound it
+// before the first request.
+func (r *runner) resolveReference(ctx context.Context, entity *entityState, field, v string) (string, error) {
+	resolved, err := r.resolveValue(ctx, entity, v)
+	if err != nil || entity == nil {
+		return resolved, err
+	}
+	if path, ok := strings.CutPrefix(v, BorrowToken); ok && !r.borrowRecorded[entity.plan.Entity+"\x00"+field] {
+		r.borrowRecorded[entity.plan.Entity+"\x00"+field] = true
+		r.recordAdjustment(entity, infer.AdjustBorrow, field, path, "")
+	}
+	return resolved, nil
+}
+
+// resolveBody substitutes tokens through the body's string values, at every
+// depth: a reference bound inside a nested object or a list element is
+// resolved the same way as one at the top.
 func (r *runner) resolveBody(ctx context.Context, entity *entityState, body map[string]any) (map[string]any, error) {
-	out := make(map[string]any, len(body))
-	for k, v := range body {
-		if s, ok := v.(string); ok {
-			resolved, err := r.resolveValue(ctx, entity, s)
+	resolved, err := r.resolveAny(ctx, entity, "", body)
+	if err != nil {
+		return nil, err
+	}
+	return resolved.(map[string]any), nil
+}
+
+// resolveAny is resolveBody's recursion over maps, lists and strings, carrying
+// the field name a value sits under so a resolved reference is recorded
+// against it.
+func (r *runner) resolveAny(ctx context.Context, entity *entityState, field string, value any) (any, error) {
+	switch v := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for k, inner := range v {
+			resolved, err := r.resolveAny(ctx, entity, k, inner)
 			if err != nil {
 				return nil, err
 			}
 			out[k] = resolved
-			continue
 		}
-		out[k] = v
+		return out, nil
+	case []any:
+		out := make([]any, len(v))
+		for i := range v {
+			resolved, err := r.resolveAny(ctx, entity, field, v[i])
+			if err != nil {
+				return nil, err
+			}
+			out[i] = resolved
+		}
+		return out, nil
+	case string:
+		return r.resolveReference(ctx, entity, field, v)
+	default:
+		return value, nil
 	}
-	return out, nil
 }
 
 // fragment trims a body to an excerpt-sized JSON fragment; nil for an

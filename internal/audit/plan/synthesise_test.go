@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // resourceSpec renders a one-entity document around the given create
@@ -421,5 +423,68 @@ func TestUnit_Plan_AnInventedNameOutranksADeclaredExample(t *testing.T) {
 	// A field that names nothing keeps its example.
 	if got := body["summary"]; got != "some words" {
 		t.Errorf("summary = %#v, want the declared example", got)
+	}
+}
+
+func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T) {
+	spec := resourceSpec(
+		"name, filters",
+		`        name:
+          type: string
+        filters:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                enum: [network, agent-id]
+              values:
+                type: array
+                example: ["10.1.1.0/24"]
+                items:
+                  type: string
+              mode:
+                type: string
+                enum: [in, not-in]
+              note:
+                type: string
+        context:
+          type: array
+          items:
+            type: object
+            required: [dataSourceId]
+            properties:
+              dataSourceId:
+                type: string
+                example: VIRTUAL_AGENT
+              nested:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+        unshaped:
+          type: array
+        tally:
+          type: integer
+`)
+	document := loadDoc(t, spec)
+	class := specmodel.Classify(document).Entities[0]
+
+	got := CompositeValues(document, class, "tfpfgen")
+	want := map[string]any{
+		// Every member the document states a value for, none it does not.
+		"filters": []any{map[string]any{"key": "network", "values": []any{"10.1.1.0/24"}, "mode": "in"}},
+		// A required member alone: an optional nested collection the
+		// document says nothing about is not a value the document attests.
+		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("composites = %#v\nwant %#v", got, want)
+	}
+	if CompositeValues(document, specmodel.Classification{Key: "none"}, "tfpfgen") != nil {
+		t.Error("an entity with no create yields composites")
 	}
 }

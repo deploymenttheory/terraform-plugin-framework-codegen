@@ -164,9 +164,13 @@ func (sy valueSynthesiser) typeValue(field string, r *specmodel.Schema, depth in
 		if r.Items == nil {
 			return nil, false
 		}
+		// An element no value can be derived for leaves the collection
+		// empty rather than the field absent: a required array sent as []
+		// is refused with a sentence naming it, and a body missing it is
+		// refused with one that does not.
 		v, ok := sy.value(field, r.Items, depth+1, false)
 		if !ok {
-			return nil, false
+			return []any{}, true
 		}
 		return []any{v}, true
 	case r.Type == "object" || len(r.Properties) > 0 || len(r.AllOf) > 0:
@@ -181,23 +185,73 @@ func (sy valueSynthesiser) typeValue(field string, r *specmodel.Schema, depth in
 }
 
 // objectValue synthesizes a nested object: its required writable fields,
-// recursively. Optional nested fields are left out even for a maximal
-// body — depth is bounded, and the maximal claim is about the entity's own
-// attributes, not the transitive closure.
+// recursively, plus the optional ones the document states a value for — an
+// example, a default or an enum. The maximal claim is about the entity's own
+// attributes, not the transitive closure, so an optional nested field with
+// nothing attested about it stays out; one the document vouches for goes in,
+// because an element carrying only its required members is routinely refused
+// as incomplete where the same element with its documented values is taken.
 func (sy valueSynthesiser) objectValue(r *specmodel.Schema, depth int) (any, bool) {
 	properties, required := flatProps(r)
 	out := map[string]any{}
 	for _, p := range properties {
-		if !required[p.Name] || p.Schema.Resolved().ReadOnly {
+		resolved := p.Schema.Resolved()
+		if resolved.ReadOnly {
+			continue
+		}
+		if !required[p.Name] && resolved.Example == nil && resolved.Default == nil && len(resolved.Enum) == 0 {
 			continue
 		}
 		v, ok := sy.value(p.Name, p.Schema, depth+1, false)
 		if !ok {
-			return nil, false
+			if required[p.Name] {
+				return nil, false
+			}
+			continue
 		}
 		out[p.Name] = v
 	}
 	return out, true
+}
+
+// CompositeValues synthesizes the array- and object-typed writable fields of
+// one entity's create body from the document's item and property schemas:
+// one element per array, the attested members per object. The executor's own
+// synthesis reaches no deeper than a scalar and sends an empty collection for
+// anything wider, which an API reads as "nothing selected" and refuses. The
+// values are keyed by wire property name; a field no value can be derived for
+// is absent.
+func CompositeValues(document *specmodel.Document, class specmodel.Classification, prefix string) map[string]any {
+	if class.Create == nil || document == nil {
+		return nil
+	}
+	builder := planBuilder{document: document}
+	createOp := builder.operation(class.Create)
+	if createOp == nil || createOp.RequestBody == nil {
+		return nil
+	}
+	sy := valueSynthesiser{entity: class.Key, prefix: prefix}
+	properties, _ := flatProps(createOp.RequestBody)
+	out := map[string]any{}
+	for _, p := range properties {
+		resolved := p.Schema.Resolved()
+		if resolved.ReadOnly {
+			continue
+		}
+		composite := resolved.Type == "array" || resolved.Type == "object" || len(resolved.Properties) > 0
+		if !composite {
+			continue
+		}
+		v, ok := sy.value(p.Name, p.Schema, 0, false)
+		if !ok {
+			continue
+		}
+		out[p.Name] = v
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // alternateValue synthesizes a second, distinct value for an update: something

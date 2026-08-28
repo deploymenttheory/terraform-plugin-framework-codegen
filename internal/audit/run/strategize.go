@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/bits"
 	"strconv"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
@@ -35,7 +36,7 @@ import (
 // themselves, which the triangulating inference reads for the claims each
 // run was meant to confirm. The input plan is left untouched: a new plan is
 // built so the caller's copy is never mutated.
-func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SyntheticValueRules, map[string]*strategy.Strategy) {
+func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SyntheticValueRules, map[string]*strategy.Strategy, map[string]bodySynthesis) {
 	cls := specmodel.Classify(document)
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, c := range cls.Entities {
@@ -45,6 +46,8 @@ func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *
 	out := &plan.Plan{Skipped: p.Skipped, Budget: p.Budget}
 	hints := map[string]map[string]strategy.SyntheticValueRules{}
 	strategies := map[string]*strategy.Strategy{}
+	syntheses := map[string]bodySynthesis{}
+	references := referenceCollections(cls.Entities)
 	total := 0
 	for i := range p.Entities {
 		ep := p.Entities[i]
@@ -61,17 +64,44 @@ func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *
 			continue
 		}
 		addr := addressingOf(&ep)
-		ep.Steps = translateProgram(compiled, addr, ep.Entity, prefix, inputs.ValuesFor(ep.Entity))
+		synthesis := bodySynthesis{
+			entity:     ep.Entity,
+			prefix:     prefix,
+			values:     inputs.ValuesFor(ep.Entity),
+			composites: plan.CompositeValues(document, class, prefix),
+			references: references,
+		}
+		ep.Steps = translateProgram(compiled, addr, synthesis)
 		ep.Budget = plan.Budget{Requests: compiled.Budget.Requests}
 		hints[ep.Entity] = collectHints(compiled)
 		strategies[ep.Entity] = compiled
+		syntheses[ep.Entity] = synthesis
 		out.Entities = append(out.Entities, ep)
 		total += compiled.Budget.Requests
 	}
 	// The run-wide request ceiling becomes the sum of the strategy budgets;
 	// the object and duration ceilings stay as the config derived them.
 	out.Budget.Requests = total
-	return out, hints, strategies
+	return out, hints, strategies, syntheses
+}
+
+// bodySynthesis is what one entity's request bodies are synthesised from at
+// run start: the operator's values, the composite values the document's
+// nested schemas yield, and the collections a reference field can borrow a
+// real id from.
+type bodySynthesis struct {
+	entity string
+	prefix string
+	// values are the operator's overrides, keyed by top-level wire name. They
+	// outrank every synthesis and are never bound as references.
+	values map[string]any
+	// composites are the array- and object-typed fields synthesised from the
+	// document, keyed by top-level wire name; the executor's own synthesis
+	// reaches no deeper than a scalar.
+	composites map[string]any
+	// references maps the noun a collection path spells to that path, for
+	// binding id-named fields to a borrow token.
+	references map[string]string
 }
 
 // addressing is everything the translator needs to place a strategy step onto
@@ -157,10 +187,11 @@ func entityValues(p *plan.Plan, inputs *plan.Inputs) map[string]map[string]any {
 // translateProgram turns a strategy's ordered, value-free program into
 // executable steps: addressing from addr, request bodies synthesised from the variant
 // skeletons and per-field hints.
-func translateProgram(compiled *strategy.Strategy, addr addressing, entity, prefix string, values map[string]any) []plan.Step {
+func translateProgram(compiled *strategy.Strategy, addr addressing, synthesis bodySynthesis) []plan.Step {
+	entity := synthesis.entity
 	baseMinimal := map[string]any{}
 	if len(compiled.Variants) > 0 {
-		baseMinimal = synthesiseRequestBody(compiled.Variants[0].Minimal, entity, prefix, "", "", values)
+		baseMinimal = synthesis.requestBody(compiled.Variants[0].Minimal, "", "")
 	}
 	hints := collectHints(compiled)
 
@@ -172,11 +203,11 @@ func translateProgram(compiled *strategy.Strategy, addr addressing, entity, pref
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.createMethod, Path: addr.collectionPath,
 				PathValues: addr.collectionValues,
-				Body:       synthesiseRequestBody(v.Minimal, entity, prefix, s.GateField, s.GateValue, values),
+				Body:       synthesis.requestBody(v.Minimal, s.GateField, s.GateValue),
 			})
 		case plan.StepCreateMaximal:
 			v := findVariant(compiled, s.GateField, s.GateValue)
-			body := synthesiseRequestBody(v.Maximal, entity, prefix, s.GateField, s.GateValue, values)
+			body := synthesis.requestBody(v.Maximal, s.GateField, s.GateValue)
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.createMethod, Path: addr.collectionPath,
 				PathValues: addr.collectionValues, Body: body,
@@ -243,6 +274,12 @@ func updateStep(field string, addr addressing, entity string, hints map[string]s
 	base := baseMinimal[field]
 	if base == nil {
 		base = synthesiseValue(h, entity, "")
+	}
+	// A reference is resolved at send time to whatever id the collection
+	// serves first; a second value would need a second live object, and
+	// varying the token text would only spell a path that does not exist.
+	if s, ok := base.(string); ok && strings.HasPrefix(s, "$") {
+		return plan.Step{}, false
 	}
 	variant, ok := variantValue(h, base)
 	if !ok {
@@ -318,25 +355,28 @@ func countOptional(v strategy.Variant, body map[string]any) int {
 	return n
 }
 
-// synthesiseRequestBody synthesises a create body from a skeleton: one value per
+// requestBody synthesises a create body from a skeleton: one value per
 // field, drawn from the operator's inputs where they name it and from that
 // field's hint otherwise, with the gate field pinned to the variant's value
-// where one is given.
+// where one is given, and every reference the document can satisfy bound to
+// a borrow token.
 //
 // An operator value outranks everything, including the gate: it is supplied
 // precisely for the fields no synthesis can guess — a reachable endpoint, an
 // existing agent's id, the discriminator a polymorphic body is keyed on.
 // Scoped to the body's own fields, as the plan's synthesis is, because a
 // wire property name says nothing about which nested object it belongs to.
-func synthesiseRequestBody(sk strategy.RequestFields, entity, prefix, gateField, gateValue string, values map[string]any) map[string]any {
+func (b bodySynthesis) requestBody(sk strategy.RequestFields, gateField, gateValue string) map[string]any {
 	byField := make(map[string]strategy.SyntheticValueRules, len(sk.Rules))
 	for _, h := range sk.Rules {
 		byField[h.Field] = h
 	}
 	body := map[string]any{}
+	supplied := map[string]bool{}
 	for _, f := range sk.Fields {
-		if v, ok := values[f]; ok {
+		if v, ok := b.values[f]; ok {
 			body[f] = v
+			supplied[f] = true
 			continue
 		}
 		if f == gateField && gateValue != "" {
@@ -344,10 +384,19 @@ func synthesiseRequestBody(sk strategy.RequestFields, entity, prefix, gateField,
 			continue
 		}
 		if h, ok := byField[f]; ok {
-			body[f] = synthesiseValue(h, entity, prefix)
+			body[f] = b.fieldValue(h)
 		}
 	}
-	return body
+	return bindReferences(body, "", b.references, supplied).(map[string]any)
+}
+
+// fieldValue synthesises one field: the document-derived composite where the
+// field is an array or object, the scalar synthesis otherwise.
+func (b bodySynthesis) fieldValue(h strategy.SyntheticValueRules) any {
+	if composite, ok := b.composites[h.Field]; ok {
+		return cloneAny(composite)
+	}
+	return synthesiseValue(h, b.entity, b.prefix)
 }
 
 // synthesiseField synthesises one field the adjustment loop must add live, from its
@@ -356,15 +405,38 @@ func (r *runner) synthesiseField(entity *entityState, field string) any {
 	if v, ok := r.inputValues[entity.plan.Entity][field]; ok {
 		return v
 	}
+	synthesis := r.syntheses[entity.plan.Entity]
 	if hints := r.hints[entity.plan.Entity]; hints != nil {
 		if h, ok := hints[field]; ok {
-			return synthesiseValue(h, entity.plan.Entity, r.opts.NamePrefix)
+			return bindReferences(synthesis.fieldValue(h), field, synthesis.references, nil)
 		}
 	}
 	if plan.NameBearing(field) {
 		return nameToken(r.opts.NamePrefix, entity.plan.Entity, field)
 	}
-	return "sample-" + field
+	return bindReferences("sample-"+field, field, synthesis.references, nil)
+}
+
+// cloneAny copies a synthesised value deeply enough that the adjustment
+// loop's edits to one body never reach another built from the same
+// composite.
+func cloneAny(value any) any {
+	switch v := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for k, inner := range v {
+			out[k] = cloneAny(inner)
+		}
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for i := range v {
+			out[i] = cloneAny(v[i])
+		}
+		return out
+	default:
+		return value
+	}
 }
 
 // synthesiseValue derives one field's value from its hint. The priority mirrors the

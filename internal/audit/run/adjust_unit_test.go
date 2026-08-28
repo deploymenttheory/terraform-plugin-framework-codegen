@@ -439,7 +439,7 @@ func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
 	}
 	values := map[string]any{"endpoint": "https://reachable.example", "kind": "web"}
 
-	body := synthesiseRequestBody(sk, "monitor", "tfpfgen", "kind", "ping", values)
+	body := bodySynthesis{entity: "monitor", prefix: "tfpfgen", values: values}.requestBody(sk, "kind", "ping")
 
 	// The operator supplies a value precisely for the field no synthesis can
 	// guess: an example the API cannot reach is still an example.

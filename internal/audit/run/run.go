@@ -230,14 +230,16 @@ type Summary struct {
 func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, error) {
 	var hints map[string]map[string]strategy.SyntheticValueRules
 	var strategies map[string]*strategy.Strategy
+	var syntheses map[string]bodySynthesis
 	if opts.Plan != nil && opts.Doc != nil && opts.Config != nil {
-		opts.Plan, hints, strategies = applyStrategies(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix, opts.Inputs)
+		opts.Plan, hints, strategies, syntheses = applyStrategies(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix, opts.Inputs)
 	}
 	r, err := newRunner(opts)
 	if err != nil {
 		return nil, Summary{}, err
 	}
 	r.hints = hints
+	r.syntheses = syntheses
 	r.inputValues = entityValues(opts.Plan, opts.Inputs)
 	r.strategies = strategies
 	defer r.ledger.close()
@@ -310,6 +312,10 @@ type runner struct {
 	// loop draws on when it must add a field a refusal named. Nil on a
 	// non-strategy run.
 	hints map[string]map[string]strategy.SyntheticValueRules
+	// syntheses carries, per entity, what its bodies were synthesised from,
+	// so a field the adjustment loop adds live is built the same way the
+	// plan's bodies were. Nil on a non-strategy run.
+	syntheses map[string]bodySynthesis
 	// inputValues carries, per entity, the operator's value overrides, so the
 	// adjustment loop adding a field live uses the same value the plan would
 	// have sent for it.
@@ -324,6 +330,10 @@ type runner struct {
 	// borrowed caches one real id per collection the run has borrowed a
 	// reference from, so a second create needing it costs no extra request.
 	borrowed map[string]string
+	// borrowRecorded marks each entity field a bound reference has already
+	// been recorded for, so one adjustment stands for every body that
+	// resolves it.
+	borrowRecorded map[string]bool
 	// adjustments accumulates every change the adaptive loop made, for the
 	// triangulating inference and the run summary.
 	adjustments []infer.RequestAdjustment
@@ -421,6 +431,7 @@ func newRunner(opts Options) (*runner, error) {
 		recipes:        map[string]*entityLifecycle{},
 		evidence:       map[string]*infer.Evidence{},
 		borrowed:       map[string]string{},
+		borrowRecorded: map[string]bool{},
 		summary: Summary{
 			RunID:                runID,
 			ByKind:               map[observe.Kind]int{},
