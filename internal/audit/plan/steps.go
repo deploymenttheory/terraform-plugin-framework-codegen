@@ -63,6 +63,12 @@ func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Ski
 	onItem := func(kind StepKind, method string) Step {
 		return Step{Kind: kind, Method: method, Path: c.ItemPath, PathValues: itemValues}
 	}
+	deleteOp := d.operation(c.Delete)
+	onDelete := func(kind StepKind) Step {
+		step := onItem(kind, c.Delete.Method)
+		step.Query = sy.requiredQuery(deleteOp)
+		return step
+	}
 
 	steps := []Step{post(StepCreateMinimal, "", minimal)}
 
@@ -74,7 +80,7 @@ func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Ski
 		steps = append(steps, d.updateSteps(c, sy, createSchema, minimal, itemValues)...)
 	}
 
-	steps = append(steps, onItem(StepDeleteWithConfirmation, c.Delete.Method))
+	steps = append(steps, onDelete(StepDeleteWithConfirmation))
 
 	maximal, optional := sy.maximalBody(createSchema)
 	createMaximal := post(StepCreateMaximal, "", maximal)
@@ -83,7 +89,7 @@ func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Ski
 
 	steps = append(steps, negativeSteps(createSchema, minimal, post)...)
 	steps = append(steps, conditionalSteps(sy, createSchema, minimal, post)...)
-	steps = append(steps, onItem(StepCleanupDelete, c.Delete.Method))
+	steps = append(steps, onDelete(StepCleanupDelete))
 
 	return EntityPlan{
 		Entity:             c.Key,

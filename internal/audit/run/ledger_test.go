@@ -75,8 +75,8 @@ func decodeLedger(t *testing.T, raw []byte) []activityEntry {
 func TestUnit_Ledger_UnresolvedIsNewestFirst(t *testing.T) {
 	t.Parallel()
 	l := &activityLedger{}
-	seqA, _ := l.intent("parent", "tfpfgen-a", "/parents/{id}")
-	seqB, _ := l.intent("child", "tfpfgen-b", "/parents/1/children/{id}")
+	seqA, _ := l.intent("parent", "tfpfgen-a", "/parents/{id}", nil)
+	seqB, _ := l.intent("child", "tfpfgen-b", "/parents/1/children/{id}", nil)
 	l.resolve(seqA, activityCreated, "1", 201)
 	l.resolve(seqB, activityCreated, "2", 201)
 

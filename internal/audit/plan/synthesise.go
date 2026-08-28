@@ -75,6 +75,38 @@ func (sy valueSynthesiser) maximalBody(s *specmodel.Schema) (map[string]any, int
 	return body, optional
 }
 
+// requiredQuery synthesizes the query parameters an operation requires, as
+// wire strings keyed by name. A delete that confirms itself through a
+// required boolean parameter is refused without it, and an object the audit
+// cannot delete is one the tenant keeps. Nil when the operation requires
+// none, or is unknown.
+func (sy valueSynthesiser) requiredQuery(operation *specmodel.Operation) map[string]string {
+	if operation == nil {
+		return nil
+	}
+	var out map[string]string
+	for _, parameter := range operation.Parameters {
+		if parameter.In != "query" || !parameter.Required {
+			continue
+		}
+		// The parameter's own example outranks its schema: a confirmation
+		// parameter declares a default of false and an example of true, and
+		// the default is the value that gets the operation refused.
+		v, ok := parameter.Example, parameter.Example != nil
+		if !ok {
+			v, ok = sy.value(parameter.Name, parameter.Schema, 0, false)
+		}
+		if !ok {
+			continue
+		}
+		if out == nil {
+			out = map[string]string{}
+		}
+		out[parameter.Name] = fmt.Sprint(v)
+	}
+	return out
+}
+
 // fieldNarrowingAttemptLimit is the extra createMaximal attempts worth reserving:
 // enough to halve the optional set down to one field, plus the retry that
 // confirms it — ceil(log2(n)) + 1.

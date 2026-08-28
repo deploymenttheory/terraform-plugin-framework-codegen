@@ -122,6 +122,7 @@ type addressing struct {
 	itemValues       map[string]string
 	updateMethod     string
 	deleteMethod     string
+	deleteQuery      map[string]string
 	poll             *plan.Poll
 }
 
@@ -159,6 +160,7 @@ func addressingOf(ep *plan.EntityPlan) addressing {
 			setItem(s.Path, s.PathValues)
 		case plan.StepDeleteWithConfirmation, plan.StepCleanupDelete:
 			a.deleteMethod = s.Method
+			a.deleteQuery = s.Query
 			setItem(s.Path, s.PathValues)
 		}
 	}
@@ -250,6 +252,7 @@ func translateProgram(compiled *strategy.Strategy, addr addressing, synthesis bo
 		case plan.StepDeleteWithConfirmation, plan.StepCleanupDelete:
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.deleteMethod, Path: addr.itemPath, PathValues: addr.itemValues,
+				Query: addr.deleteQuery,
 			})
 		}
 	}

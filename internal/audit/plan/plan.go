@@ -125,6 +125,10 @@ type Step struct {
 	Body map[string]any `json:"body,omitempty"`
 	// PathValues maps each path parameter to its value or token.
 	PathValues map[string]string `json:"pathValues,omitempty"`
+	// Query maps each query parameter the operation requires to the value
+	// synthesised for it, rendered as it goes on the wire. An operation that
+	// requires none carries nothing here.
+	Query map[string]string `json:"query,omitempty"`
 	// Poll bounds a readWithRetry step.
 	Poll *Poll `json:"poll,omitempty"`
 	// FieldNarrowingAttemptLimit is the extra createMaximal attempts execution may

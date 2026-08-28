@@ -82,6 +82,10 @@ type Parameter struct {
 	In       string
 	Required bool
 	Schema   *Schema
+	// Example is the parameter object's own declared example, decoded; nil
+	// when absent. It sits beside the schema rather than in it, and is the
+	// vendor's statement of a value the operation accepts.
+	Example any
 }
 
 // Response is one declared response.

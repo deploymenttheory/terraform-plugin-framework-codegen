@@ -35,6 +35,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
@@ -212,6 +213,12 @@ func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityS
 			return accepted(obj, res), nil
 		}
 		if res == nil || !res.refused() {
+			return bodyCorrection{res: res, body: body, bodyCorrected: adjusted, unresolved: true}, nil
+		}
+		// A conflict is about an object that already exists, not about the
+		// body: no field edit resolves it, and cycling values against it
+		// only spends the budget making the same object again.
+		if res.status == http.StatusConflict {
 			return bodyCorrection{res: res, body: body, bodyCorrected: adjusted, unresolved: true}, nil
 		}
 		// A field added from a choice the API then refuses by name gives way

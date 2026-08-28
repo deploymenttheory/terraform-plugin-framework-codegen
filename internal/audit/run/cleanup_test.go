@@ -118,7 +118,7 @@ func TestUnit_Cleanup_ResolveByNameSettlesIdlessIntents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.ledger.intent("thing", "tfpfgen-x-thing-name", "/things/{thingId}"); err != nil {
+	if _, err := r.ledger.intent("thing", "tfpfgen-x-thing-name", "/things/{thingId}", nil); err != nil {
 		t.Fatal(err)
 	}
 	r.resolveByName("no-such-name", "1", 204)

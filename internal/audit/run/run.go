@@ -359,7 +359,11 @@ type entityLifecycle struct {
 	itemValues       map[string]string
 	createMethod     string
 	deleteMethod     string
-	minimalBody      map[string]any
+	// deleteQuery carries the query parameters the delete requires, so a
+	// delete that confirms itself through one is answered rather than
+	// refused.
+	deleteQuery map[string]string
+	minimalBody map[string]any
 }
 
 func newRunner(opts Options) (*runner, error) {

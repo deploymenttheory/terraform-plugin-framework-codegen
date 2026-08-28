@@ -54,8 +54,12 @@ type activityEntry struct {
 	// the object's own parameter still templated, e.g.
 	// "/projects/42/tags/{tagId}".
 	ItemPath string `json:"itemPath,omitempty"`
-	ID       string `json:"id,omitempty"`
-	Status   int    `json:"status,omitempty"`
+	// DeleteQuery carries the query parameters the object's delete
+	// requires, so a replay after a crash can delete what a plain DELETE
+	// would be refused for.
+	DeleteQuery map[string]string `json:"deleteQuery,omitempty"`
+	ID          string            `json:"id,omitempty"`
+	Status      int               `json:"status,omitempty"`
 }
 
 // activityFileSuffix names activity-ledger files in the runs directory:
@@ -92,12 +96,12 @@ func openActivityLedger(dir, runID string) (*activityLedger, error) {
 // intent records the intention to create and does not return until it is
 // durable. The caller must not send the request when this errors: a
 // create that cannot be recorded is a create that cannot be cleaned up.
-func (l *activityLedger) intent(entity, name, itemPath string) (int, error) {
+func (l *activityLedger) intent(entity, name, itemPath string, deleteQuery map[string]string) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.seq++
 	return l.seq, l.append(activityEntry{
-		Kind: activityIntent, Seq: l.seq, Entity: entity, Name: name, ItemPath: itemPath,
+		Kind: activityIntent, Seq: l.seq, Entity: entity, Name: name, ItemPath: itemPath, DeleteQuery: deleteQuery,
 	})
 }
 
@@ -111,7 +115,7 @@ func (l *activityLedger) resolve(seq int, kind activityKind, id string, status i
 			// leaves the intent outstanding, which errs toward removing.
 			_ = l.append(activityEntry{
 				Kind: kind, Seq: seq, Entity: e.Entity, Name: e.Name,
-				ItemPath: e.ItemPath, ID: id, Status: status,
+				ItemPath: e.ItemPath, DeleteQuery: e.DeleteQuery, ID: id, Status: status,
 			})
 			return
 		}

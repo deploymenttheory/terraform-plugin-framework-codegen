@@ -496,3 +496,95 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
 		t.Error("an entity with no create yields composites")
 	}
 }
+
+func TestUnit_Plan_ADeleteCarriesTheQueryParametersItRequires(t *testing.T) {
+	spec := `openapi: 3.0.3
+info:
+  title: Query fixture
+  version: "1.0"
+paths:
+  /vaults:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vault'
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vault'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vault'
+  /vaults/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vault'
+    delete:
+      parameters:
+        - name: confirmDisabledObjects
+          in: query
+          required: true
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: dryRun
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "204":
+          description: gone
+components:
+  schemas:
+    Vault:
+      type: object
+      required: [name]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+`
+	p := mustDerive(t, loadDoc(t, spec), testConfig(), nil)
+	entity := entityByKey(t, p, "vault")
+	deletes := 0
+	for _, step := range entity.Steps {
+		if step.Kind != StepDeleteWithConfirmation && step.Kind != StepCleanupDelete {
+			if step.Query != nil {
+				t.Errorf("%s carries a query it did not need: %v", step.Kind, step.Query)
+			}
+			continue
+		}
+		deletes++
+		// The required parameter with the document's example; the optional
+		// one left out.
+		if !reflect.DeepEqual(step.Query, map[string]string{"confirmDisabledObjects": "true"}) {
+			t.Errorf("%s query = %v, want the required parameter alone", step.Kind, step.Query)
+		}
+	}
+	if deletes != 2 {
+		t.Errorf("found %d delete steps, want 2", deletes)
+	}
+}

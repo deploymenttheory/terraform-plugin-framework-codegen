@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -224,6 +225,7 @@ func lifecycleOf(ep *plan.EntityPlan) *entityLifecycle {
 			}
 		case plan.StepDeleteWithConfirmation, plan.StepCleanupDelete:
 			rec.deleteMethod = s.Method
+			rec.deleteQuery = s.Query
 			if rec.itemPath == "" {
 				rec.itemPath = s.Path
 				rec.itemValues = s.PathValues
@@ -303,7 +305,7 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 		return nil, nil, err
 	}
 
-	seq, err := r.ledger.intent(rec.entity, nameOf(resolved, r.opts.NamePrefix), itemPath)
+	seq, err := r.ledger.intent(rec.entity, nameOf(resolved, r.opts.NamePrefix), itemPath, rec.deleteQuery)
 	if err != nil {
 		return nil, nil, blockedError{reason: "the create could not be recorded in the ledger first: " + err.Error()}
 	}
@@ -375,6 +377,7 @@ func (r *runner) deleteObject(ctx context.Context, entity *entityState, rec *ent
 	}
 	res, err := r.do(ctx, entity, reqSpec{
 		method: rec.deleteMethod, path: rec.itemPath, pathValues: itemValuesFor(rec, obj.id),
+		query: queryValues(rec.deleteQuery),
 	})
 	if err != nil {
 		return nil, err
@@ -450,4 +453,16 @@ func (r *runner) emitStoppedObservations(entity *entityState, remaining []plan.S
 	if sawUpdate {
 		r.record(entity.plan.Entity, "", observe.KindUpdateStyle, nil, nil, outcome, proof...)
 	}
+}
+
+// queryValues renders a step's query parameters for the request.
+func queryValues(query map[string]string) url.Values {
+	if len(query) == 0 {
+		return nil
+	}
+	out := url.Values{}
+	for name, value := range query {
+		out.Set(name, value)
+	}
+	return out
 }
