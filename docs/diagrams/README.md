@@ -90,6 +90,57 @@ Learned by hitting them; the schemas in `$A/schemas/` are authoritative.
   wider than its box is an error. Shorten copy before reaching for geometry
   controls; add at most one diagnosed control per repair.
 
+## CI proposes updates; you approve them
+
+`.github/workflows/diagrams.yml` runs when a push to `main` touches code one of
+the diagrams describes. It reads the change, asks Claude which diagrams it
+affects, re-renders, holds both gates, and opens a pull request with before and
+after screenshots of every diagram attached to the run.
+
+Claude edits `.json` sources only. The rendering, the gates and the pull request
+belong to the workflow, so a diagram cannot reach a branch without passing the
+same checks `make diagrams` runs here. What no check covers is whether the new
+wording is *true* — that is what the pull request is for.
+
+### Authentication
+
+It authenticates by workload identity federation: the run exchanges its GitHub
+OIDC token for a short-lived Anthropic token, so no key is stored here. That
+needs `id-token: write`, which the job grants itself.
+
+Configure it once in the Claude Console under **Settings → Workload identity →
+Connect workload**, choosing the GitHub Actions provider. The wizard registers
+the issuer (`https://token.actions.githubusercontent.com`), creates a service
+account and a federation rule, and then waits 15 minutes for a real exchange to
+confirm the setup — so run this workflow by hand while that window is open.
+
+Match the rule to this repository rather than to the whole account. A GitHub
+Actions JWT carries `repo:<owner>/<name>:ref:refs/heads/main` as its subject,
+and a `subject_prefix` on that value stops any other repository federating
+against the same rule.
+
+The wizard then hands you three identifiers. They are identifiers, not
+credentials, so they go in **repository variables**, not secrets:
+
+    ANTHROPIC_FEDERATION_RULE_ID    fdrl_...      required
+    ANTHROPIC_ORGANIZATION_ID       a UUID        required
+    ANTHROPIC_SERVICE_ACCOUNT_ID    svac_...      required
+    ANTHROPIC_WORKSPACE_ID          wrkspc_...    only if the rule spans
+                                                  more than one workspace
+
+The run stops at its first step and names whichever of the three required ones
+is missing.
+
+One trap worth knowing: `ANTHROPIC_API_KEY` sits *above* federation in the
+SDK's credential order. If a key ever reaches this job's environment it wins
+silently, and the workflow keeps working while none of the above applies.
+
+Leave the rule's `token_lifetime_seconds` at its 3600 default rather than the
+wizard's prefilled 600. A GitHub Actions JWT is single-use — it carries a `jti`,
+and re-presenting one is refused as `jti_reused` — so a token that expires
+mid-run has to be refreshed against a JWT that may no longer be exchangeable.
+The job is capped at 30 minutes, which one hour comfortably covers.
+
 ## One diagram is allowed to scroll
 
 `ci.workflow` is exempt from the fit-on-screen check, via `DIAGRAMS_MAY_SCROLL`

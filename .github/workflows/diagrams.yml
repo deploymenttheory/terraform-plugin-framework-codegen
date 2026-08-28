@@ -1,0 +1,225 @@
+name: diagrams
+
+# Keeps docs/diagrams true to the code it describes.
+#
+# A re-render can only catch an .html that drifted from its .json. It can never
+# catch a .json that drifted from the code, which is the failure that matters:
+# a diagram that has quietly stopped describing the system is worse than no
+# diagram. So this workflow reads the change, asks Claude which diagrams it
+# affects, and proves the result itself before a human sees it.
+#
+# Claude edits sources only. Rendering, both gates, and the pull request belong
+# to the workflow: what the model says it did is never the gate.
+on:
+  push:
+    branches: [main]
+    paths:
+      # The packages the five diagrams depict.
+      - 'internal/audit/**'
+      - 'internal/spec/**'
+      - 'internal/specmodel/**'
+      - 'internal/emit/**'
+      - 'internal/providergen/**'
+      # A hand-edited source, and the documents the diagrams take their terms from.
+      - 'docs/diagrams/**'
+      - 'docs/contract.md'
+      - 'docs/glossary.md'
+      - '.github/workflows/diagrams.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagrams-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: 🖼 Propose diagram updates for review
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The pull requests this workflow opens land on main as bot commits. Without
+    # this, merging one would trigger the run that proposes the next.
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+
+      # Two commits, so the run can diff the push that triggered it.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 2
+
+      # Fails here rather than opaquely inside the action. These are identifiers,
+      # not credentials — federation exists so no key is stored in this
+      # repository — so they are variables rather than secrets.
+      - name: Federation identifiers are configured
+        env:
+          RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ORG_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "$RULE_ID" ] || missing="$missing ANTHROPIC_FEDERATION_RULE_ID"
+          [ -n "$ORG_ID" ] || missing="$missing ANTHROPIC_ORGANIZATION_ID"
+          [ -n "$SERVICE_ACCOUNT_ID" ] || missing="$missing ANTHROPIC_SERVICE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Set these repository variables:$missing. The Connect workload wizard in the Claude Console issues all three. See docs/diagrams/README.md."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+
+      # Restores the archify version recorded in skills-lock.json, so a render
+      # here matches a render on a contributor's machine.
+      - name: Install the archify skill
+        run: npx --yes skills experimental_install
+
+      - name: Photograph the diagrams as they stand
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/diagram-review/before
+          for html in docs/diagrams/*.html; do
+            node .agents/skills/archify/bin/archify.mjs visual-check "$html" >/dev/null 2>&1 || true
+            base="${html%.html}"
+            for f in "$base".visual-check.*; do
+              [ -e "$f" ] || continue
+              mv "$f" "/tmp/diagram-review/before/$(basename "$f")"
+            done
+          done
+          git status --porcelain docs/diagrams/
+
+      # Authenticates by exchanging this run's GitHub OIDC token for a
+      # short-lived Anthropic token, so no key is stored here. The workspace ID
+      # is only needed when the federation rule spans more than one workspace,
+      # and an empty value is the same as omitting it.
+      #
+      # ANTHROPIC_API_KEY outranks federation in the SDK's credential order, so
+      # a key reaching this job's environment would silently shadow all of this.
+      # Nothing here sets one, and nothing here should.
+      - uses: anthropics/claude-code-action@a60f3e1db3edbceed2b1e6c6a9d34c36b8a15eba
+        with:
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          use_commit_signing: false
+          claude_args: >-
+            --allowedTools Read,Edit,Grep,Glob,Bash(git diff:*),Bash(git log:*)
+          prompt: |
+            The push that triggered this run changed code in this repository.
+            Decide whether any diagram in docs/diagrams/ has stopped describing
+            the code, and correct the ones that have.
+
+            Read the change first:
+
+                git diff HEAD~1 HEAD --stat
+                git diff HEAD~1 HEAD
+
+            The five diagrams and what each one claims:
+
+              system.architecture   the whole system, and who talks to whom
+              pipeline.dataflow     the stages a document passes through, and
+                                    what each stage writes to disk
+              refused-body.sequence what the audit does when the API refuses a
+                                    create
+              correction.lifecycle  a correction's states, and the difference
+                                    between a withdrawal and a rejection
+              ci.workflow           the generation pipeline and its decision gate
+
+            Rules:
+
+            - Edit only docs/diagrams/*.json. Do not render, do not touch the
+              .html files, do not commit. The workflow does all three.
+            - Change a diagram only where the code contradicts it. A rename in
+              the code that a diagram names is a change; an internal refactor
+              a diagram never mentions is not. Most pushes need no edit at all,
+              and making none is the correct outcome — say so and stop.
+            - Terminology is owner-approved and lives in docs/glossary.md. Use
+              the terms already in the diagram and the glossary. Never coin one.
+            - Keep each card item on one line, roughly 62 characters. Longer
+              items wrap and push the artifact past the viewport.
+            - Do not change meta.viewBox. Those values are tuned so the page
+              fits the screen, and the workflow fails if it stops fitting.
+
+            Finish by stating which diagrams you changed and why, one line each.
+
+      - name: Re-render, and hold both gates
+        run: make diagrams
+
+      - name: Photograph the result
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/diagram-review/after
+          for html in docs/diagrams/*.html; do
+            node .agents/skills/archify/bin/archify.mjs visual-check "$html" >/dev/null 2>&1 || true
+            base="${html%.html}"
+            for f in "$base".visual-check.*; do
+              [ -e "$f" ] || continue
+              mv "$f" "/tmp/diagram-review/after/$(basename "$f")"
+            done
+          done
+          git diff -- docs/diagrams/'*.json' > /tmp/diagram-review/sources.diff || true
+
+      - name: Upload the before and after
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: diagram-review-${{ github.run_id }}
+          path: /tmp/diagram-review/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Open a pull request when a diagram changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain docs/diagrams/)" ]; then
+            echo "::notice::The diagrams still describe the code; nothing to propose."
+            exit 0
+          fi
+
+          changed="$(git diff --name-only -- docs/diagrams/'*.json' | sed 's#docs/diagrams/#  - #')"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch="tfpfgen/diagrams-${RUN_ID}"
+          git checkout -B "$branch"
+          git add docs/diagrams/
+          git commit -m "docs: update the diagrams the last change affected"
+          git push --force origin "HEAD:${branch}"
+
+          {
+            printf 'Code changed under a path one of the diagrams describes, so this run\n'
+            printf 're-read the diagrams against it and updated the ones that had drifted.\n\n'
+            printf '**Sources changed**\n\n%s\n\n' "$changed"
+            printf '**Before and after**\n\n'
+            printf 'Screenshots of every diagram, at 1440x900 and 2048x1320 in both themes,\n'
+            printf 'are attached to the run as `diagram-review-%s`:\n\n%s\n\n' "$RUN_ID" "$run_url"
+            printf 'Download it and compare `before/` with `after/` before merging. The\n'
+            printf 'rendered `.html` in this branch is what ships.\n\n'
+            printf '**Already checked**\n\n'
+            printf 'Every diagram passes `archify validate --quality showcase` (9 of 9\n'
+            printf 'artifact checks) and, apart from `ci.workflow`, fits the viewport at\n'
+            printf 'every checked size. `make diagrams` holds both, and this pull request\n'
+            printf 'exists only because it passed.\n\n'
+            printf 'What is *not* checked is whether the new wording is true and reads well.\n'
+            printf 'That is what your eye is for.\n'
+          } > /tmp/pr-body.md
+
+          gh pr create --base "$BASE" --head "$branch" \
+            --title "docs: update the diagrams the last change affected" \
+            --body-file /tmp/pr-body.md
