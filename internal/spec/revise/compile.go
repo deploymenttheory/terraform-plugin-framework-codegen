@@ -523,12 +523,26 @@ func (c *compiler) acceptedValueSites(obs []observe.Observation, known map[strin
 	}
 	loc := &locator{top: root.Content[0]}
 	for _, o := range obs {
-		if o.Kind != observe.KindValues || o.Outcome != observe.OutcomeConfirmed {
+		if o.Outcome != observe.OutcomeConfirmed {
 			continue
 		}
-		var values observe.Values
-		raw, err := json.Marshal(o.Value)
-		if err != nil || json.Unmarshal(raw, &values) != nil || len(values.Accepted) == 0 {
+		var accepted []string
+		switch o.Kind {
+		case observe.KindValues:
+			var values observe.Values
+			raw, err := json.Marshal(o.Value)
+			if err != nil || json.Unmarshal(raw, &values) != nil {
+				continue
+			}
+			accepted = values.Accepted
+		case observe.KindWritable:
+			// A create the API took carried the value: the excerpt's request
+			// is that body, and its value for the attribute is one accepted.
+			accepted = acceptedRequestValues(o)
+		default:
+			continue
+		}
+		if len(accepted) == 0 {
 			continue
 		}
 		cls, ok := c.entities[o.Entity]
@@ -546,8 +560,30 @@ func (c *compiler) acceptedValueSites(obs []observe.Observation, known map[strin
 		if out[enumPtr] == nil {
 			out[enumPtr] = map[string]bool{}
 		}
-		for _, v := range values.Accepted {
+		for _, v := range accepted {
 			out[enumPtr][v] = true
+		}
+	}
+	return out
+}
+
+// acceptedRequestValues is every scalar value the observation's 2xx
+// excerpts sent for its attribute: the values of a body the API took.
+func acceptedRequestValues(o observe.Observation) []string {
+	var out []string
+	for _, excerpt := range o.Excerpts {
+		if excerpt.Status < 200 || excerpt.Status > 299 || len(excerpt.RequestFragment) == 0 {
+			continue
+		}
+		var request map[string]any
+		if json.Unmarshal(excerpt.RequestFragment, &request) != nil {
+			continue
+		}
+		switch v := request[o.Attribute].(type) {
+		case string:
+			out = append(out, v)
+		case float64, bool:
+			out = append(out, fmt.Sprint(v))
 		}
 	}
 	return out

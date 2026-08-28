@@ -359,7 +359,7 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 				entity.idUnknown = true
 			}
 		}
-		return &createdObject{entity: rec.entity, id: id, seq: seq, name: name}, res, nil
+		return &createdObject{entity: rec.entity, id: id, seq: seq, name: name, body: resolved}, res, nil
 	case res.refused():
 		r.ledger.resolve(seq, activityRejected, "", res.status)
 		return nil, res, nil

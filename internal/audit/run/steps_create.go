@@ -52,22 +52,19 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 		}
 	}
 	if rr.obj != nil {
-		sent, err := r.resolveBody(ctx, entity, rr.body)
-		if err != nil {
-			return err
-		}
 		// The recipe learns the body that worked. Everything downstream
 		// replays it — re-creating this entity as another's parent, narrowing
 		// a refused maximal, cleaning up at the end — and the body the plan
 		// started from is the document's guess, which is what needed correcting
-		// in the first place.
+		// in the first place. The evidence and the replay take the body as
+		// it went over the wire.
 		entity.recipe.minimalBody = cloneAnyMap(rr.body)
 		r.createdObjects[entity.plan.Entity] = rr.obj
 		entity.createdAt = time.Now()
-		entity.ev.sent = sent
+		entity.ev.sent = rr.obj.body
 		entity.ev.sentStatus = rr.res.status
 		entity.ev.createProof = &rr.res.excerpt
-		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.obj.body))
 		return nil
 	}
 	if _, exists := r.createdObjects[entity.plan.Entity]; exists {
@@ -186,10 +183,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 // never carries is one the generated state cannot hold. The read is one
 // request; where it fails, the create response stands in.
 func (r *runner) settleMaximal(ctx context.Context, entity *entityState, body map[string]any, obj *createdObject, res *httpResult) error {
-	sent, err := r.resolveBody(ctx, entity, body)
-	if err != nil {
-		return err
-	}
+	sent := obj.body
 	got := res.object()
 	if obj.id != "" && entity.recipe.itemPath != "" {
 		read, readErr := r.do(ctx, entity, reqSpec{
@@ -202,7 +196,7 @@ func (r *runner) settleMaximal(ctx context.Context, entity *entityState, body ma
 	entity.ev.maximalSent = sent
 	entity.ev.maximalGot = got
 	entity.ev.maximalStatus = res.status
-	entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(body))
+	entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(obj.body))
 	_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	return nil
 }
@@ -384,7 +378,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 	}
 	accepted := obj != nil
 	if accepted {
-		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(obj.body))
 		_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	} else if !res.refused() {
 		return nil

@@ -350,6 +350,10 @@ type createdObject struct {
 	// name is the prefixed name the object was created under, so a later
 	// probe of the same entity does not reuse it while the object lives.
 	name string
+	// body is the request body as sent — every token resolved, the name
+	// suffixed where it had to be — which is what the API accepted and what
+	// evidence and replays are measured against.
+	body map[string]any
 }
 
 // entityLifecycle is what re-creation and deletion need to know about an

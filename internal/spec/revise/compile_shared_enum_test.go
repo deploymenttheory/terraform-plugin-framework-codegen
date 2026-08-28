@@ -153,3 +153,31 @@ func TestUnit_Compile_ANormalisedTimestampWithdrawsTheDateTimeFormat(t *testing.
 		t.Errorf("a normalisation on a property with no format compiled to %+v, want no form", out)
 	}
 }
+
+func TestUnit_Compile_AnAcceptedCreateBodyIsAcceptanceOfItsEnumValues(t *testing.T) {
+	t.Parallel()
+	_, specDir, lock := pinnedTree(t)
+	state, entities, err := revisedState(specDir, filepath.Join(specDir, correction.DirName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	comp := &compiler{entities: entities, state: state, vetoes: map[[2]string]bool{},
+		variants: map[[2]string]map[string][]string{}, restated: map[string]string{}}
+	took := confirmedObs("color", observe.KindWritable, true, nil, lock.SHA256)
+	took.Excerpts = []observe.Excerpt{
+		{Method: "POST", PathTemplate: "/tags", Status: 201, RequestFragment: json.RawMessage(`{"name":"n","color":"blue"}`)},
+		{Method: "POST", PathTemplate: "/tags", Status: 400, RequestFragment: json.RawMessage(`{"name":"n","color":"red"}`)},
+	}
+	comp.enumAccepted = comp.acceptedValueSites([]observe.Observation{took}, nil)
+	site := "/components/schemas/Tag/properties/color"
+	if !comp.enumAccepted[site]["blue"] || comp.enumAccepted[site]["red"] {
+		t.Fatalf("enumAccepted = %v, want blue from the 2xx body alone", comp.enumAccepted)
+	}
+	res, err := comp.compile(confirmedObs("color", observe.KindValues, observe.Values{Rejected: []string{"blue"}}, nil, lock.SHA256))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.category != catAlreadyStated {
+		t.Errorf("a rejection of a value a create carried compiled to %+v, want nothing", res)
+	}
+}
