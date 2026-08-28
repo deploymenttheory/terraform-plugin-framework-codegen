@@ -31,7 +31,9 @@ const BorrowToken = "$borrow:"
 func referenceCollections(classified []specmodel.Classification) map[string]string {
 	out := map[string]string{}
 	for _, c := range classified {
-		if c.CollectionPath == "" || c.List == nil {
+		// A collection under a parent cannot be read without the parent's
+		// id, which a borrow has no way to supply.
+		if c.CollectionPath == "" || c.List == nil || strings.Contains(c.CollectionPath, "{") {
 			continue
 		}
 		noun := pathNoun(c.CollectionPath)
@@ -68,11 +70,39 @@ func pathNoun(path string) string {
 // singularised and lower-cased. "agentId" and "agents" both spell "agent";
 // "alertRules" spells "alertrule".
 func fieldNoun(field string) string {
+	nouns := fieldNouns(field)
+	if len(nouns) == 0 {
+		return ""
+	}
+	return nouns[0]
+}
+
+// fieldNouns spells every noun a field name may reference, longest first:
+// the whole name, then each shorter tail of it. A qualified reference —
+// targetAgentId, loginAccountGroupId — names its collection in its last
+// words and its role in the first, so "targetagent" is tried before
+// "agent".
+func fieldNouns(field string) []string {
 	words := splitWords(field)
 	if n := len(words); n > 0 && (words[n-1] == "id" || words[n-1] == "ids") {
 		words = words[:n-1]
 	}
-	return joinNoun(words)
+	var out []string
+	for start := 0; start < len(words); start++ {
+		out = append(out, joinNoun(words[start:]))
+	}
+	return out
+}
+
+// referencedCollection answers the collection path a field references: the
+// longest tail of its name that spells a collection the document lists.
+func referencedCollection(field string, references map[string]string) (string, bool) {
+	for _, noun := range fieldNouns(field) {
+		if path, ok := references[noun]; ok {
+			return path, true
+		}
+	}
+	return "", false
 }
 
 // splitWords breaks an identifier on case changes, digits-to-letters
@@ -164,7 +194,7 @@ func bindOne(value any, field string, references map[string]string, skip map[str
 	case []any:
 		if len(v) > 0 {
 			if _, isString := v[0].(string); isString && referenceField(field, true) {
-				if path, ok := references[fieldNoun(field)]; ok {
+				if path, ok := referencedCollection(field, references); ok {
 					return []any{BorrowToken + path}
 				}
 			}
@@ -176,7 +206,7 @@ func bindOne(value any, field string, references map[string]string, skip map[str
 		return out
 	case string:
 		if referenceField(field, false) && !strings.HasPrefix(v, "$") {
-			if path, ok := references[fieldNoun(field)]; ok {
+			if path, ok := referencedCollection(field, references); ok {
 				return BorrowToken + path
 			}
 		}

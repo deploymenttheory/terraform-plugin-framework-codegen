@@ -22,8 +22,16 @@ func TestUnit_References_NounsAgreeAcrossSpellings(t *testing.T) {
 			t.Errorf("%s spells %q, %s spells %q", testCase.field, fieldNoun(testCase.field), testCase.path, pathNoun(testCase.path))
 		}
 	}
-	if fieldNoun("loginAccountGroupId") == pathNoun("/account-groups") {
-		t.Error("a qualified reference matched the bare collection")
+	// A qualified reference names its collection in its last words.
+	references := map[string]string{"accountgroup": "/account-groups", "agent": "/agents"}
+	if path, ok := referencedCollection("loginAccountGroupId", references); !ok || path != "/account-groups" {
+		t.Errorf("loginAccountGroupId references %q, want /account-groups", path)
+	}
+	if path, ok := referencedCollection("targetAgentId", references); !ok || path != "/agents" {
+		t.Errorf("targetAgentId references %q, want /agents", path)
+	}
+	if _, ok := referencedCollection("layoutId", references); ok {
+		t.Error("a name spelling no collection matched one")
 	}
 	if pathNoun("/dashboards/{dashboardId}/widgets") != "dashboardwidget" {
 		t.Errorf("parameters were not left out: %q", pathNoun("/dashboards/{dashboardId}/widgets"))
@@ -81,12 +89,13 @@ func TestUnit_References_CollectionsIndexTheRootPathPerNoun(t *testing.T) {
 	list := &specmodel.OperationReference{Method: "GET", Path: "/agents"}
 	classified := []specmodel.Classification{
 		{Key: "agent", CollectionPath: "/agents", List: list},
+		// Under a parent: unreadable without the parent's id, so not offered.
 		{Key: "account_groups_agent", CollectionPath: "/account-groups/{id}/agents", List: list},
 		{Key: "alerts_rule", CollectionPath: "/alerts/rules", List: list},
 		{Key: "unlisted", CollectionPath: "/unlisted"},
 	}
 	got := referenceCollections(classified)
-	want := map[string]string{"agent": "/agents", "accountgroupagent": "/account-groups/{id}/agents", "alertrule": "/alerts/rules"}
+	want := map[string]string{"agent": "/agents", "alertrule": "/alerts/rules"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("collections = %#v, want %#v", got, want)
 	}
