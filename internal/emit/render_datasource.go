@@ -211,7 +211,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	addPlanImports(readImports, plan)
 	d.ReadImports = readImports.render()
 
-	stateBody, err := stateLines(nodes, d.Pascal+"Lookup", "remote", "data", 1)
+	stateBody, err := stateLines(nodes, d.Pascal+"Lookup", "data")
 	if err != nil {
 		return fixtures.Fixture{}, err
 	}
@@ -376,7 +376,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	d.ReadImports = readImports.render()
 
 	// Item mapping.
-	mapBody, err := stateLines(itemNodes, d.Pascal+"Item", "remote", "item", 1)
+	mapBody, err := stateLines(itemNodes, d.Pascal+"Item", "item")
 	if err != nil {
 		return fixtures.Fixture{}, err
 	}

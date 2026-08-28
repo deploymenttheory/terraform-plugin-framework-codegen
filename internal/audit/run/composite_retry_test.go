@@ -255,7 +255,7 @@ func (a *labelAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func labelRun(t *testing.T) (*labelAPI, []observe.Observation, Summary) {
+func labelRun(t *testing.T) (*labelAPI, Summary) {
 	t.Helper()
 	api := &labelAPI{objects: map[string]map[string]any{}}
 	server := httptest.NewServer(api)
@@ -286,16 +286,16 @@ func labelRun(t *testing.T) (*labelAPI, []observe.Observation, Summary) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	obs, summary, err := Run(ctx, opts)
+	_, summary, err := Run(ctx, opts)
 	if err != nil {
 		t.Fatalf("Run: %v\n%s", err, logs.String())
 	}
-	return api, obs, summary
+	return api, summary
 }
 
 func TestUnit_Adaptive_ARefusedElementIsWidenedToTheDocumentedMembers(t *testing.T) {
 	t.Parallel()
-	_, _, summary := labelRun(t)
+	_, summary := labelRun(t)
 	got := entityStatus(t, summary, "label")
 	if got.Outcome == observe.OutcomeBlocked {
 		t.Fatalf("label blocked; the filter element was never widened: %+v", got)
@@ -322,7 +322,7 @@ func TestUnit_Adaptive_ARefusedElementIsWidenedToTheDocumentedMembers(t *testing
 
 func TestUnit_Adaptive_AnOptionalReferenceNothingServesIsLeftOut(t *testing.T) {
 	t.Parallel()
-	api, _, summary := labelRun(t)
+	api, summary := labelRun(t)
 	got := entityStatus(t, summary, "window")
 	if got.Outcome == observe.OutcomeBlocked {
 		t.Fatalf("window blocked on an optional reference: %+v", got)
