@@ -404,3 +404,25 @@ func TestUnit_PrintSkipped_SaysNothingWhenNothingWasSkipped(t *testing.T) {
 		t.Errorf("printed %q for an empty skip list, want nothing", b.String())
 	}
 }
+
+func TestUnit_AuditRun_EntityFlagNarrowsTheRunToTheNamedEntity(t *testing.T) {
+	s := testapiserver.New(t, testapiserver.Quirks{})
+	auditRepo(t)
+	t.Setenv("TFPFGEN_AUTH_TOKEN", "cli-test-token-123456")
+
+	code, stdout, stderr := run(t, "audit", "run", "--base-url", s.BaseURL(), "--entity", "thing")
+	if code != ExitOK {
+		t.Fatalf("exit = %d\nstdout: %s\nstderr: %s", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "thing") {
+		t.Errorf("the named entity is missing from the summary:\n%s", stdout)
+	}
+
+	code, _, stderr = run(t, "audit", "run", "--base-url", s.BaseURL(), "--entity", "things")
+	if code == ExitOK {
+		t.Fatal("an entity name the plan does not carry was accepted")
+	}
+	if !strings.Contains(stderr, `"things"`) || !strings.Contains(stderr, `did you mean "thing"`) {
+		t.Errorf("the refusal does not name the flag value and a suggestion:\n%s", stderr)
+	}
+}

@@ -2,9 +2,11 @@ package run
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
@@ -52,6 +54,7 @@ func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 		extra string // collection / trigger / condVal, per kind
 	}{
 		{"required", `{"detail":"field interval is required"}`, adjustmentAdd, "interval", ""},
+		{"bare-member", `{"title":"400 Bad Request\nrepeat type must be specified"}`, adjustmentAdd, "type", ""},
 		{"required-when", `{"detail":"field target_host is required when kind=ping"}`, adjustmentAdd, "target_host", "ping"},
 		{"not-valid", `{"detail":"field domain is not valid when kind=ping"}`, adjustmentRemove, "domain", "ping"},
 		{"requires", `{"detail":"field dnssec requires field domain to be set"}`, adjustmentRequires, "domain", "dnssec"},
@@ -407,20 +410,26 @@ func TestUnit_Search_MaximalCulpritPrefersTheNamedField(t *testing.T) {
 	minimal := map[string]any{"name": "n"}
 
 	named := &httpResult{body: []byte(`{"detail":"colour is not valid here"}`)}
-	if got := r.refusedOptionalField(body, minimal, named); got != "colour" {
-		t.Errorf("refusedField = %q, want the field the refusal named", got)
+	if got := r.refusedOptionalFields(body, minimal, named); !reflect.DeepEqual(got, []string{"colour"}) {
+		t.Errorf("refusedFields = %v, want the field the refusal named", got)
+	}
+
+	// Several named at once are all dropped in one attempt.
+	several := &httpResult{body: []byte(`{"detail":"Invalid value for fields: colour, shape"}`)}
+	if got := r.refusedOptionalFields(body, minimal, several); !reflect.DeepEqual(got, []string{"colour", "shape"}) {
+		t.Errorf("refusedFields = %v, want every field the refusal named", got)
 	}
 
 	// Nothing named: the last optional field in order, never a field the
 	// minimal create needs.
 	silent := &httpResult{body: []byte(`{"detail":"bad request"}`)}
-	if got := r.refusedOptionalField(body, minimal, silent); got != "shape" {
-		t.Errorf("refusedField = %q, want the last optional field", got)
+	if got := r.refusedOptionalFields(body, minimal, silent); !reflect.DeepEqual(got, []string{"shape"}) {
+		t.Errorf("refusedFields = %v, want the last optional field", got)
 	}
 
 	// Only the minimal body left: there is nothing safe to drop.
-	if got := r.refusedOptionalField(minimal, minimal, silent); got != "" {
-		t.Errorf("refusedField = %q, want none", got)
+	if got := r.refusedOptionalFields(minimal, minimal, silent); got != nil {
+		t.Errorf("refusedFields = %v, want none", got)
 	}
 }
 
@@ -439,7 +448,7 @@ func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
 	}
 	values := map[string]any{"endpoint": "https://reachable.example", "kind": "web"}
 
-	body := synthesiseRequestBody(sk, "monitor", "tfpfgen", "kind", "ping", values)
+	body := bodySynthesis{entity: "monitor", prefix: "tfpfgen", values: values}.requestBody(sk, "kind", "ping")
 
 	// The operator supplies a value precisely for the field no synthesis can
 	// guess: an example the API cannot reach is still an example.
@@ -454,5 +463,285 @@ func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
 	// A field the operator said nothing about is synthesised as before.
 	if body["name"] != "tfpfgen-<runid>-monitor-name" {
 		t.Errorf("name = %#v, want the invented name", body["name"])
+	}
+}
+
+func TestUnit_Adjust_ClassifyRefusalWiderGrammar(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		body       string
+		field      string
+		candidates []string
+		declared   bool
+	}{
+		// A deserialiser naming the discriminator it could not find.
+		{"missing-property",
+			`{"message":"JSON parse error: Could not resolve subtype of [simple type, class Authentication]: missing type id property 'type' (for POJO property 'authentication')"}`,
+			"type", nil, false},
+		// A choice: any one of the listed fields satisfies the refusal.
+		{"at-least-one",
+			`{"errors":[{"defaultMessage":"At least one of the following is required: payload, query params or headers."}]}`,
+			"payload", []string{"payload", "query params", "headers"}, true},
+		// The word before an absence complaint, with nothing vouching for it
+		// as a wire property.
+		{"bare-absent", `{"title":"400 Bad Request\nendRepeat must be specified"}`, "endRepeat", nil, true},
+		{"bare-absent-qualified", `{"title":"400 Bad Request\nalertSuppressionWindow name must be specified"}`, "name", nil, true},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := classifyRefusal(&httpResult{status: 400, body: []byte(testCase.body)})
+			if got.kind != adjustmentAdd || got.field != testCase.field {
+				t.Fatalf("classify = %+v, want add %s", got, testCase.field)
+			}
+			if got.mustBeDeclared != testCase.declared {
+				t.Errorf("mustBeDeclared = %v, want %v", got.mustBeDeclared, testCase.declared)
+			}
+			if testCase.candidates != nil && !reflect.DeepEqual(got.candidates, testCase.candidates) {
+				t.Errorf("candidates = %v, want %v", got.candidates, testCase.candidates)
+			}
+		})
+	}
+}
+
+func TestUnit_Adjust_AddFieldPrefersWhatTheEntityDeclares(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"payload": {Field: "payload"}, "queryParams": {Field: "queryParams"}, "repeat": {Field: "repeat"},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"webhook": known}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "webhook"}}
+
+	// The first offered field the body lacks, in the entity's own spelling.
+	choice := parsedRefusal{kind: adjustmentAdd, field: "payload", candidates: []string{"payload", "query params", "headers"}, mustBeDeclared: true}
+	if got := r.addField(entity, map[string]any{"payload": "{}"}, choice, ""); got != "queryParams" {
+		t.Errorf("addField = %q, want queryParams", got)
+	}
+	// A loose sentence whose word is not a declared field falls back on a
+	// declared field the sentence names, and otherwise adds nothing.
+	loose := parsedRefusal{kind: adjustmentAdd, field: "conditions", mustBeDeclared: true}
+	if got := r.addField(entity, map[string]any{}, loose, "repeat conditions must be specified"); got != "repeat" {
+		t.Errorf("addField = %q, want the declared field the sentence names", got)
+	}
+	if got := r.addField(entity, map[string]any{}, loose, "conditions must be specified"); got != "" {
+		t.Errorf("addField = %q, want nothing for an undeclared word", got)
+	}
+	// A marked field is taken at its word even when undeclared: an API
+	// routinely requires a property the document omits.
+	marked := parsedRefusal{kind: adjustmentAdd, field: "loginAccountGroupId"}
+	if got := r.addField(entity, map[string]any{}, marked, ""); got != "loginAccountGroupId" {
+		t.Errorf("addField = %q, want the marked field", got)
+	}
+	// Without hints — a run with no strategy — the first absent candidate.
+	bare := &runner{}
+	if got := bare.addField(entity, map[string]any{"payload": 1}, choice, ""); got != "headers" {
+		t.Errorf("addField without hints = %q, want headers (query params carries a space)", got)
+	}
+}
+
+func TestUnit_Cycle_QuotedEnumFieldAndSegments(t *testing.T) {
+	t.Parallel()
+	hints := map[string]strategy.SyntheticValueRules{
+		"type": {Field: "type", Enum: []any{"generic"}},
+		"name": {Field: "name"},
+	}
+	body := map[string]any{"type": "generic", "name": "generic"}
+	field, value := quotedEnumField("Could not resolve type id 'generic' as a subtype of X", body, hints)
+	if field != "type" || value != "generic" {
+		t.Errorf("quotedEnumField = %q %q, want type generic", field, value)
+	}
+	if field, _ := quotedEnumField(`object "generic" not found`, map[string]any{"name": "generic"}, hints); field != "" {
+		t.Errorf("a quoted value under a non-enum field matched: %q", field)
+	}
+	if got := staticSegments("/connectors/{kind}/panorama"); !reflect.DeepEqual(got, []string{"connectors", "panorama"}) {
+		t.Errorf("staticSegments = %v", got)
+	}
+}
+
+func TestUnit_Adjust_ANestedMemberTheAPIRefusesIsRemovedWhereItSits(t *testing.T) {
+	t.Parallel()
+	got := classifyRefusal(&httpResult{status: 400, body: []byte(`{"errors":[{"field":"secrets[0].id","message":"must be null"}]}`)})
+	if got.kind != adjustmentRemove || got.field != "secrets[0].id" {
+		t.Fatalf("classify = %+v, want remove secrets[0].id", got)
+	}
+	body := map[string]any{
+		"name":    "x",
+		"secrets": []any{map[string]any{"id": "stale", "name": "s"}, map[string]any{"id": "keep"}},
+		"auth":    map[string]any{"username": "u", "type": "basic"},
+	}
+	if !removePath(body, "secrets[0].id") {
+		t.Fatal("secrets[0].id was not removed")
+	}
+	if _, still := body["secrets"].([]any)[0].(map[string]any)["id"]; still {
+		t.Error("secrets[0].id survived")
+	}
+	if _, kept := body["secrets"].([]any)[1].(map[string]any)["id"]; !kept {
+		t.Error("secrets[1].id was removed instead")
+	}
+	if !removePath(body, "auth.username") || len(body["auth"].(map[string]any)) != 1 {
+		t.Errorf("auth.username was not removed: %v", body["auth"])
+	}
+	if !removePath(body, "secrets[1]") || len(body["secrets"].([]any)) != 1 {
+		t.Errorf("secrets[1] was not removed: %v", body["secrets"])
+	}
+	if removePath(body, "secrets[7].id") || removePath(body, "nothing.here") || removePath(body, "name.deeper") {
+		t.Error("a path that names nothing reported a removal")
+	}
+	r := &runner{}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "vault"}}
+	applied := map[string]bool{}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, &httpResult{status: 400,
+		body: []byte(`{"errors":[{"field":"auth.type","message":"must be null"}]}`)}, applied, true); !ok {
+		t.Fatal("the nested removal was not applied")
+	}
+	if _, still := body["auth"].(map[string]any)["type"]; still {
+		t.Error("auth.type survived the adjustment")
+	}
+}
+
+func TestUnit_Adjust_ARefusedChoiceMovesOnToTheNextOffered(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"payload": {Field: "payload"}, "queryParams": {Field: "queryParams"}, "headers": {Field: "headers"},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"webhook": known}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "webhook"}}
+	choice := &pendingAdd{field: "payload", candidates: []string{"payload", "query params", "headers"}}
+	if next := r.nextChoice(entity, map[string]any{"payload": "{}"}, choice); next != "queryParams" {
+		t.Errorf("nextChoice = %q, want queryParams", next)
+	}
+	choice.field = "queryParams"
+	if next := r.nextChoice(entity, map[string]any{"queryParams": "{}", "headers": []any{}}, choice); next != "" {
+		t.Errorf("nextChoice = %q, want nothing once every candidate is present or spent", next)
+	}
+	adds := withoutAdd([]pendingAdd{{field: "type"}, {field: "payload"}}, "payload")
+	if len(adds) != 1 || adds[0].field != "type" {
+		t.Errorf("withoutAdd = %+v", adds)
+	}
+}
+
+func TestUnit_Adjust_ExactlyOneOfAPairRemovesTheSecond(t *testing.T) {
+	t.Parallel()
+	got := classifyRefusal(&httpResult{status: 400, body: []byte(`{"title":"minimumSources: Exactly 1 field must be defined between minimumSources and minimumSourcesPct"}`)})
+	if got.kind != adjustmentRemove || got.field != "minimumSourcesPct" || got.mutuallyExclusiveWith != "minimumSources" {
+		t.Fatalf("classify = %+v, want remove minimumSourcesPct beside minimumSources", got)
+	}
+	r := &runner{}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "rule"}}
+	body := map[string]any{"minimumSources": 10, "minimumSourcesPct": 99}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, &httpResult{status: 400,
+		body: []byte(`{"title":"Exactly 1 field must be defined between minimumSources and minimumSourcesPct"}`)}, map[string]bool{}, false); !ok {
+		t.Fatal("the pair was not reduced")
+	}
+	if _, still := body["minimumSourcesPct"]; still || body["minimumSources"] != 10 {
+		t.Errorf("body = %v, want the first of the pair alone", body)
+	}
+	// With only one of the pair present the sentence is about something
+	// else, and removing the one present would leave neither.
+	lone := map[string]any{"minimumSourcesPct": 99}
+	if _, ok := r.applyAdjustment(context.Background(), entity, lone, &httpResult{status: 400,
+		body: []byte(`{"title":"Exactly 1 field must be defined between minimumSources and minimumSourcesPct"}`)}, map[string]bool{}, false); ok {
+		t.Error("a lone field of the pair was removed")
+	}
+}
+
+func TestUnit_Adjust_ANumberRefusedAsNotPositiveTakesTheSmallestPositiveValue(t *testing.T) {
+	t.Parallel()
+	got := classifyRefusal(&httpResult{status: 400, body: []byte(`{"title":"400 Bad Request\nduration must be a positive value"}`)})
+	if got.kind != adjustmentRevalue || got.field != "duration" || got.revalue != positiveValue {
+		t.Fatalf("classify = %+v, want a positive revalue of duration", got)
+	}
+	minimum := 30.0
+	hints := map[string]strategy.SyntheticValueRules{
+		"duration": {Field: "duration", Type: "integer"},
+		"ratio":    {Field: "ratio", Type: "number", Minimum: &minimum},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"window": hints}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "window"}}
+	body := map[string]any{"duration": 0, "ratio": -1.5}
+	refusal := &httpResult{status: 400, body: []byte(`{"title":"duration must be a positive value"}`)}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, refusal, map[string]bool{}, false); !ok || body["duration"] != int64(1) {
+		t.Errorf("duration = %#v, want 1", body["duration"])
+	}
+	if v, ok := revalued(positiveValue, -1.5, hints["ratio"]); !ok || v != 30.0 {
+		t.Errorf("a bounded number = %#v, want the declared minimum", v)
+	}
+	if _, ok := revalued(positiveValue, 5, hints["duration"]); ok {
+		t.Error("a positive value was replaced")
+	}
+}
+
+func TestUnit_Cycle_OnlyTheNamedEnumFieldsAreCycled(t *testing.T) {
+	t.Parallel()
+	hints := map[string]strategy.SyntheticValueRules{
+		"kind":     {Field: "kind", Enum: []any{"a", "b"}},
+		"protocol": {Field: "protocol", Enum: []any{"tcp", "udp"}},
+		"cert":     {Field: "cert"},
+	}
+	body := map[string]any{"kind": "a", "protocol": "tcp", "cert": "x"}
+	got := retryableSiblings(body, hints, "", []string{"cert", "protocol"})
+	if len(got) != 1 || got[0].Field != "protocol" {
+		t.Errorf("siblings = %+v, want protocol alone: the named enum field", got)
+	}
+	if got := retryableSiblings(body, hints, "protocol", []string{"protocol"}); len(got) != 0 {
+		t.Errorf("the held field was cycled: %+v", got)
+	}
+}
+
+func TestUnit_Adjust_AWordBeforeTheComplaintFallsBackOnTheDeclaredFieldNamed(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"repeat": {Field: "repeat", Type: "object"}, "duration": {Field: "duration", Type: "integer"},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"window": known}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "window"}}
+	body := map[string]any{"duration": 1, "name": "n"}
+	res := &httpResult{status: 400, body: []byte(`{"status":400,"title":"400 Bad Request\nrepeat conditions must be specified"}`)}
+	act := classifyRefusal(res)
+	if act.kind != adjustmentAdd {
+		t.Fatalf("classify = %+v, want an add", act)
+	}
+	if got := r.addField(entity, body, act, refusalMessage(res.body)); got != "repeat" {
+		t.Fatalf("addField = %q, want repeat", got)
+	}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, res, map[string]bool{}, false); !ok {
+		t.Fatal("the adjustment was not applied")
+	}
+	if _, has := body["repeat"]; !has {
+		t.Errorf("repeat was not added: %v", body)
+	}
+}
+
+func TestUnit_Adjust_ADeclaredNameTheRefusalQualifiesIsStillNamed(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"startDate": {Field: "startDate"}, "id": {Field: "id"}, "name": {Field: "name"},
+	}
+	if got := declaredSpelling("startDateTime", known); got != "startDate" {
+		t.Errorf("declaredSpelling(startDateTime) = %q, want startDate", got)
+	}
+	// Too short a declared name to claim a prefix.
+	if got := declaredSpelling("identifier", known); got != "" {
+		t.Errorf("declaredSpelling(identifier) = %q, want nothing", got)
+	}
+}
+
+func TestUnit_Steps_AProbeUnderARefusedGateValueIsNotSent(t *testing.T) {
+	t.Parallel()
+	r := &runner{}
+	entity := &entityState{
+		plan:                &plan.EntityPlan{Entity: "rule"},
+		recipe:              &entityLifecycle{minimalBody: map[string]any{"alertType": "http-server"}},
+		unreachedGateValues: map[string]map[string]bool{"alertType": {"bgp": true}},
+	}
+	step := &plan.Step{
+		Kind: plan.StepCreatePerEnumValue, Attribute: "direction",
+		Body:      map[string]any{"alertType": "bgp", "direction": "to-target"},
+		Condition: &observe.Condition{Attribute: "alertType", Equals: "bgp"},
+	}
+	// A runner with no client would fail the moment a request was built;
+	// returning cleanly proves nothing was sent.
+	if err := r.runCreatePerEnumValue(context.Background(), entity, step); err != nil {
+		t.Fatalf("a probe under a refused gate value was sent: %v", err)
 	}
 }

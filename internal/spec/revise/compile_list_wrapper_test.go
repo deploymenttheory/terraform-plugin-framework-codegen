@@ -237,3 +237,57 @@ func TestUnit_CompilableKinds_IsASortedCopyOfTheVocabulary(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_Compile_ASharedSiteKeepsAnotherEntitysDefault pins convergence
+// where a property's schema is shared between entities that each observe
+// their own default: a site another entity's correction wrote, or another
+// observation in the same run compiled, proposes nothing rather than
+// replacing the value and being replaced in turn — while an observation
+// revisiting its own correction still follows the moved value.
+func TestUnit_Compile_ASharedSiteKeepsAnotherEntitysDefault(t *testing.T) {
+	t.Parallel()
+	_, specDir, lock := pinnedTree(t)
+	state, entities, err := revisedState(specDir, filepath.Join(specDir, correction.DirName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := confirmedObs("size", observe.KindServerDefault, "small", nil, lock.SHA256)
+	path := "/components/schemas/Tag/properties/size/" + specmodel.ExtServerDefault
+
+	fresh := func(restated map[string]string) *compiler {
+		return &compiler{entities: entities, state: state, vetoes: map[[2]string]bool{},
+			variants: map[[2]string]map[string][]string{}, restated: restated}
+	}
+
+	// Written by another entity's correction: nothing to propose.
+	res, err := fresh(map[string]string{path: "audit/observations/other.observations.json#0123456789abcdef"}).compile(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.category != catAlreadyStated || !strings.Contains(res.reason, "another entity's value") {
+		t.Errorf("another entity's site compiled to %+v, want the shared-site note", res)
+	}
+
+	// Written by this observation's own correction: the value moved.
+	res, err = fresh(map[string]string{path: evidenceReference(o)}).compile(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.operations) != 1 {
+		t.Errorf("a moved default compiled to %+v, want its replacement", res)
+	}
+
+	// Compiled earlier in this run with a different value: nothing to propose.
+	comp := fresh(nil)
+	if _, err := comp.compile(o); err != nil {
+		t.Fatal(err)
+	}
+	later := confirmedObs("size", observe.KindServerDefault, "large", nil, lock.SHA256)
+	res, err = comp.compile(later)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.category != catAlreadyStated || !strings.Contains(res.reason, "this run already compiled") {
+		t.Errorf("a second default on the site compiled to %+v, want the shared-site note", res)
+	}
+}

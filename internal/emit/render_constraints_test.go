@@ -2,6 +2,9 @@ package emit
 
 import (
 	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 	"testing"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
@@ -153,5 +156,92 @@ func TestUnit_ConstraintValidators_DeclareTheirOwnImports(t *testing.T) {
 		if !strings.Contains(rendered, want) {
 			t.Errorf("the import block does not declare %q:\n%s", want, rendered)
 		}
+	}
+}
+
+func TestUnit_Validators_AListOfEnumeratedStringsValidatesEachMember(t *testing.T) {
+	sb := &schemaBuilder{kind: schemaResource}
+	n := node{attribute: ir.Attribute{Name: "modules", Kind: ir.TypeList, ElementType: ir.TypeString, OneOf: []string{"default", "extended"}}}
+	got := sb.validators(n, 1)
+	if len(got) != 1 || got[0].SchemaDefinition != `listvalidator.ValueStringsAre(stringvalidator.OneOf("default", "extended"))` {
+		t.Fatalf("validators = %+v, want the member validator", got)
+	}
+	if len(got[0].Imports) != 2 {
+		t.Errorf("imports = %+v, want listvalidator and stringvalidator", got[0].Imports)
+	}
+}
+
+func TestUnit_CheckLines_AddressMapsByKeyAndReferencesByPresence(t *testing.T) {
+	spec := fixtures.Fixture{Entries: []fixtures.Entry{
+		{Name: "template_id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Expression: "petstore_template.template.id"},
+		{Name: "labels", Kind: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional, Scalar: "one"},
+		{Name: "tags", Kind: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional, Scalar: map[string]any{"b": "2", "a": "1"}},
+	}}
+	got := checkLines("petstore_thing.test", spec, fixtures.ConfigMaximal)
+	for _, want := range []string{
+		`resource.TestCheckResourceAttrSet("petstore_thing.test", "template_id")`,
+		`resource.TestCheckResourceAttr("petstore_thing.test", "labels.labels", "one")`,
+		`resource.TestCheckResourceAttr("petstore_thing.test", "tags.a", "1")`,
+		`resource.TestCheckResourceAttr("petstore_thing.test", "tags.b", "2")`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("checks = %q, want %s", got, want)
+		}
+	}
+	if strings.Contains(got, `"tags", `) || strings.Contains(got, `"labels", `) {
+		t.Errorf("a map was checked whole: %q", got)
+	}
+}
+
+func TestUnit_StateLines_ANormalisedStringKeepsTheConfiguredSpelling(t *testing.T) {
+	nodes := []node{
+		{attribute: ir.Attribute{Name: "server", Kind: ir.TypeString, Normalisation: "extended"},
+			fb: &sdkbind.FieldBinding{Attr: "server", Wire: "server", Kind: ir.TypeString, Access: kiotaAccess("Server", "*string", "FromPtrString", "ToPtrString", "")}},
+		{attribute: ir.Attribute{Name: "name", Kind: ir.TypeString},
+			fb: &sdkbind.FieldBinding{Attr: "name", Wire: "name", Kind: ir.TypeString, Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}},
+	}
+	got, err := stateLines(nodes, "Thing", "remote", "data", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, `data.Server = convert.Normalised(data.Server, convert.APIToFrameworkString(remote.GetServer()), "extended")`) {
+		t.Errorf("state lines = %q, want the normalised read", got)
+	}
+	if !strings.Contains(got, "data.Name = convert.APIToFrameworkString(remote.GetName())") {
+		t.Errorf("state lines = %q, want the plain read for the other attribute", got)
+	}
+}
+
+func TestUnit_ParameterNode_TheFirstAttributeCarryingTheWireNameAnswers(t *testing.T) {
+	// A parent spelled id sits ahead of the resource's own id.
+	nodes := []node{
+		{attribute: ir.Attribute{Name: "template_id", WireName: "id", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+	}
+	got, err := parameterNode(sdkbind.CallParameter{Wire: "id"}, nodes, true)
+	if err != nil || got.attribute.Name != "template_id" {
+		t.Errorf("parameterNode(id) = %q, %v; want the parent attribute ahead of the id", got.attribute.Name, err)
+	}
+	// An object's key the document also declares as a property is answered
+	// by the id, which the create and the import fill.
+	nodes = []node{
+		{attribute: ir.Attribute{Name: "id", WireName: "testId", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "test_id", WireName: "testId", Kind: ir.TypeString}},
+	}
+	got, err = parameterNode(sdkbind.CallParameter{Wire: "testId"}, nodes, true)
+	if err != nil || got.attribute.Name != "id" {
+		t.Errorf("parameterNode(testId) = %q, %v; want the id", got.attribute.Name, err)
+	}
+}
+
+func TestUnit_ImportVerifyIgnores_HeldAndNormalisedAttributes(t *testing.T) {
+	nodes := []node{
+		{attribute: ir.Attribute{Name: "agents"}, fb: &sdkbind.FieldBinding{Attr: "agents", KeptFromPlan: true}},
+		{attribute: ir.Attribute{Name: "server", Normalisation: "extended"}, fb: &sdkbind.FieldBinding{Attr: "server"}},
+		{attribute: ir.Attribute{Name: "name"}, fb: &sdkbind.FieldBinding{Attr: "name"}},
+		{attribute: ir.Attribute{Name: "owner_id"}},
+	}
+	if got := importVerifyIgnores(nodes); got != `, "agents", "server"` {
+		t.Errorf("importVerifyIgnores = %q, want the held and the normalised attribute", got)
 	}
 }

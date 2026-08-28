@@ -21,6 +21,8 @@ type Tag struct {
 	labels        []string
 	detail        TagDetailable
 	weird         *TagDetail
+	ownerId       *string
+	owners        []string
 }
 
 // NewTag constructs a settable Tag.
@@ -106,6 +108,30 @@ func (t *Tag) GetDetail() TagDetailable { return t.detail }
 // SetDetail writes the nested object.
 func (t *Tag) SetDetail(v TagDetailable) { t.detail = v }
 
+// SetOwnerId writes a property the request model carries and the
+// read-side interface never answers — the request-only field.
+func (t *Tag) SetOwnerId(v *string) { t.ownerId = v }
+
+// GetOwners reads owners as objects where SetOwners takes their ids — the
+// API that writes identifiers and reads what they identify.
+func (t *Tag) GetOwners() []Ownerable { return nil }
+
+// SetOwners writes the owner identifiers.
+func (t *Tag) SetOwners(v []string) { t.owners = v }
+
+// Owner is what an owner reads back as.
+type Owner struct {
+	id *string
+}
+
+// GetId reads the owner's identifier.
+func (o *Owner) GetId() *string { return o.id }
+
+// Ownerable is the owner's read-side interface.
+type Ownerable interface {
+	GetId() *string
+}
+
 // GetWeird carries a model where the document promised a string.
 func (t *Tag) GetWeird() *TagDetail { return t.weird }
 
@@ -128,6 +154,7 @@ type Tagable interface {
 	GetLabels() []string
 	GetDetail() TagDetailable
 	GetWeird() *TagDetail
+	GetOwners() []Ownerable
 }
 
 // Slug is a named string that is not an enumeration: no companion

@@ -2,7 +2,6 @@ package run
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -69,8 +68,15 @@ type evidence struct {
 	// for carrying together — the mutual-exclusion signal, empty unless the
 	// refusal grammar names one.
 	acceptedRequestBodies []map[string]any
-	listBodies            [][]byte
-	combinedRefusals      []infer.FieldPair
+	// futureFields is every field the adjustment loop moved ahead of now
+	// because the API wanted it there: a replay must move it again.
+	futureFields map[string]bool
+	// references maps each field whose value was borrowed from another
+	// collection to that collection's path: a replay must create such an
+	// object of its own and refer to it, since the borrowed one is gone.
+	references       map[string]string
+	listBodies       [][]byte
+	combinedRefusals []infer.FieldPair
 	// conditionalValues records the value-cycling outcomes the executor
 	// gathered correcting free-form conditional refusals — each (discriminator
 	// value, sibling field, sibling value) the API accepted or refused — the
@@ -307,9 +313,21 @@ func (r *runner) finalizeFields(entity string, ev *evidence, sent, got map[strin
 			r.record(entity, f, observe.KindWritable, nil, nil, observe.OutcomeInconclusive, proof...)
 		case wasSent && present && equalJSON(sentV, gotV):
 			r.record(entity, f, observe.KindWritable, true, nil, observe.OutcomeConfirmed, proof...)
+		case wasSent && present && maskedEcho(sentV, gotV):
+			// Answered as a run of mask characters: the value was taken and
+			// is never given back, which is the same fact as its absence.
+			r.record(entity, f, observe.KindWritable, false, nil, observe.OutcomeConfirmed, proof...)
 		case wasSent && present:
 			if norm, ok := normalisedForm(sentV, gotV); ok {
 				r.record(entity, f, observe.KindNormalisation, norm, nil, observe.OutcomeConfirmed, proof...)
+			} else if composite(sentV) || composite(gotV) {
+				// An object or list answered differently is not the server
+				// substituting a value: it is members added, masked or
+				// dropped, and which of those it was is not one fact about
+				// the field. A member sent and answered masked or not at all
+				// is a fact about that member.
+				r.record(entity, f, observe.KindServerForced, nil, nil, observe.OutcomeInconclusive, proof...)
+				r.finalizeNestedMembers(entity, f, sentV, gotV, proof)
 			} else {
 				r.record(entity, f, observe.KindServerForced, true, nil, observe.OutcomeConfirmed, proof...)
 			}
@@ -319,6 +337,48 @@ func (r *runner) finalizeFields(entity string, ev *evidence, sent, got map[strin
 			r.finalizeDefault(entity, ev, f, gotV, proof)
 		}
 	}
+}
+
+// finalizeNestedMembers records, for the members of an object sent and
+// answered, the ones the answer never carries as they were sent: absent, or
+// a mask. Each lands on the member's dotted path, so the correction reaches
+// the nested property. A list of objects is read through its first element,
+// the one the body carried. Members answered as sent record nothing: the
+// object as a whole is what the top-level evidence speaks for.
+func (r *runner) finalizeNestedMembers(entity, field string, sent, got any, proof []observe.Excerpt) {
+	sentObject, gotObject := firstObject(sent), firstObject(got)
+	if sentObject == nil || gotObject == nil {
+		return
+	}
+	for _, member := range sortedFieldUnion(sentObject, nil) {
+		sentValue := sentObject[member]
+		gotValue, present := gotObject[member]
+		at := field + "." + member
+		switch {
+		case !present:
+			r.record(entity, at, observe.KindWritable, false, nil, observe.OutcomeConfirmed, proof...)
+		case maskedEcho(sentValue, gotValue):
+			r.record(entity, at, observe.KindWritable, false, nil, observe.OutcomeConfirmed, proof...)
+		case composite(sentValue) && composite(gotValue):
+			r.finalizeNestedMembers(entity, at, sentValue, gotValue, proof)
+		}
+	}
+}
+
+// firstObject answers a value as an object: the value itself, or the first
+// element of a list of objects; nil for anything else.
+func firstObject(value any) map[string]any {
+	switch v := value.(type) {
+	case map[string]any:
+		return v
+	case []any:
+		if len(v) > 0 {
+			if first, ok := v[0].(map[string]any); ok {
+				return first
+			}
+		}
+	}
+	return nil
 }
 
 // finalizeDefault decides constant versus derived for one unsent field
@@ -470,35 +530,65 @@ func numeric(v any) (float64, bool) {
 }
 
 // normalisedForm reports whether got is a recognisable transform of sent
-// — case-folded, trimmed, or a re-sorted list — and returns the stored
-// form as the string a normalisation observation carries.
+// and answers the stored form as the string a normalisation observation
+// carries; the kind is what the correction compiler reads back from the
+// excerpts.
 func normalisedForm(sent, got any) (string, bool) {
-	if ss, ok := sent.(string); ok {
-		gs, ok := got.(string)
-		if !ok {
-			return "", false
+	_, form, ok := observe.Normalisation(sent, got)
+	return form, ok
+}
+
+// maskedEcho reports whether a string went in and a mask came back: the
+// answer is nothing but asterisks or bullets, and is not what was sent. A
+// nested object is masked when every string in it is.
+func maskedEcho(sent, got any) bool {
+	switch g := got.(type) {
+	case string:
+		if _, ok := sent.(string); !ok || g == sent {
+			return false
 		}
-		for _, candidate := range []string{
-			strings.ToLower(ss), strings.TrimSpace(ss), strings.ToLower(strings.TrimSpace(ss)), strings.ToUpper(ss),
-		} {
-			if gs == candidate && gs != ss {
-				return gs, true
+		return isMask(g)
+	case map[string]any:
+		s, ok := sent.(map[string]any)
+		if !ok {
+			return false
+		}
+		strings := 0
+		for k, v := range g {
+			text, isString := v.(string)
+			if !isString {
+				continue
+			}
+			strings++
+			if !maskedEcho(s[k], text) {
+				return false
 			}
 		}
-		return "", false
+		return strings > 0
 	}
-	sentList, okS := sent.([]any)
-	gotList, okG := got.([]any)
-	if okS && okG && len(sentList) == len(gotList) {
-		sorted := make([]any, len(sentList))
-		copy(sorted, sentList)
-		sort.Slice(sorted, func(i, j int) bool { return fmt.Sprint(sorted[i]) < fmt.Sprint(sorted[j]) })
-		if equalJSON(sorted, gotList) && !equalJSON(sentList, gotList) {
-			raw, _ := json.Marshal(gotList)
-			return string(raw), true
+	return false
+}
+
+// isMask reports whether a string is made of mask characters alone.
+func isMask(s string) bool {
+	if len(s) < 3 {
+		return false
+	}
+	for _, r := range s {
+		if r != '*' && r != '•' && r != 'x' && r != 'X' {
+			return false
 		}
 	}
-	return "", false
+	return true
+}
+
+// composite reports whether a value is an object or a list.
+func composite(v any) bool {
+	switch v.(type) {
+	case map[string]any, []any:
+		return true
+	}
+	return false
 }
 
 // scalarLike reports whether a value can be a serverDefault observation's

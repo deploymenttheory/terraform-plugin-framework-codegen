@@ -52,6 +52,16 @@ func operation(kind ir.OperationKind, method, path, opID string, parameters ...i
 	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: parameters}
 }
 
+// deleteWithQuery gives a delete the query parameters the document
+// requires of it: a confirmation and a reason.
+func deleteWithQuery(operation *ir.Operation) *ir.Operation {
+	operation.QueryParameters = []ir.QueryParameter{
+		{Name: "confirm", Type: ir.TypeBool, Value: true},
+		{Name: "reason", Type: ir.TypeString, Value: "retired"},
+	}
+	return operation
+}
+
 func attribute(name, wire string, kind ir.AttributeType, participation ir.ComputedOptionalRequired) ir.Attribute {
 	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: participation}
 }
@@ -77,6 +87,9 @@ func tagSchema() *ir.AttributeTree {
 	labels := attribute("labels", "labels", ir.TypeList, ir.Optional)
 	labels.ElementType = ir.TypeString
 
+	owners := attribute("owners", "owners", ir.TypeList, ir.Optional)
+	owners.ElementType = ir.TypeString
+
 	kindAttr := attribute("kind", "kind", ir.TypeString, ir.Optional)
 	kindAttr.OneOf = []string{"SIMPLE"}
 
@@ -99,6 +112,8 @@ func tagSchema() *ir.AttributeTree {
 		kinds,
 		attribute("slug", "slug", ir.TypeString, ir.Optional),
 		attribute("alias", "alias", ir.TypeString, ir.Optional),
+		attribute("owner_id", "ownerId", ir.TypeString, ir.Optional),
+		owners,
 		labels,
 		nested,
 		attribute("weird", "weird", ir.TypeString, ir.Optional),
@@ -133,7 +148,7 @@ func kiotaModel() *ir.Model {
 					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
 					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
 					Update: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", tagID),
-					Delete: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID),
+					Delete: deleteWithQuery(operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID)),
 				},
 				Schema: tagSchema(),
 			},
@@ -194,7 +209,7 @@ func openAPIGeneratorModel() *ir.Model {
 	kept := schema.Attributes[:0]
 	for _, a := range schema.Attributes {
 		switch a.Name {
-		case "error", "vendor", "weird", "legacy", "enabled", "created_at", "kinds", "slug", "alias":
+		case "error", "vendor", "weird", "legacy", "enabled", "created_at", "kinds", "slug", "alias", "owner_id", "owners":
 			continue
 		}
 		kept = append(kept, a)

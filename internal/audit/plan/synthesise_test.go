@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // resourceSpec renders a one-entity document around the given create
@@ -421,5 +423,211 @@ func TestUnit_Plan_AnInventedNameOutranksADeclaredExample(t *testing.T) {
 	// A field that names nothing keeps its example.
 	if got := body["summary"]; got != "some words" {
 		t.Errorf("summary = %#v, want the declared example", got)
+	}
+}
+
+func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T) {
+	spec := resourceSpec(
+		"name, filters",
+		`        name:
+          type: string
+        filters:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                enum: [network, agent-id]
+              values:
+                type: array
+                example: ["10.1.1.0/24"]
+                items:
+                  type: string
+              mode:
+                type: string
+                enum: [in, not-in]
+              note:
+                type: string
+        context:
+          type: array
+          items:
+            type: object
+            required: [dataSourceId]
+            properties:
+              dataSourceId:
+                type: string
+                example: VIRTUAL_AGENT
+              nested:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+        agents:
+          type: array
+          items:
+            type: object
+            required: [agentId]
+            properties:
+              agentId:
+                type: string
+              sourceIpAddress:
+                type: string
+            example:
+              agentId: "125"
+              sourceIpAddress: 1.1.1.1
+        authentication:
+          type: object
+          discriminator:
+            propertyName: type
+          oneOf:
+            - type: object
+              required: [token, type]
+              properties:
+                token:
+                  type: string
+                type:
+                  type: string
+                  enum: [other-token]
+            - type: object
+              required: [username, type]
+              properties:
+                username:
+                  type: string
+                type:
+                  type: string
+                  enum: [pan-key-gen]
+        unshaped:
+          type: array
+        tally:
+          type: integer
+`)
+	document := loadDoc(t, spec)
+	class := specmodel.Classify(document).Entities[0]
+
+	minimal, attested := CompositeValues(document, class, "tfpfgen")
+	wantMinimal := map[string]any{
+		// Required members alone: none here, so an empty element.
+		"filters": []any{map[string]any{}},
+		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
+		// An object's own example is a whole element; the smaller form is
+		// built from the properties instead.
+		"agents": []any{map[string]any{"agentId": "sample-agentId"}},
+		// A union declared as an object with no properties of its own is
+		// its first branch.
+		"authentication": map[string]any{"token": "sample-token", "type": "other-token"},
+	}
+	wantAttested := map[string]any{
+		// Every member the document states a value for, none it does not.
+		"filters": []any{map[string]any{"key": "network", "values": []any{"10.1.1.0/24"}, "mode": "in"}},
+		// An optional nested collection the document says nothing about is
+		// not a value the document attests, in either form.
+		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
+		// The whole example, optional members included.
+		"agents":         []any{map[string]any{"agentId": "125", "sourceIpAddress": "1.1.1.1"}},
+		"authentication": map[string]any{"token": "sample-token", "type": "other-token"},
+	}
+	if !reflect.DeepEqual(minimal, wantMinimal) {
+		t.Errorf("minimal composites = %#v\nwant %#v", minimal, wantMinimal)
+	}
+	if !reflect.DeepEqual(attested, wantAttested) {
+		t.Errorf("attested composites = %#v\nwant %#v", attested, wantAttested)
+	}
+	if m, a := CompositeValues(document, specmodel.Classification{Key: "none"}, "tfpfgen"); m != nil || a != nil {
+		t.Error("an entity with no create yields composites")
+	}
+}
+
+func TestUnit_Plan_ADeleteCarriesTheQueryParametersItRequires(t *testing.T) {
+	spec := `openapi: 3.0.3
+info:
+  title: Query fixture
+  version: "1.0"
+paths:
+  /vaults:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vault'
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vault'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vault'
+  /vaults/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vault'
+    delete:
+      parameters:
+        - name: confirmDisabledObjects
+          in: query
+          required: true
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: dryRun
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "204":
+          description: gone
+components:
+  schemas:
+    Vault:
+      type: object
+      required: [name]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+`
+	p := mustDerive(t, loadDoc(t, spec), testConfig(), nil)
+	entity := entityByKey(t, p, "vault")
+	deletes := 0
+	for _, step := range entity.Steps {
+		if step.Kind != StepDeleteWithConfirmation && step.Kind != StepCleanupDelete {
+			if step.Query != nil {
+				t.Errorf("%s carries a query it did not need: %v", step.Kind, step.Query)
+			}
+			continue
+		}
+		deletes++
+		// The required parameter with the document's example; the optional
+		// one left out.
+		if !reflect.DeepEqual(step.Query, map[string]string{"confirmDisabledObjects": "true"}) {
+			t.Errorf("%s query = %v, want the required parameter alone", step.Kind, step.Query)
+		}
+	}
+	if deletes != 2 {
+		t.Errorf("found %d delete steps, want 2", deletes)
 	}
 }

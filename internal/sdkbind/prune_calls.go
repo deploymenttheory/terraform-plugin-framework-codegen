@@ -7,6 +7,8 @@ package sdkbind
 import (
 	"fmt"
 	"go/types"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -64,8 +66,157 @@ func (p *pruner) resolveCall(c *Call) string {
 		return "the call ends without a method"
 	}
 	p.settleCall(c, final)
+	p.settleQueryParameters(c, final)
 	c.rerender()
 	return ""
+}
+
+// settleQueryParameters replaces the call's trailing nil request
+// configuration with one carrying the query parameters the operation
+// requires, spelled through the SDK's own types: the final method's last
+// parameter is a pointer to a generic request configuration whose type
+// argument is the query-parameter struct, and each of its fields names the
+// wire parameter it carries in a uriparametername tag. A parameter the
+// struct does not carry, or a value of a shape no field takes, leaves the
+// configuration nil — the call still compiles, and the API answers what it
+// answers.
+func (p *pruner) settleQueryParameters(c *Call, sig *types.Signature) {
+	if len(c.QueryParameters) == 0 || len(c.Segments) == 0 || sig.Params().Len() == 0 {
+		return
+	}
+	last := &c.Segments[len(c.Segments)-1]
+	if len(last.Args) == 0 || last.Args[len(last.Args)-1] != "nil" {
+		return
+	}
+	pointer, ok := sig.Params().At(sig.Params().Len() - 1).Type().(*types.Pointer)
+	if !ok {
+		return
+	}
+	configuration, ok := pointer.Elem().(*types.Named)
+	if !ok || configuration.TypeArgs().Len() != 1 || configuration.Obj().Pkg() == nil {
+		return
+	}
+	parameters, ok := configuration.TypeArgs().At(0).(*types.Named)
+	if !ok || parameters.Obj().Pkg() == nil {
+		return
+	}
+	fields, ok := parameters.Underlying().(*types.Struct)
+	if !ok {
+		return
+	}
+
+	var assignments []string
+	for _, query := range c.QueryParameters {
+		field, fieldType := fieldByURIParameterName(fields, query.Name)
+		if field == "" {
+			return
+		}
+		literal, ok := queryLiteral(query.Value, fieldType)
+		if !ok {
+			return
+		}
+		assignments = append(assignments, field+": convert.PointerTo("+literal+")")
+	}
+
+	generic := p.qualifierFor(configuration.Obj().Pkg())
+	carrier := p.qualifierFor(parameters.Obj().Pkg())
+	parametersType := carrier + "." + parameters.Obj().Name()
+	last.Args[len(last.Args)-1] = fmt.Sprintf("&%s.%s[%s]{QueryParameters: &%s{%s}}",
+		generic, configuration.Obj().Name(), parametersType, parametersType, strings.Join(assignments, ", "))
+}
+
+// qualifierFor answers the package qualifier a rendered expression names a
+// package by, recording the package for the emitter's imports. The SDK's
+// root package is imported under the fixed alias every generated file
+// uses.
+func (p *pruner) qualifierFor(goPackage *types.Package) string {
+	if goPackage.Path() == p.info.ImportPath {
+		return "sdk"
+	}
+	p.bindings.recordPackage(goPackage.Name(), goPackage.Path())
+	return goPackage.Name()
+}
+
+// fieldByURIParameterName finds the struct field carrying one wire
+// parameter, by its uriparametername tag, answering the field's name and
+// its type.
+func fieldByURIParameterName(st *types.Struct, wire string) (string, types.Type) {
+	for i := range st.NumFields() {
+		tag := reflect.StructTag(st.Tag(i))
+		if tag.Get("uriparametername") == wire {
+			return st.Field(i).Name(), st.Field(i).Type()
+		}
+	}
+	return "", nil
+}
+
+// queryLiteral spells a query parameter's value as a Go literal of the
+// type the struct field points at, and false where the value is not of
+// that type.
+func queryLiteral(value any, fieldType types.Type) (string, bool) {
+	pointer, ok := fieldType.(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	basic, ok := pointer.Elem().Underlying().(*types.Basic)
+	if !ok {
+		return "", false
+	}
+	switch {
+	case basic.Info()&types.IsBoolean != 0:
+		b, ok := value.(bool)
+		if !ok {
+			return "", false
+		}
+		return strconv.FormatBool(b), true
+	case basic.Info()&types.IsString != 0:
+		s, ok := value.(string)
+		if !ok {
+			return "", false
+		}
+		return strconv.Quote(s), true
+	case basic.Info()&types.IsInteger != 0:
+		n, ok := integerValue(value)
+		if !ok {
+			return "", false
+		}
+		return fmt.Sprintf("%s(%d)", basic.Name(), n), true
+	case basic.Info()&types.IsFloat != 0:
+		f, ok := floatValue(value)
+		if !ok {
+			return "", false
+		}
+		return fmt.Sprintf("%s(%s)", basic.Name(), strconv.FormatFloat(f, 'g', -1, 64)), true
+	}
+	return "", false
+}
+
+// integerValue reads a decoded document number as an integer.
+func integerValue(value any) (int64, bool) {
+	switch n := value.(type) {
+	case int:
+		return int64(n), true
+	case int64:
+		return n, true
+	case float64:
+		if n == float64(int64(n)) {
+			return int64(n), true
+		}
+	}
+	return 0, false
+}
+
+// floatValue reads a decoded document number as a float.
+func floatValue(value any) (float64, bool) {
+	switch n := value.(type) {
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case float64:
+		return n, true
+	}
+	return 0, false
 }
 
 // resolveFieldHop selects a struct field on the client, repairing a

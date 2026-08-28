@@ -3,9 +3,7 @@ package revise
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -57,6 +55,20 @@ type compiler struct {
 	// vetoes marks entity/attribute pairs where a confirmed derivedDefault
 	// observation blocks a static serverDefault correction.
 	vetoes map[[2]string]bool
+	// restated maps each document pointer an accepted correction wrote to
+	// the evidence that wrote it, so an observation recompiling its own
+	// accepted correction — its value moved — is told from another
+	// entity's observation landing on the same shared site.
+	restated map[string]string
+	// defaulted maps each server-default site this run has already
+	// compiled a value for to that value, so a second entity observing a
+	// different default on a shared site in the same run proposes nothing.
+	defaulted map[string]any
+	// enumAccepted maps each enum site to the values some entity's
+	// observation accepted there, this run's or an accepted correction's,
+	// so one entity's rejection of a value never removes what another
+	// entity sharing the site sends successfully.
+	enumAccepted map[string]map[string]bool
 	// variants gathers, per (entity, gate field), the validWhen edges the
 	// run confirmed: gate value -> the subject fields valid under it. A
 	// validConfiguration correction reads it to assemble its per-value field
@@ -111,9 +123,10 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 			"updates accept a new value with a success status and do not apply it"), nil
 	case observe.KindUndocumentedFieldInSpec:
 		return c.undocumentedField(loc, cls, o), nil
-	case observe.KindNormalisation, observe.KindDerivedDefault:
-		return compiled{category: catNoForm,
-			reason: "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"}, nil
+	case observe.KindNormalisation:
+		return c.normalisation(loc, cls, o), nil
+	case observe.KindDerivedDefault:
+		return compiled{category: catNoForm, reason: noFormReason}, nil
 	case observe.KindValidWhen:
 		return c.validWhen(loc, cls, o), nil
 	case observe.KindDependsOn:
@@ -144,12 +157,12 @@ func (c *compiler) property(loc *locator, cls specmodel.Classification, o observ
 		return propertyLocation{}, unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind)), false
 	}
 	if node, pointer, ok := loc.requestSchema(cls.Create); ok {
-		if site, ok := loc.findProperty(node, pointer, o.Attribute); ok {
+		if site, ok := loc.findPath(node, pointer, o.Attribute); ok {
 			return site, compiled{}, true
 		}
 	}
 	if node, pointer, ok := loc.responseSchema(cls.Read); ok {
-		if site, ok := loc.findProperty(node, pointer, o.Attribute); ok {
+		if site, ok := loc.findPath(node, pointer, o.Attribute); ok {
 			return site, compiled{}, true
 		}
 	}
@@ -167,8 +180,15 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 	if !ok {
 		return why
 	}
-	// readOnly must sit on a concrete schema: beside a $ref it is ignored,
+	// writeOnly must sit on a concrete schema: beside a $ref it is ignored,
 	// so the declaration the reference resolves to is the correctable spot.
+	//
+	// writeOnly rather than readOnly: the wire shows the value accepted and
+	// absent from the answer, which is what a property the API stores under
+	// another name looks like as much as one it discards, and readOnly would
+	// take a property the API requires away from the practitioner. Declared
+	// write-only, it stays configurable and the state keeps the configured
+	// value.
 	target, targetPtr, ok := loc.followSchemaRefs(site.property, site.propPtr)
 	if !ok {
 		return unplaceable(fmt.Sprintf("the schema of %s.%s resolves outside the document", o.Entity, o.Attribute))
@@ -176,10 +196,13 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 	if loc.readOnlyDeclared(target, targetPtr) {
 		return stated("the document already declares the property readOnly")
 	}
+	if loc.flagDeclared(target, targetPtr, "writeOnly") {
+		return stated("the document already declares the property writeOnly")
+	}
 	return compiled{
-		operations: []correction.Operation{{Op: "add", Path: targetPtr + "/readOnly", Value: true}},
+		operations: []correction.Operation{{Op: "add", Path: targetPtr + "/writeOnly", Value: true}},
 		justification: fmt.Sprintf("the audit confirmed a writable observation on %s.%s: "+
-			"the live API accepts the value and never stores it, so the property is readOnly", o.Entity, o.Attribute),
+			"the live API accepts the value and never returns it, so the property is writeOnly", o.Entity, o.Attribute),
 	}
 }
 
@@ -295,120 +318,43 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 	// in the document. And `default` says what the document declares, which
 	// nothing in the generation path reads — the attribute's presence is
 	// decided from writability and from this extension.
+	path := site.propPtr + "/" + specmodel.ExtServerDefault
+	// A different value another entity observed on the same site, whether
+	// accepted earlier or compiled earlier in this run: the property's
+	// schema is shared between entities and each stores its own default —
+	// eight test types sharing one schema whose type property defaults to
+	// each one's own kind. That is a fact about each entity, and the
+	// document has one site for the property, so no correction states it;
+	// proposing one would only replace the other entity's value and be
+	// replaced in turn. A value this observation's own correction wrote, or
+	// the document's own wrong reading, is still corrected.
+	shared := "another entity's value on this shared property; a default that differs by entity has no site in the document"
+	if by, ok := c.restated[path]; ok && by != evidenceReference(o) {
+		return stated(fmt.Sprintf("the document already declares %s with %s", specmodel.ExtServerDefault, shared))
+	}
+	if earlier, ok := c.defaulted[path]; ok && !jsonEqual(earlier, o.Value) {
+		return stated(fmt.Sprintf("this run already compiled %s with %s", specmodel.ExtServerDefault, shared))
+	}
 	if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtServerDefault); extension != nil {
 		var current any
 		if extension.Decode(&current) == nil && jsonEqual(current, o.Value) {
 			return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtServerDefault))
 		}
 	}
+	if c.defaulted == nil {
+		c.defaulted = map[string]any{}
+	}
+	c.defaulted[path] = o.Value
 	return compiled{
-		operations: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
+		operations: []correction.Operation{{Op: "add", Path: path, Value: o.Value}},
 		justification: fmt.Sprintf("the audit confirmed a serverDefault observation on %s.%s: omitting the "+
 			"property stores %s, so the generated attribute is Optional and Computed (%s)",
 			o.Entity, o.Attribute, literalSpelling(o.Value), specmodel.ExtServerDefault),
 	}
 }
 
-// values compiles one values observation: documented-but-rejected values
-// leave the enum (each removal guarded by a test of what the index holds),
-// accepted-but-undocumented values join it, and an open set becomes
-// x-tfpfgen-values on the property.
-func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
-	var values observe.Values
-	raw, err := json.Marshal(o.Value)
-	if err == nil {
-		err = json.Unmarshal(raw, &values)
-	}
-	if err != nil {
-		return compiled{}, fmt.Errorf("observation %s: its value is not a values record: %w", o.ID, err)
-	}
-
-	site, why, ok := c.property(loc, cls, o)
-	if !ok {
-		return why, nil
-	}
-	enumDeclaration, enumPtr, hasEnum := loc.enumSite(site.property, site.propPtr)
-	if !hasEnum {
-		return stated("the document declares no enum for the property; there is nothing to correct"), nil
-	}
-
-	// entry mirrors the enum for sequential index computation: each removal
-	// shifts what follows, so the ops are derived against this simulation.
-	type entry struct {
-		text  string
-		value any
-	}
-	var sim []entry
-	for _, n := range mapValue(enumDeclaration, "enum").Content {
-		var v any
-		if err := n.Decode(&v); err != nil {
-			return compiled{}, fmt.Errorf("%s/enum: %w", enumPtr, err)
-		}
-		sim = append(sim, entry{text: n.Value, value: v})
-	}
-	indexOf := func(text string) int {
-		for i, e := range sim {
-			if e.text == text {
-				return i
-			}
-		}
-		return -1
-	}
-
-	var operations []correction.Operation
-	var parts []string
-
-	rejected := append([]string(nil), values.Rejected...)
-	sort.Strings(rejected)
-	var removed []string
-	for _, r := range rejected {
-		index := indexOf(r)
-		if index < 0 {
-			continue
-		}
-		at := enumPtr + "/enum/" + strconv.Itoa(index)
-		operations = append(operations,
-			correction.Operation{Op: "test", Path: at, Value: sim[index].value},
-			correction.Operation{Op: "remove", Path: at},
-		)
-		sim = append(sim[:index], sim[index+1:]...)
-		removed = append(removed, r)
-	}
-	if len(removed) > 0 {
-		parts = append(parts, fmt.Sprintf("rejects the documented value(s) %s", strings.Join(removed, ", ")))
-	}
-
-	accepted := append([]string(nil), values.Accepted...)
-	sort.Strings(accepted)
-	var added []string
-	for _, a := range accepted {
-		if indexOf(a) >= 0 {
-			continue
-		}
-		operations = append(operations, correction.Operation{Op: "add", Path: enumPtr + "/enum/-", Value: a})
-		sim = append(sim, entry{text: a, value: a})
-		added = append(added, a)
-	}
-	if len(added) > 0 {
-		parts = append(parts, fmt.Sprintf("accepts the undocumented value(s) %s", strings.Join(added, ", ")))
-	}
-
-	if values.Closed != nil && !*values.Closed {
-		if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtValues); extension == nil || extension.Value != "true" {
-			operations = append(operations, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValues, Value: true})
-			parts = append(parts, fmt.Sprintf("accepts values beyond the documented set (%s)", specmodel.ExtValues))
-		}
-	}
-
-	if len(operations) == 0 {
-		return stated("the document already agrees with the observed value set"), nil
-	}
-	return compiled{
-		operations: operations,
-		justification: fmt.Sprintf("the audit confirmed a values observation on %s.%s: the live API %s",
-			o.Entity, o.Attribute, strings.Join(parts, "; ")),
-	}, nil
-}
+// noFormReason is the report line for a kind no correction form exists for.
+const noFormReason = "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"
 
 // undocumentedField compiles an undocumentedFieldInSpec observation into an
 // operation adding the property, with its observed JSON type, to the entity

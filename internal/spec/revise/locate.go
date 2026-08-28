@@ -251,6 +251,32 @@ func (l *locator) findPropertyGuarded(node *yaml.Node, pointer, name string, see
 	return propertyLocation{}, false
 }
 
+// findPath locates a property named by a dotted path — "authentication.apiKey"
+// — descending through each object's declaration, and through the items of
+// an array of objects, so an observation about a nested member lands on the
+// member's own declaration.
+func (l *locator) findPath(node *yaml.Node, pointer, path string) (propertyLocation, bool) {
+	segments := strings.Split(path, ".")
+	site, ok := l.findProperty(node, pointer, segments[0])
+	if !ok {
+		return propertyLocation{}, false
+	}
+	for _, segment := range segments[1:] {
+		inner, innerPointer, ok := l.followSchemaRefs(site.property, site.propPtr)
+		if !ok {
+			return propertyLocation{}, false
+		}
+		if items := mapValue(inner, "items"); items != nil {
+			inner, innerPointer = items, innerPointer+"/items"
+		}
+		site, ok = l.findProperty(inner, innerPointer, segment)
+		if !ok {
+			return propertyLocation{}, false
+		}
+	}
+	return site, true
+}
+
 // requiredHas reports whether the schema — across its $ref chain and allOf
 // branches — already requires the named property.
 func (l *locator) requiredHas(node *yaml.Node, pointer, name string) bool {
@@ -271,9 +297,16 @@ func (l *locator) requiredHas(node *yaml.Node, pointer, name string) bool {
 // readOnlyDeclared reports whether the schema — across refs and allOf —
 // already declares readOnly true.
 func (l *locator) readOnlyDeclared(node *yaml.Node, pointer string) bool {
+	return l.flagDeclared(node, pointer, "readOnly")
+}
+
+// flagDeclared reports whether a boolean schema keyword — readOnly,
+// writeOnly — is declared true on a schema, the node it resolves to, or its
+// allOf branches.
+func (l *locator) flagDeclared(node *yaml.Node, pointer, keyword string) bool {
 	return l.walkSchema(node, pointer, func(n *yaml.Node) bool {
-		ro := mapValue(n, "readOnly")
-		return ro != nil && ro.Value == "true"
+		flag := mapValue(n, keyword)
+		return flag != nil && flag.Value == "true"
 	})
 }
 
@@ -290,6 +323,22 @@ func (l *locator) extensionNode(node *yaml.Node, pointer, key string) *yaml.Node
 		return false
 	})
 	return found
+}
+
+// scalarSite finds where a property declares one scalar key — format,
+// pattern — following $refs and allOf branches, and answers the value node
+// with the pointer of the key itself.
+func (l *locator) scalarSite(node *yaml.Node, pointer, key string) (*yaml.Node, string, bool) {
+	var found *yaml.Node
+	var foundPtr string
+	l.walkSchemaWithPtr(node, pointer, map[string]bool{}, func(n *yaml.Node, p string) bool {
+		if v := mapValue(n, key); v != nil && v.Kind == yaml.ScalarNode {
+			found, foundPtr = v, p+"/"+key
+			return true
+		}
+		return false
+	})
+	return found, foundPtr, found != nil
 }
 
 // enumSite finds where a property's enum is declared, following $refs and

@@ -14,6 +14,7 @@ package convert
 
 import (
 	"encoding/base64"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -23,6 +24,76 @@ import (
 // APIToFrameworkString converts *string to types.String, nil to null.
 func APIToFrameworkString(value *string) types.String {
 	return types.StringPointerValue(value)
+}
+
+// Normalised answers the value state keeps for a property the API stores
+// in a spelling of its own: the configured value where the answer is that
+// spelling of it — the same instant, the same host with a scheme or port
+// around it, the same text in another case or without its padding — and
+// the answer otherwise. kind is the x-tfpfgen-normalisation the document
+// declares for the property.
+//
+// An answer with no value at all keeps the configured one: a create's own
+// response routinely omits what the object's read carries, and a property
+// the API respells is one it stores rather than drops.
+func Normalised(configured, answered types.String, kind string) types.String {
+	if configured.IsNull() || configured.IsUnknown() {
+		return answered
+	}
+	if answered.IsNull() || answered.IsUnknown() {
+		return configured
+	}
+	want, got := configured.ValueString(), answered.ValueString()
+	if want == got {
+		return configured
+	}
+	var same bool
+	switch kind {
+	case "case-folded":
+		same = strings.EqualFold(want, got)
+	case "trimmed":
+		same = strings.TrimSpace(want) == got
+	case "extended":
+		same = want != "" && strings.Contains(got, want)
+	case "same-instant":
+		// At the precision the API keeps: a value sent with seconds is
+		// stored as the minute it fell in by an API that stores minutes.
+		a, okA := parseTimestamp(want)
+		b, okB := parseTimestamp(got)
+		same = okA && okB && a.Truncate(precisionOf(b)).Equal(b)
+	}
+	if same {
+		return configured
+	}
+	return answered
+}
+
+// precisionOf is the coarsest unit a timestamp is whole in: a day for
+// midnight, a minute for a whole minute, a second for a whole second, and
+// a nanosecond otherwise.
+func precisionOf(t time.Time) time.Duration {
+	switch {
+	case t.Nanosecond() != 0:
+		return time.Nanosecond
+	case t.Second() != 0:
+		return time.Second
+	case t.Minute() != 0 || t.Hour() != 0:
+		return time.Minute
+	default:
+		return 24 * time.Hour
+	}
+}
+
+// parseTimestamp reads a timestamp in any spelling an API answers: RFC 3339
+// with or without a fraction, and the forms that drop the zone, the T or
+// the time of day.
+func parseTimestamp(s string) (time.Time, bool) {
+	for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05", "2006-01-02 15:04:05.999999999", "2006-01-02 15:04:05", "2006-01-02"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }
 
 // APIToFrameworkBool converts *bool to types.Bool, nil to null.

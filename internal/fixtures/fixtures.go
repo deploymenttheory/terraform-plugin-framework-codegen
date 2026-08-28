@@ -73,11 +73,23 @@ type Entry struct {
 	// Nested are the field values of an object attribute, or of the one
 	// element a list of objects carries.
 	Nested []Entry
+	// Expression, when set, is the terraform expression the configuration
+	// renders in place of Scalar — a reference to another block's
+	// attribute, which no literal spells.
+	Expression string
+	// Normalised marks an attribute the API stores in a spelling of its
+	// own, which generated state reads back as the configured value: a
+	// replay keeps the value sent rather than the one answered.
+	Normalised bool
+	// Minimum and Maximum are the bounds the document declares on a
+	// number, which the generated schema validates before any request: a
+	// replayed value outside them keeps the derived value instead.
+	Minimum, Maximum *float64
 
-	// synthesised is the prefixed name this entry would carry had the
-	// document declared no example, and is empty unless the example is what
-	// displaced it. The prefix guard restores it when nothing else in the
-	// entity carries the prefix.
+	// synthesised is the prefixed name this entry carries or would carry
+	// had the document declared no example; empty for a value a format
+	// spells. The prefix guard restores it when nothing else in the entity
+	// carries the prefix, and a replay restores it on a name-bearing entry.
 	synthesised string
 }
 
@@ -373,6 +385,9 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			Kind:                     a.Kind,
 			ElementType:              a.ElementType,
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
+			Normalised:               a.Normalisation != "",
+			Minimum:                  a.Minimum,
+			Maximum:                  a.Maximum,
 		}
 		switch {
 		case a.Nested != nil:
@@ -446,7 +461,17 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) (any, strin
 		if example, ok := a.Example.(string); ok && example != "" {
 			return example, name
 		}
-		return name, ""
+		// A list's example is a list; its first member is the example of
+		// the one element the fixture renders.
+		if examples, ok := a.Example.([]any); ok && len(examples) > 0 {
+			if example, ok := examples[0].(string); ok && example != "" {
+				return example, name
+			}
+		}
+		// The invented name is remembered as such even when nothing
+		// displaces it now: a replayed body displaces it later, and a
+		// name-bearing entry goes back to it whichever way it was lost.
+		return name, name
 	}
 }
 

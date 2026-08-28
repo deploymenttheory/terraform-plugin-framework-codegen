@@ -130,7 +130,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, summar
 	if p := selfParameter(path); p != "" {
 		path = strings.ReplaceAll(path, "{"+p+"}", e.ID)
 	}
-	res, err := r.do(ctx, nil, reqSpec{method: "DELETE", path: path})
+	res, err := r.do(ctx, nil, reqSpec{method: "DELETE", path: path, query: queryValues(e.DeleteQuery)})
 	if err != nil {
 		summary.UndeletedObjects = append(summary.UndeletedObjects, orphanLine(e)+": "+err.Error())
 		return false
@@ -200,6 +200,7 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityLifecycle, su
 	for _, m := range matches {
 		del, err := r.do(ctx, nil, reqSpec{
 			method: rec.deleteMethod, path: rec.itemPath, pathValues: itemValuesFor(rec, m.id),
+			query: queryValues(rec.deleteQuery),
 		})
 		if err != nil {
 			summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("%s %s (%s): %v", rec.entity, m.id, m.name, err))

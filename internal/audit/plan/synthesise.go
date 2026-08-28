@@ -25,6 +25,11 @@ type valueSynthesiser struct {
 	// toolkit debris and cleanup can match them by name.
 	prefix string
 	inputs EntityInputs
+	// attested widens every nested object to the optional members the
+	// document states a value for — an example, a default or an enum —
+	// beside the required ones. Off, an object carries its required members
+	// alone.
+	attested bool
 }
 
 // minimalBody synthesizes the smallest valid create body: required,
@@ -70,6 +75,38 @@ func (sy valueSynthesiser) maximalBody(s *specmodel.Schema) (map[string]any, int
 	return body, optional
 }
 
+// requiredQuery synthesizes the query parameters an operation requires, as
+// wire strings keyed by name. A delete that confirms itself through a
+// required boolean parameter is refused without it, and an object the audit
+// cannot delete is one the tenant keeps. Nil when the operation requires
+// none, or is unknown.
+func (sy valueSynthesiser) requiredQuery(operation *specmodel.Operation) map[string]string {
+	if operation == nil {
+		return nil
+	}
+	var out map[string]string
+	for _, parameter := range operation.Parameters {
+		if parameter.In != "query" || !parameter.Required {
+			continue
+		}
+		// The parameter's own example outranks its schema: a confirmation
+		// parameter declares a default of false and an example of true, and
+		// the default is the value that gets the operation refused.
+		v, ok := parameter.Example, parameter.Example != nil
+		if !ok {
+			v, ok = sy.value(parameter.Name, parameter.Schema, 0, false)
+		}
+		if !ok {
+			continue
+		}
+		if out == nil {
+			out = map[string]string{}
+		}
+		out[parameter.Name] = fmt.Sprint(v)
+	}
+	return out
+}
+
 // fieldNarrowingAttemptLimit is the extra createMaximal attempts worth reserving:
 // enough to halve the optional set down to one field, plus the retry that
 // confirms it — ceil(log2(n)) + 1.
@@ -106,7 +143,11 @@ func (sy valueSynthesiser) value(field string, s *specmodel.Schema, depth int, t
 	if NameBearing(field) && len(r.Enum) == 0 && r.Format == "" && r.Pattern == "" {
 		return sy.nameToken(field), true
 	}
-	if r.Example != nil {
+	// An object's own example is the vendor's statement of a whole element,
+	// optional members included, which is the attested form; the smaller
+	// form is built from the properties so it carries the required members
+	// alone.
+	if r.Example != nil && (sy.attested || !objectSchema(r)) {
 		return r.Example, true
 	}
 	if r.Default != nil {
@@ -119,6 +160,12 @@ func (sy valueSynthesiser) value(field string, s *specmodel.Schema, depth int, t
 		return v, true
 	}
 	return sy.typeValue(field, r, depth)
+}
+
+// objectSchema reports whether a schema describes an object: by type, by
+// declared properties, or by composition.
+func objectSchema(r *specmodel.Schema) bool {
+	return r.Type == "object" || len(r.Properties) > 0 || len(r.AllOf) > 0
 }
 
 // formatValue derives a value from a declared string format. Constants
@@ -164,40 +211,106 @@ func (sy valueSynthesiser) typeValue(field string, r *specmodel.Schema, depth in
 		if r.Items == nil {
 			return nil, false
 		}
+		// An element no value can be derived for leaves the collection
+		// empty rather than the field absent: a required array sent as []
+		// is refused with a sentence naming it, and a body missing it is
+		// refused with one that does not.
 		v, ok := sy.value(field, r.Items, depth+1, false)
 		if !ok {
-			return nil, false
+			return []any{}, true
 		}
 		return []any{v}, true
+	// A union declared as an object with no properties of its own is its
+	// branches: the first is the value, as the document lists them.
+	case len(r.Properties) == 0 && len(r.AllOf) == 0 && len(r.OneOf) > 0:
+		return sy.value(field, r.OneOf[0], depth+1, false)
+	case len(r.Properties) == 0 && len(r.AllOf) == 0 && len(r.AnyOf) > 0:
+		return sy.value(field, r.AnyOf[0], depth+1, false)
 	case r.Type == "object" || len(r.Properties) > 0 || len(r.AllOf) > 0:
 		return sy.objectValue(r, depth)
-	case len(r.OneOf) > 0:
-		return sy.value(field, r.OneOf[0], depth+1, false)
-	case len(r.AnyOf) > 0:
-		return sy.value(field, r.AnyOf[0], depth+1, false)
 	default:
 		return nil, false
 	}
 }
 
 // objectValue synthesizes a nested object: its required writable fields,
-// recursively. Optional nested fields are left out even for a maximal
-// body — depth is bounded, and the maximal claim is about the entity's own
-// attributes, not the transitive closure.
+// recursively, and in attested mode the optional ones the document states a
+// value for — an example, a default or an enum. The maximal claim is about
+// the entity's own attributes, not the transitive closure, so an optional
+// nested field with nothing attested about it never goes in. Which of the
+// two forms an API takes is not knowable from the document: one refuses an
+// element carrying only its required members as incomplete, another refuses
+// the documented optional members as inapplicable, so the executor sends the
+// smaller form and widens on refusal.
 func (sy valueSynthesiser) objectValue(r *specmodel.Schema, depth int) (any, bool) {
 	properties, required := flatProps(r)
 	out := map[string]any{}
 	for _, p := range properties {
-		if !required[p.Name] || p.Schema.Resolved().ReadOnly {
+		resolved := p.Schema.Resolved()
+		if resolved.ReadOnly {
+			continue
+		}
+		attested := sy.attested && (resolved.Example != nil || resolved.Default != nil || len(resolved.Enum) > 0)
+		if !required[p.Name] && !attested {
 			continue
 		}
 		v, ok := sy.value(p.Name, p.Schema, depth+1, false)
 		if !ok {
-			return nil, false
+			if required[p.Name] {
+				return nil, false
+			}
+			continue
 		}
 		out[p.Name] = v
 	}
 	return out, true
+}
+
+// CompositeValues synthesizes the array-, object- and union-typed writable
+// fields of one entity's create body from the document's item, property and
+// branch schemas, in both forms: one element per array or one object carrying
+// its required members alone, and the same widened to the members the
+// document attests. The executor's own synthesis reaches no deeper than a
+// scalar and sends an empty collection for anything wider, which an API
+// reads as "nothing selected" and refuses. The values are keyed by wire
+// property name; a field no value can be derived for is absent from both.
+func CompositeValues(document *specmodel.Document, class specmodel.Classification, prefix string) (minimal, attested map[string]any) {
+	if class.Create == nil || document == nil {
+		return nil, nil
+	}
+	builder := planBuilder{document: document}
+	createOp := builder.operation(class.Create)
+	if createOp == nil || createOp.RequestBody == nil {
+		return nil, nil
+	}
+	properties, _ := flatProps(createOp.RequestBody)
+	minimal, attested = map[string]any{}, map[string]any{}
+	for _, p := range properties {
+		resolved := p.Schema.Resolved()
+		if resolved.ReadOnly {
+			continue
+		}
+		composite := resolved.Type == "array" || resolved.Type == "object" || len(resolved.Properties) > 0 ||
+			len(resolved.OneOf) > 0 || len(resolved.AnyOf) > 0
+		if !composite {
+			continue
+		}
+		smaller := valueSynthesiser{entity: class.Key, prefix: prefix}
+		if v, ok := smaller.value(p.Name, p.Schema, 0, false); ok {
+			minimal[p.Name] = v
+		}
+		wider := valueSynthesiser{entity: class.Key, prefix: prefix, attested: true}
+		if v, ok := wider.value(p.Name, p.Schema, 0, false); ok {
+			attested[p.Name] = v
+		}
+	}
+	if len(minimal) == 0 {
+		minimal = nil
+	}
+	if len(attested) == 0 {
+		attested = nil
+	}
+	return minimal, attested
 }
 
 // alternateValue synthesizes a second, distinct value for an update: something

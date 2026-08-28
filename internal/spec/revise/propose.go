@@ -163,7 +163,16 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 	}
 
 	observe.Sort(obs)
-	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs), variants: variantSets(obs)}
+	restated, err := acceptedEvidence(correctionsDir)
+	if err != nil {
+		return p, err
+	}
+	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs), variants: variantSets(obs), restated: restated}
+	added, err := acceptedEnumAdditions(correctionsDir)
+	if err != nil {
+		return p, err
+	}
+	comp.enumAccepted = comp.acceptedValueSites(obs, added)
 
 	type candidate struct {
 		written Written
@@ -219,7 +228,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 
 		corr := correction.Correction{
 			Justification: res.justification,
-			Evidence:      "audit/observations/" + o.Entity + observe.FileSuffix + "#" + o.ID,
+			Evidence:      evidenceReference(o),
 			Operations:    res.operations,
 		}
 		// Later compilations see this correction's effect, so two
@@ -548,4 +557,55 @@ func writeCorrection(path string, corr correction.Correction) error {
 		return fmt.Errorf("encoding %s: %w", path, err)
 	}
 	return os.WriteFile(path, buffer.Bytes(), 0o600)
+}
+
+// evidenceReference is the pointer a correction carries to the observation
+// that proves it: the entity's observation file and the observation's id.
+func evidenceReference(o observe.Observation) string {
+	return "audit/observations/" + o.Entity + observe.FileSuffix + "#" + o.ID
+}
+
+// acceptedEvidence indexes every document pointer an accepted correction
+// wrote by the evidence that wrote it, so a recompiled observation is
+// recognised as revisiting its own correction rather than another's.
+// acceptedEnumAdditions reads every value an accepted correction added to
+// an enum, keyed by the enum's site: an "add" at <site>/enum/- is another
+// entity's proof the value is taken, and a rejection compiled later must
+// not remove it.
+func acceptedEnumAdditions(correctionsDir string) (map[string]map[string]bool, error) {
+	accepted, err := correction.Load(correctionsDir)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]map[string]bool{}
+	for _, corr := range accepted {
+		for _, operation := range corr.Operations {
+			site, isAppend := strings.CutSuffix(operation.Path, "/enum/-")
+			if operation.Op != "add" || !isAppend {
+				continue
+			}
+			if out[site] == nil {
+				out[site] = map[string]bool{}
+			}
+			out[site][fmt.Sprint(operation.Value)] = true
+		}
+	}
+	return out, nil
+}
+
+func acceptedEvidence(correctionsDir string) (map[string]string, error) {
+	accepted, err := correction.Load(correctionsDir)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, corr := range accepted {
+		if corr.Evidence == "" {
+			continue
+		}
+		for _, operation := range corr.Operations {
+			out[operation.Path] = corr.Evidence
+		}
+	}
+	return out, nil
 }

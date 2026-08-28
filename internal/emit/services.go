@@ -80,7 +80,10 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		return nil, fmt.Errorf("entity emission needs both the intermediate representation and the bindings")
 	}
 
-	e := &serviceRenderer{pc: pc, bindings: b}
+	e := &serviceRenderer{pc: pc, bindings: b, resources: map[string]*ir.Resource{}}
+	for i := range m.Resources {
+		e.resources[m.Resources[i].Names.Key] = &m.Resources[i]
+	}
 	out := &ServiceFiles{}
 
 	// The resources that reached the provider. A list resource is matched to
@@ -211,6 +214,16 @@ type serviceRenderer struct {
 	// identities is each listed resource's identity, recorded as the
 	// resource renders so its list resource emits results in the same shape.
 	identities map[string][]identityAttribute
+	// resources is every resource of the model by entity key, so a child's
+	// fixture can carry the block of the parent it addresses.
+	resources map[string]*ir.Resource
+	// dependencyTypes is the terraform type of each block the fixture being
+	// rendered depends on, gathered as the blocks are.
+	dependencyTypes []string
+	// timeOffsets reports whether the fixture being rendered reads a
+	// timestamp from a time_offset block, which the acceptance test then
+	// takes the time provider for.
+	timeOffsets bool
 }
 
 // Binding kinds, spelled the way sdkbind.Removal spells them so a removal
@@ -359,6 +372,10 @@ type node struct {
 	attribute ir.Attribute
 	fb        *sdkbind.FieldBinding
 	children  []node
+	// held marks an attribute whose state keeps the planned value because
+	// no response answers it: the binding at its root is kept from the
+	// plan, and every attribute beneath that root is held with it.
+	held bool
 }
 
 // joinTree joins an attribute tree with its field bindings, in tree order.
@@ -384,14 +401,14 @@ func joinTreeKeeping(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, address
 		}
 	}
 	var kept []string
-	return joinAttributes(tree, fbs, names, true, &kept), kept
+	return joinAttributes(tree, fbs, names, true, false, &kept), kept
 }
 
 // joinAttributes is joinTree's recursion, tracking whether it is at the root
 // so addressing attributes are kept at the top level only. A nested attribute
 // that happens to share one of their names is an ordinary API field: unbound,
 // it travels nowhere and is dropped like any other.
-func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root bool, kept *[]string) []node {
+func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root, held bool, kept *[]string) []node {
 	if tree == nil {
 		return nil
 	}
@@ -410,9 +427,9 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressi
 			*kept = append(*kept, a.Name)
 			continue
 		}
-		n := node{attribute: a, fb: fb}
+		n := node{attribute: a, fb: fb, held: held || fb.KeptFromPlan}
 		if a.Nested != nil {
-			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, kept)
+			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, n.held, kept)
 		}
 		out = append(out, n)
 	}
@@ -431,7 +448,11 @@ const idAttributeName = "id"
 // declares them and no SDK model can carry them. A parent-scoped API puts
 // most of its surface behind them — /repos/{owner}/{repo}/… — and dropping
 // them excluded every entity underneath.
-func addressingNames(operations ...*ir.Operation) map[string]bool {
+//
+// A parameter is answered by the root attribute carrying its name, or by
+// one carrying its spelling as a wire name — a parent the document spells
+// `id`, named after its entity because `id` is the resource's own.
+func addressingNames(tree *ir.AttributeTree, operations ...*ir.Operation) map[string]bool {
 	names := map[string]bool{}
 	for _, operation := range operations {
 		if operation == nil {
@@ -439,6 +460,14 @@ func addressingNames(operations ...*ir.Operation) map[string]bool {
 		}
 		for _, parameter := range operation.PathParameters {
 			names[ir.TerraformName(parameter.Name)] = true
+			if tree == nil {
+				continue
+			}
+			for _, attribute := range tree.Attributes {
+				if attribute.WireName == parameter.Name && attribute.Nested == nil {
+					names[attribute.Name] = true
+				}
+			}
 		}
 	}
 	return names

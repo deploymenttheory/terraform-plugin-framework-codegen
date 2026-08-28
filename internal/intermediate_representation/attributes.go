@@ -307,7 +307,33 @@ func buildTree(create, read, update *specmodel.Schema, replaceAll bool) *Attribu
 	if validConfiguration, ok := schemaExt.ValidConfiguration(); ok {
 		tree.ValidConfigurations = []ValidConfiguration{convertValidConfiguration(validConfiguration)}
 	}
+	serverFilledMembersComputed(tree.Attributes, false)
 	return tree
+}
+
+// serverFilledMembersComputed makes every attribute beneath an
+// optional-computed one optional and computed as well, whatever the
+// document declares for the member itself.
+//
+// Terraform core reads an optional-computed nested attribute's prior value
+// for what the configuration must have been: a member that is not computed
+// and holds a value is one the configuration set, so a null configuration
+// means the practitioner removed it, and the plan clears the whole
+// attribute the server filled — a diff on every plan, and every unpinned
+// computed attribute of the resource marked unknown with it. Every member
+// computed is the one shape under which an omitted nested attribute keeps
+// what the server answered. A required member gives up its requiredness to
+// the API, which refuses an object sent without it.
+func serverFilledMembersComputed(attributes []Attribute, under bool) {
+	for i := range attributes {
+		a := &attributes[i]
+		if under && a.ComputedOptionalRequired != Computed {
+			a.ComputedOptionalRequired = ComputedOptional
+		}
+		if a.Nested != nil {
+			serverFilledMembersComputed(a.Nested.Attributes, under || a.ComputedOptionalRequired == ComputedOptional)
+		}
+	}
 }
 
 // convertValidConfiguration renders a specmodel variant structure into the IR
@@ -444,6 +470,7 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 	createOnly, _ := extensions.Immutable()
 	serverDefault, serverFills := extensions.ServerDefault()
 	attribute.SilentlyIgnoredOnUpdate, _ = extensions.IgnoredOnUpdate()
+	attribute.Normalisation, _ = extensions.Normalisation()
 
 	// The document's prose, taken from whichever side declares any. A
 	// request schema and a response schema describe the same field, and one
@@ -558,6 +585,11 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 		} else {
 			attribute.OneOf = values
 		}
+	}
+	// A list's set came from its element; the property's own x-tfpfgen-values
+	// says whether that set is closed.
+	if open, _ := extensions.Values(); open && attribute.Kind == TypeList && len(attribute.OneOf) > 0 {
+		attribute.AdvisoryValues, attribute.OneOf = attribute.OneOf, nil
 	}
 
 	var edges attributeEdges

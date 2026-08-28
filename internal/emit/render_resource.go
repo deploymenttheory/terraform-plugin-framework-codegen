@@ -42,6 +42,19 @@ type resourceData struct {
 
 	HasImport  bool
 	ImportAttr string
+	// DependencyTypes is the terraform type of every block the unit
+	// configuration carries beside the resource's own, so the unit test
+	// activates their mocks too.
+	DependencyTypes []string
+	// UsesTimeProvider reports whether the acceptance configuration reads a
+	// timestamp from a time_offset block, so the test declares the time
+	// provider beside random.
+	UsesTimeProvider bool
+	// ImportStateVerifyIgnore is the rendered tail of the attribute list an
+	// import verification leaves out — a leading comma and each name
+	// quoted — for the attributes an import cannot know: the ones whose
+	// state keeps the planned value. Empty when there are none.
+	ImportStateVerifyIgnore string
 	// IdentityAttributes is the identity schema's attribute declarations,
 	// empty for a resource nothing lists.
 	IdentityAttributes string
@@ -130,7 +143,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
 
-	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(
+	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(r.Schema,
 		r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 	d := &resourceData{
 		Package:        r.Names.Package,
@@ -176,6 +189,14 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 	e.resourceChecks(d, spec)
 
 	dir := e.dir(kindResources, r.Names)
+	// The fixtures come first: the unit test activates the mock of every
+	// parent block its configuration carries, which the fixtures decide.
+	fixtureFiles, err := e.resourceFixtures(r, spec, nodes, dir)
+	if err != nil {
+		return nil, err
+	}
+	d.DependencyTypes = e.dependencyTypes
+	d.UsesTimeProvider = e.timeOffsets
 	var files []File
 
 	renderGo := func(tmpl, out string) error {
@@ -218,11 +239,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		}
 	}
 
-	fixtures, err := e.resourceFixtures(r, spec, dir)
-	if err != nil {
-		return nil, err
-	}
-	files = append(files, fixtures...)
+	files = append(files, fixtureFiles...)
 
 	return files, nil
 }
@@ -273,6 +290,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 
 	if d.HasImport = importAttr(r, nodes) != ""; d.HasImport {
 		d.ImportAttr = importAttr(r, nodes)
+		d.ImportStateVerifyIgnore = importVerifyIgnores(nodes)
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 	}
 	d.Imports = imports.render()
@@ -306,7 +324,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	updateBody := ""
 	updateUsesFmt := false
 	if rb.UpdateWriteModel != "" {
-		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(
+		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(r.Schema,
 			r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 		updateBody, updateUsesFmt, err = constructLinesFor(updateNodes, d.Pascal, "data", "body", "", 1, false)
 		if err != nil {
@@ -458,7 +476,9 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	if d.IdentitySets != "" {
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 	}
-	if d.CreateIDFromResponse != "" {
+	if d.CreateIDFromResponse != "" || strings.Contains(d.DeletePlan.ClosureBody, "convert.") ||
+		strings.Contains(d.CreatePlan.Assign, "convert.") || strings.Contains(d.UpdatePlan.Assign, "convert.") ||
+		strings.Contains(d.ReadPlan.Assign, "convert.") {
 		imports.add("", e.pc.Module+"/internal/services/common/convert")
 	}
 	e.addSDKImports(imports, d.CreatePlan.Assign, d.ReadPlan.Assign, d.DeletePlan.ClosureBody, d.UpdatePlan.Assign)
@@ -665,16 +685,56 @@ func (e *serviceRenderer) resourceChecks(d *resourceData, spec fixtures.Fixture)
 }
 
 // checkLines renders value checks for the form's top-level scalars.
+//
+// A map is checked entry by entry, which is the only way the test helper
+// addresses one; a value the configuration takes from another block is
+// checked for presence, since the fixture does not know it.
 func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 	var b strings.Builder
 	for _, v := range spec.Entries {
 		if !valueWanted(v, a) || v.Nested != nil || v.Kind == ir.TypeList {
 			continue
 		}
-		fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
-			address, v.Name, strconv.Quote(checkValue(v.Scalar)))
+		switch {
+		case v.Expression != "":
+			fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttrSet(%q, %q),\n", address, v.Name)
+		case v.Kind == ir.TypeMap:
+			for _, key := range mapKeys(v) {
+				fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
+					address, v.Name+"."+key.name, strconv.Quote(checkValue(key.value)))
+			}
+		default:
+			fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
+				address, v.Name, strconv.Quote(checkValue(v.Scalar)))
+		}
 	}
 	return b.String()
+}
+
+// mapEntry is one key and value of a map fixture, in key order.
+type mapEntry struct {
+	name  string
+	value any
+}
+
+// mapKeys is a map fixture's entries as the configuration spells them: the
+// keys a replayed body carried, or the one entry a derived fixture keys by
+// the attribute's own name.
+func mapKeys(v fixtures.Entry) []mapEntry {
+	carried, ok := v.Scalar.(map[string]any)
+	if !ok {
+		return []mapEntry{{name: v.Name, value: v.Scalar}}
+	}
+	keys := make([]string, 0, len(carried))
+	for key := range carried {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	out := make([]mapEntry, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, mapEntry{name: key, value: carried[key]})
+	}
+	return out
 }
 
 // valueWanted mirrors the fixture form selection for check building.
@@ -701,4 +761,21 @@ func checkValue(scalar any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// importVerifyIgnores renders the attributes an import verification cannot
+// compare: the root attributes whose state keeps the planned value, which an
+// imported state has no value for, and the ones the API stores in a
+// spelling of its own, which an imported state carries as stored while a
+// created one keeps the configured spelling. Rendered as the tail of a Go
+// string slice literal, so a template appends it to the names it always
+// ignores.
+func importVerifyIgnores(nodes []node) string {
+	var b strings.Builder
+	for _, n := range nodes {
+		if n.fb != nil && (n.fb.KeptFromPlan || n.attribute.Normalisation != "") {
+			fmt.Fprintf(&b, ", %q", n.attribute.Name)
+		}
+	}
+	return b.String()
 }

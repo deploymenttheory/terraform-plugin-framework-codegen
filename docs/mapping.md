@@ -120,7 +120,10 @@ so a constant is synthesised from the terraform type name. `Create` writes
 through the update call, which is also where the practitioner-settable
 attributes are read from, since there is no create body to read them from.
 `Delete` calls nothing: terraform stops managing the object and the API keeps
-it as it is. `PUT` and `PATCH` are the same scenario here, not two.
+it as it is. `PUT` and `PATCH` are the same scenario here, not two. A
+singleton's path names no item, so each of its path parameters addresses a
+parent and becomes a required addressing attribute — `/templates/{id}/sharing-settings`
+takes `template_id`, named after the parent because `id` is the resource's own.
 
 The classifier tells it from a collection by the response, not by the path: a
 `GET` with no item sibling whose body carries no array is one object rather
@@ -129,6 +132,15 @@ and would fail for saying so.
 
 A `create_with_ru_api` yields no datasource. There is nothing to look up: the
 object is one fixed thing, and the resource already reads it.
+
+**A query parameter an operation requires** belongs to the operation rather
+than to the object, so no attribute carries it. The generated call sends it as
+a constant — the parameter's own example first, then its schema's example,
+then its default — through the SDK's request configuration for that verb; the
+audit sends the same value on every delete, so an object whose delete confirms
+itself through one is not left in the tenant. A required parameter the
+document states no value for is left out: the document has not said what to
+send.
 
 ## Actions
 

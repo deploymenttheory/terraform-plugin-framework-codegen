@@ -28,7 +28,7 @@ func TestUnit{{ .Pascal }}Resource_Schema(t *testing.T) {
 // and destroy against the stateful mock API.
 func TestUnit{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
 	mocks.SetupUnitTestEnvironment(t)
-	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}")
+	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}"{{ range .DependencyTypes }}, "{{ . }}"{{ end }})
 	defer mocks.GlobalRegistry.DeactivateAndReset()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -44,7 +44,7 @@ func TestUnit{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
 				ResourceName:            "{{ .TerraformType }}.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"timeouts"},
+				ImportStateVerifyIgnore: []string{"timeouts"{{ .ImportStateVerifyIgnore }}},
 			},
 {{- end }}
 			{

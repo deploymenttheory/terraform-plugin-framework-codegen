@@ -103,6 +103,11 @@ type Resource struct {
 	// the response is a bare array. It drives the generated list-mock
 	// envelope, replacing the assumption that every API wraps under "value".
 	ListWrapperKey string `json:"list_wrapper_key,omitempty"`
+	// ParentEntity is the key of the entity whose collection path encloses
+	// this one's; empty at the top level. A singleton's path parameters all
+	// address that parent, and the attribute answering a parameter the
+	// document spells `id` is named after it.
+	ParentEntity string `json:"parent_entity,omitempty"`
 }
 
 // Datasource is one entity readable outside Terraform's ownership. Every
@@ -192,6 +197,11 @@ type Operation struct {
 	PathTemplate   string        `json:"path_template"`
 	OperationID    string        `json:"operation_id,omitempty"`
 	PathParameters []Parameter   `json:"path_parameters,omitempty"`
+	// QueryParameters are the query parameters the operation requires,
+	// each with the value the document states for it. A generated call
+	// sends them as constants: they belong to the operation, not to the
+	// object, so no attribute carries them.
+	QueryParameters []QueryParameter `json:"query_parameters,omitempty"`
 	// SuccessCode is the first declared 2xx status, 0 when only a
 	// default response exists.
 	SuccessCode int `json:"success_code,omitempty"`
@@ -201,6 +211,16 @@ type Operation struct {
 type Parameter struct {
 	Name string        `json:"name"`
 	Type AttributeType `json:"type"`
+}
+
+// QueryParameter is one required query parameter and the value the
+// document states for it — the parameter's own example first, then the
+// schema's example, then its default — because a required parameter with
+// no stated value is one the document leaves a generator unable to send.
+type QueryParameter struct {
+	Name  string        `json:"name"`
+	Type  AttributeType `json:"type"`
+	Value any           `json:"value"`
 }
 
 // AttributeType is a terraform-plugin-framework attribute type.
@@ -334,6 +354,11 @@ type Attribute struct {
 	// API enforces — a URL, a dotted identifier — and an invented string of
 	// the right type is refused by the API for the wrong reason.
 	Example any `json:"example,omitempty"`
+	// Normalisation names how the API stores the value in a spelling of
+	// its own (x-tfpfgen-normalisation): generated state keeps the
+	// configured spelling when the answer is the stored form of it. Empty
+	// where the API answers what it was sent.
+	Normalisation string `json:"normalisation,omitempty"`
 	// WriteOnly marks a property the API accepts on write and never
 	// returns.
 	WriteOnly bool `json:"write_only,omitempty"`

@@ -261,13 +261,16 @@ func emitValidConfiguration(b *strings.Builder, byName map[string]node, vc ir.Va
 
 // stringGate refuses a gate attribute the generated comparison cannot read: a
 // missing one or a non-string one. label names the rule in the error.
+//
+// Either is a fact about this entity's document, so the entity is refused
+// and the rest of the provider generates.
 func stringGate(byName map[string]node, name, label string) error {
 	gate, ok := byName[name]
 	if !ok {
-		return fmt.Errorf("%s names %q, which is not an attribute", label, name)
+		return unrenderable("%s names %q, which is not an attribute", label, name)
 	}
 	if gate.attribute.Kind != ir.TypeString || gate.attribute.Nested != nil {
-		return fmt.Errorf("%s on %q needs a string attribute", label, name)
+		return unrenderable("%s on %q needs a string attribute", label, name)
 	}
 	return nil
 }

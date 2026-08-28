@@ -240,6 +240,14 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, source, destin
 		if err != nil {
 			return "", err
 		}
+		// A root string the API stores in a spelling of its own reads back
+		// as the configured value where the answer is that spelling: the
+		// model being filled still holds the planned or prior value.
+		if path == "" && n.attribute.Normalisation != "" && n.attribute.Kind == ir.TypeString {
+			fmt.Fprintf(&b, "%s%s.%s = convert.Normalised(%s.%s, convert.%s(%s.%s()), %q)\n",
+				indent, destination, ir.GoName(n.attribute.Name), destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get, n.attribute.Normalisation)
+			continue
+		}
 		fmt.Fprintf(&b, "%s%s.%s = convert.%s(%s.%s())\n",
 			indent, destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get)
 	}
@@ -474,6 +482,12 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 	// that is an object is a different thing the document happens to spell
 	// the same way — a repository's owner block beside the owner segment of
 	// its path — and reading a value out of it does not compile.
+	//
+	// The first attribute carrying the parameter's wire name answers it.
+	// Addressing attributes sit ahead of the id, so a parent the document
+	// also spells `id` is answered by the attribute named for that parent;
+	// an object's own key, which the document may declare as a property
+	// too, is answered by the id, which the create and the import fill.
 	for _, n := range nodes {
 		if n.attribute.WireName == p.Wire && n.attribute.Nested == nil {
 			return n, nil

@@ -27,21 +27,42 @@ func (r *runner) borrow(ctx context.Context, entity *entityState, collection str
 		return id, true
 	}
 	for _, path := range collectionPaths(collection) {
-		res, err := r.do(ctx, entity, reqSpec{method: "GET", path: path})
-		if err != nil || !res.ok() {
-			continue
-		}
-		for _, item := range items(res.body) {
-			obj, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			if id := identifierOf(obj); id != "" {
-				r.borrowed[collection] = id
-				return id, true
-			}
+		if id, ok := r.borrowFromPath(ctx, entity, path); ok {
+			r.borrowed[collection] = id
+			return id, true
 		}
 	}
+	return "", false
+}
+
+// borrowFromPath reads one collection path and answers the first identifier
+// it serves, cached per path for the rest of the run. False when the
+// collection is empty or unreadable.
+//
+// An empty or unreadable collection is remembered as such for the run: a
+// reference to it is unsatisfiable on every body that carries one, and
+// reading it again for each would spend the entity's budget learning the
+// same thing.
+func (r *runner) borrowFromPath(ctx context.Context, entity *entityState, path string) (string, bool) {
+	if id, ok := r.borrowed[path]; ok {
+		return id, id != ""
+	}
+	res, err := r.do(ctx, entity, reqSpec{method: "GET", path: path})
+	if err != nil || !res.ok() {
+		r.borrowed[path] = ""
+		return "", false
+	}
+	for _, item := range items(res.body) {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if id := identifierOf(obj); id != "" {
+			r.borrowed[path] = id
+			return id, true
+		}
+	}
+	r.borrowed[path] = ""
 	return "", false
 }
 

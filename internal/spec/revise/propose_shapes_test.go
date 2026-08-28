@@ -104,7 +104,7 @@ func TestUnit_Propose_PlacesCorrectionsThroughComposedSchemas(t *testing.T) {
 	commitObs(t, root,
 		// Declared in the inline allOf branch: required lands there.
 		widget("label", observe.KindRequiredByAPI, true),
-		// The property is a $ref: readOnly must land on the resolved
+		// The property is a $ref: writeOnly must land on the resolved
 		// component, an extension beside the reference.
 		widget("kind", observe.KindWritable, false),
 		widget("kind", observe.KindImmutable, true),
@@ -123,7 +123,7 @@ func TestUnit_Propose_PlacesCorrectionsThroughComposedSchemas(t *testing.T) {
 	wantPaths := map[string]string{
 		"001": `"path": "/components/schemas/WidgetBase/properties/kind/x-tfpfgen-immutable"`,
 		"002": `"path": "/components/schemas/KindValue/enum/-"`,
-		"003": `"path": "/components/schemas/KindValue/readOnly"`,
+		"003": `"path": "/components/schemas/KindValue/writeOnly"`,
 		"004": `"path": "/components/schemas/Widget/allOf/1/required"`,
 	}
 	for _, w := range p.Proposed {
@@ -270,7 +270,7 @@ components:
             - green
         size:
           type: string
-          readOnly: true
+          writeOnly: true
         mode:
           type: string
           x-tfpfgen-server-default: auto

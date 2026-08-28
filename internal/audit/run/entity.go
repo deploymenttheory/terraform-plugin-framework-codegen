@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +34,16 @@ type entityState struct {
 	// lastRead is the most recent full read of the minimal object, the
 	// baseline updates compare against.
 	lastRead map[string]any
+	// plannedMinimal is the minimal body the plan derived, before the
+	// correction loop changed it. A later step's body was built on it, and
+	// is rebased onto the body the API accepted before it is sent.
+	plannedMinimal map[string]any
+	// unreachedGateValues records, per gate field, the values under which
+	// no create succeeded — refused as such, or stuck on a sibling the
+	// adjustments could not satisfy — so the probes conditional on such a
+	// value are not sent: each would meet the same refusal, and would spend
+	// the budget learning nothing about its own field.
+	unreachedGateValues map[string]map[string]bool
 	// preflighted marks the foreign-object pre-flight as done.
 	preflighted bool
 	// idUnknown records that a create succeeded but no id could be learned
@@ -90,13 +103,59 @@ func recordedRequestBodies(entityKey string, entity *entityState) observe.Reques
 	if entity.ev.sent != nil {
 		out.Minimal = &observe.AcceptedRequestBody{
 			Status: entity.ev.sentStatus, Request: entity.ev.sent, Response: entity.ev.got,
+			FutureDates: futureDatesIn(entity.ev.sent, entity.ev.futureFields),
+			References:  referencesIn(entity.ev.sent, entity.ev.references),
 		}
 	}
 	if entity.ev.maximalSent != nil {
 		out.Maximal = &observe.AcceptedRequestBody{
 			Status: entity.ev.maximalStatus, Request: entity.ev.maximalSent, Response: entity.ev.maximalGot,
+			FutureDates: futureDatesIn(entity.ev.maximalSent, entity.ev.futureFields),
+			References:  referencesIn(entity.ev.maximalSent, entity.ev.references),
 		}
 	}
+	return out
+}
+
+// referencesIn is the borrowed fields one body carries, at any depth, with
+// the collection each came from.
+func referencesIn(body map[string]any, references map[string]string) map[string]string {
+	if len(references) == 0 {
+		return nil
+	}
+	out := map[string]string{}
+	var walk func(value any)
+	walk = func(value any) {
+		switch v := value.(type) {
+		case map[string]any:
+			for key, inner := range v {
+				if path, borrowed := references[key]; borrowed {
+					out[key] = path
+				}
+				walk(inner)
+			}
+		case []any:
+			for _, inner := range v {
+				walk(inner)
+			}
+		}
+	}
+	walk(body)
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// futureDatesIn names the fields of one body the run moved ahead of now.
+func futureDatesIn(body map[string]any, future map[string]bool) []string {
+	var out []string
+	for field := range future {
+		if _, carried := body[field]; carried {
+			out = append(out, field)
+		}
+	}
+	sort.Strings(out)
 	return out
 }
 
@@ -224,6 +283,7 @@ func lifecycleOf(ep *plan.EntityPlan) *entityLifecycle {
 			}
 		case plan.StepDeleteWithConfirmation, plan.StepCleanupDelete:
 			rec.deleteMethod = s.Method
+			rec.deleteQuery = s.Query
 			if rec.itemPath == "" {
 				rec.itemPath = s.Path
 				rec.itemValues = s.PathValues
@@ -273,7 +333,7 @@ func (r *runner) resolveCreated(ctx context.Context, entity *entityState, entity
 	// Healed like any other create: a parent the document understates is
 	// refused the same way its own create was, and without the loop every
 	// child of it blocks on a refusal the loop can read.
-	rr, err := r.correctCreateBodyRecording(ctx, entity, rec, cloneAnyMap(rec.minimalBody), "", false)
+	rr, err := r.correctCreateBodyRecording(ctx, entity, rec, cloneAnyMap(rec.minimalBody), "", false, maxBodyCorrectionAttempts)
 	if err != nil {
 		return "", err
 	}
@@ -303,7 +363,19 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 		return nil, nil, err
 	}
 
-	seq, err := r.ledger.intent(rec.entity, nameOf(resolved, r.opts.NamePrefix), itemPath)
+	// A probe that names its object as the live minimal object is named is
+	// refused by an API that keeps names unique, for a reason that has
+	// nothing to do with what the probe exercises; the name takes the
+	// ledger sequence as a further suffix and keeps its prefix.
+	if live, ok := r.createdObjects[rec.entity]; ok && live.name != "" {
+		for field, value := range resolved {
+			if text, isString := value.(string); isString && text == live.name {
+				resolved[field] = text + "-" + strconv.Itoa(r.ledger.seq+1)
+			}
+		}
+	}
+	name := nameOf(resolved, r.opts.NamePrefix)
+	seq, err := r.ledger.intent(rec.entity, name, itemPath, rec.deleteQuery)
 	if err != nil {
 		return nil, nil, blockedError{reason: "the create could not be recorded in the ledger first: " + err.Error()}
 	}
@@ -334,7 +406,7 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 				entity.idUnknown = true
 			}
 		}
-		return &createdObject{entity: rec.entity, id: id, seq: seq}, res, nil
+		return &createdObject{entity: rec.entity, id: id, seq: seq, name: name, body: resolved}, res, nil
 	case res.refused():
 		r.ledger.resolve(seq, activityRejected, "", res.status)
 		return nil, res, nil
@@ -375,6 +447,7 @@ func (r *runner) deleteObject(ctx context.Context, entity *entityState, rec *ent
 	}
 	res, err := r.do(ctx, entity, reqSpec{
 		method: rec.deleteMethod, path: rec.itemPath, pathValues: itemValuesFor(rec, obj.id),
+		query: queryValues(rec.deleteQuery),
 	})
 	if err != nil {
 		return nil, err
@@ -450,4 +523,16 @@ func (r *runner) emitStoppedObservations(entity *entityState, remaining []plan.S
 	if sawUpdate {
 		r.record(entity.plan.Entity, "", observe.KindUpdateStyle, nil, nil, outcome, proof...)
 	}
+}
+
+// queryValues renders a step's query parameters for the request.
+func queryValues(query map[string]string) url.Values {
+	if len(query) == 0 {
+		return nil
+	}
+	out := url.Values{}
+	for name, value := range query {
+		out.Set(name, value)
+	}
+	return out
 }

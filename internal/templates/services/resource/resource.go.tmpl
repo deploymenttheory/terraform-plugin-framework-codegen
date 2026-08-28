@@ -70,7 +70,11 @@ func (r *{{ .Type }}) Configure(_ context.Context, req resource.ConfigureRequest
 {{ if .HasImport }}
 // ImportState imports by the API identifier.
 func (r *{{ .Type }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+{{- if .IdentitySets }}
+	resource.ImportStatePassthroughWithIdentity(ctx, path.Root("{{ .ImportAttr }}"), path.Root("id"), req, resp)
+{{- else }}
 	resource.ImportStatePassthroughID(ctx, path.Root("{{ .ImportAttr }}"), req, resp)
+{{- end }}
 }
 {{ end }}
 // Schema declares the attributes the revised document derives.

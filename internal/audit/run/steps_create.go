@@ -3,6 +3,8 @@ package run
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +21,9 @@ import (
 // variant has already established the object; a later variant that cannot be
 // built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step *plan.Step) error {
+	if entity.plannedMinimal == nil {
+		entity.plannedMinimal = cloneAnyMap(step.Body)
+	}
 	body := cloneAnyMap(step.Body)
 	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
@@ -32,8 +37,10 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 	// wider body than the one that started it, and the fields it added name
 	// what it asked for. Both are carried for the block reason alone — the
 	// grammar's own result still decides what happens next.
+	// A 5xx counts as a refusal here: an API that answers a body it cannot
+	// read with a server error rather than a 400 is still answering the body.
 	var searched bodyCorrection
-	if rr.obj == nil && rr.res != nil && rr.res.refused() {
+	if rr.obj == nil && rr.res != nil && (rr.res.refused() || rr.res.status >= 500) {
 		found, serr := r.addFieldsUntilAccepted(ctx, entity, entity.recipe, rr.body, rr.res)
 		if serr != nil {
 			return serr
@@ -45,22 +52,19 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 		}
 	}
 	if rr.obj != nil {
-		sent, err := r.resolveBody(ctx, entity, rr.body)
-		if err != nil {
-			return err
-		}
 		// The recipe learns the body that worked. Everything downstream
 		// replays it — re-creating this entity as another's parent, narrowing
 		// a refused maximal, cleaning up at the end — and the body the plan
 		// started from is the document's guess, which is what needed correcting
-		// in the first place.
+		// in the first place. The evidence and the replay take the body as
+		// it went over the wire.
 		entity.recipe.minimalBody = cloneAnyMap(rr.body)
 		r.createdObjects[entity.plan.Entity] = rr.obj
 		entity.createdAt = time.Now()
-		entity.ev.sent = sent
+		entity.ev.sent = rr.obj.body
 		entity.ev.sentStatus = rr.res.status
 		entity.ev.createProof = &rr.res.excerpt
-		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.obj.body))
 		return nil
 	}
 	if _, exists := r.createdObjects[entity.plan.Entity]; exists {
@@ -81,6 +85,34 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 		return blockedError{reason: minimalRefusedReason(refused.status, searched.addedFields)}
 	}
 	return blockedError{reason: "the minimal create produced no object"}
+}
+
+// rebased answers a step's body built on the minimal body the API accepted
+// rather than the one the plan derived. A per-value or negative probe is
+// the planned minimal with one change — a value pinned, a field omitted, a
+// field added — and sending it on the planned minimal repeats every
+// refusal the correction loop already answered, which the probe then
+// records against its own field. The change is carried across: a field the
+// step omits stays out, a value the step sets stays set, and everything the
+// accepted body learned stays in.
+func (r *runner) rebased(entity *entityState, stepBody map[string]any) map[string]any {
+	accepted := entity.recipe.minimalBody
+	planned := entity.plannedMinimal
+	if accepted == nil || planned == nil {
+		return cloneAnyMap(stepBody)
+	}
+	body := cloneAnyMap(accepted)
+	for field := range planned {
+		if _, kept := stepBody[field]; !kept {
+			delete(body, field)
+		}
+	}
+	for field, value := range stepBody {
+		if plannedValue, inPlan := planned[field]; !inPlan || !reflect.DeepEqual(plannedValue, value) {
+			body[field] = value
+		}
+	}
+	return body
 }
 
 // lastRefusal answers the later-informed of the two refusals a minimal create
@@ -114,21 +146,24 @@ func minimalRefusedReason(status int, tried []string) string {
 // field the loop can act on, a bounded bisection names the refused field.
 func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
+	// A composite field takes the form the minimal create got accepted —
+	// widened or not — because the maximal claim is about the entity's own
+	// fields, and re-learning the element's shape would spend the same
+	// requests for the same answer.
+	for field, value := range entity.recipe.minimalBody {
+		switch value.(type) {
+		case map[string]any, []any:
+			if _, present := body[field]; present {
+				body[field] = cloneAny(value)
+			}
+		}
+	}
 	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
 		return err
 	}
 	if rr.obj != nil {
-		sent, err := r.resolveBody(ctx, entity, rr.body)
-		if err != nil {
-			return err
-		}
-		entity.ev.maximalSent = sent
-		entity.ev.maximalGot = rr.res.object()
-		entity.ev.maximalStatus = rr.res.status
-		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
-		_, _ = r.deleteObject(ctx, entity, entity.recipe, rr.obj)
-		return nil
+		return r.settleMaximal(ctx, entity, rr.body, rr.obj, rr.res)
 	}
 	if rr.res == nil || !rr.res.refused() {
 		return nil
@@ -139,6 +174,31 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 		return err
 	}
 	return r.dropFieldsUntilAccepted(ctx, entity, rr.body, rr.res)
+}
+
+// settleMaximal records an accepted maximal create and deletes its object.
+// The evidence for what the API stores is the object read back, not the
+// create response: an API answers a create with the body it was sent and
+// then serves the object in another representation, and a field the read
+// never carries is one the generated state cannot hold. The read is one
+// request; where it fails, the create response stands in.
+func (r *runner) settleMaximal(ctx context.Context, entity *entityState, body map[string]any, obj *createdObject, res *httpResult) error {
+	sent := obj.body
+	got := res.object()
+	if obj.id != "" && entity.recipe.itemPath != "" {
+		read, readErr := r.do(ctx, entity, reqSpec{
+			method: http.MethodGet, path: entity.recipe.itemPath, pathValues: itemValuesFor(entity.recipe, obj.id),
+		})
+		if readErr == nil && read.ok() && read.object() != nil {
+			got = read.object()
+		}
+	}
+	entity.ev.maximalSent = sent
+	entity.ev.maximalGot = got
+	entity.ev.maximalStatus = res.status
+	entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(obj.body))
+	_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
+	return nil
 }
 
 // narrowRefusedField narrows a refused maximal create to the optional field
@@ -205,7 +265,13 @@ func (r *runner) narrowRefusedField(ctx context.Context, entity *entityState, st
 
 // recordRejectedValue accumulates one refused create value into the
 // attribute's values record.
+//
+// A value still carrying a reference token was never a value the API saw
+// refused — the reference had nothing to resolve to — and records nothing.
 func (r *runner) recordRejectedValue(entity *entityState, attribute string, value any, res *httpResult) {
+	if text := fmt.Sprint(value); strings.Contains(text, BorrowToken) || strings.Contains(text, "$created:") {
+		return
+	}
 	v := entity.ev.valuesFor(attribute)
 	v.Rejected = append(v.Rejected, fmt.Sprint(value))
 	entity.ev.valuesProof[attribute] = appendProof(entity.ev.valuesProof[attribute], res.excerpt)
@@ -215,7 +281,7 @@ func (r *runner) recordRejectedValue(entity *entityState, attribute string, valu
 // refusal that names the field is the requirement observed; acceptance is
 // its absence — and an object to delete.
 func (r *runner) runOmitRequired(ctx context.Context, entity *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, r.rebased(entity, step.Body))
 	if err != nil {
 		return err
 	}
@@ -239,7 +305,7 @@ func (r *runner) runOmitRequired(ctx context.Context, entity *entityState, step 
 // runUndocumentedEnumValue sends a value the document does not list.
 // Refusal closes the documented set; acceptance opens it.
 func (r *runner) runUndocumentedEnumValue(ctx context.Context, entity *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, r.rebased(entity, step.Body))
 	if err != nil {
 		return err
 	}
@@ -267,7 +333,7 @@ func (r *runner) runUndocumentedEnumValue(ctx context.Context, entity *entitySta
 // is about how to read the other findings — when true, this entity's
 // refusal-based findings need caution — not a finding in its own right.
 func (r *runner) runUndeclaredSpecField(ctx context.Context, entity *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, r.rebased(entity, step.Body))
 	if err != nil {
 		return err
 	}
@@ -290,12 +356,19 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, entity *entityState
 // one half of a required-when pair — created with the attribute present
 // or omitted under the pinned sibling value.
 func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState, step *plan.Step) error {
-	body := cloneAnyMap(step.Body)
+	body := r.rebased(entity, step.Body)
 	held := ""
 	if step.Condition != nil {
 		held = step.Condition.Attribute
+		// A probe conditional on a gate value no create reached — refused
+		// as such, or stuck on a sibling the adjustments could not satisfy
+		// — would meet the same refusal; it says nothing about the field
+		// it exercises.
+		if step.Condition.Attribute != step.Attribute && entity.unreachedGateValues[held][fmt.Sprint(step.Condition.Equals)] {
+			return nil
+		}
 	}
-	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, held)
+	rr, err := r.correctCreateBodyRecording(ctx, entity, entity.recipe, body, held, true, maxConditionalProbeAttempts)
 	if err != nil {
 		return err
 	}
@@ -305,7 +378,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 	}
 	accepted := obj != nil
 	if accepted {
-		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(obj.body))
 		_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	} else if !res.refused() {
 		return nil
@@ -316,6 +389,18 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 		return nil
 	}
 	if cond.Attribute == step.Attribute {
+		if !accepted {
+			// No object exists under this value, whatever refused it: a
+			// probe of another field conditional on the value would meet
+			// the same refusal and learn nothing about that field.
+			if entity.unreachedGateValues == nil {
+				entity.unreachedGateValues = map[string]map[string]bool{}
+			}
+			if entity.unreachedGateValues[step.Attribute] == nil {
+				entity.unreachedGateValues[step.Attribute] = map[string]bool{}
+			}
+			entity.unreachedGateValues[step.Attribute][fmt.Sprint(cond.Equals)] = true
+		}
 		if !accepted && rr.bodyCorrected {
 			// The create was partly built by the adjustment loop and then
 			// stuck on a sibling requirement it could not satisfy, so the
@@ -326,10 +411,22 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 			return nil
 		}
 		v := entity.ev.valuesFor(step.Attribute)
-		if accepted {
+		switch {
+		case accepted:
 			v.Accepted = append(v.Accepted, fmt.Sprint(cond.Equals))
-		} else {
+		case res.mentions(fmt.Sprint(cond.Equals)):
+			// The refusal names the value: the value is what was refused. A
+			// refusal naming only the field is about the field under this
+			// body's other values — a direction the alert type does not
+			// take, a tag kind that wants filters — and a documented value
+			// refused in one configuration is not an undocumented one.
 			v.Rejected = append(v.Rejected, fmt.Sprint(cond.Equals))
+		default:
+			// Refused without naming either — a conflict with an object
+			// that already exists, a complaint about a sibling — which says
+			// nothing about the value. Claiming a rejection would strip a
+			// documented value from the document on no evidence.
+			return nil
 		}
 		entity.ev.valuesProof[step.Attribute] = appendProof(entity.ev.valuesProof[step.Attribute], res.excerpt)
 		return nil
@@ -412,13 +509,37 @@ func (r *runner) addFieldsUntilAccepted(ctx context.Context, entity *entityState
 			}
 			return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: true}, nil
 		}
-		if res == nil || !res.refused() {
+		if res == nil || (!res.refused() && res.status < 500) {
 			return bodyCorrection{res: res, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
 		}
-		// The API now objects to the field just added, so it is not one this
-		// create wants; the ones before it stay.
+		// The API now objects to the field just added. A composite added in
+		// its smaller form is tried once more with the members the document
+		// attests, which is what an object refused as incomplete wants;
+		// otherwise the field is not one this create wants, and the ones
+		// before it stay.
 		if res.mentions(field) {
-			delete(body, field)
+			if wider, ok := r.syntheses[entity.plan.Entity].attestedValue(field); ok && !reflect.DeepEqual(wider, body[field]) && i+1 < allowance {
+				i++
+				body[field] = wider
+				obj, res, err = r.createObject(ctx, entity, rec, body)
+				if err != nil {
+					return bodyCorrection{}, err
+				}
+				if obj != nil {
+					for _, added := range candidates[:len(tried)] {
+						if _, kept := body[added]; kept {
+							r.recordAdjustAdd(entity, added, "", "", res.excerpt)
+						}
+					}
+					return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: true}, nil
+				}
+				if res == nil || (!res.refused() && res.status < 500) {
+					return bodyCorrection{res: res, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
+				}
+			}
+			if res.mentions(field) {
+				delete(body, field)
+			}
 		}
 		last = res
 	}
@@ -478,29 +599,22 @@ func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityStat
 	last := refusal
 
 	for i := 0; i < allowance; i++ {
-		refusedField := r.refusedOptionalField(body, minimal, last)
-		if refusedField == "" {
+		refusedFields := r.refusedOptionalFields(body, minimal, last)
+		if len(refusedFields) == 0 {
 			return nil
 		}
 		// The evidence for a refusal is bisectMaximal's to record; this only
 		// shapes the body, so a field dropped here is not claimed twice.
-		delete(body, refusedField)
+		for _, refusedField := range refusedFields {
+			delete(body, refusedField)
+		}
 
 		obj, res, err := r.createObject(ctx, entity, entity.recipe, body)
 		if err != nil {
 			return err
 		}
 		if obj != nil {
-			sent, err := r.resolveBody(ctx, entity, body)
-			if err != nil {
-				return err
-			}
-			entity.ev.maximalSent = sent
-			entity.ev.maximalGot = res.object()
-			entity.ev.maximalStatus = res.status
-			entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(body))
-			_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
-			return nil
+			return r.settleMaximal(ctx, entity, body, obj, res)
 		}
 		if res == nil || !res.refused() {
 			return nil
@@ -510,13 +624,15 @@ func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityStat
 	return nil
 }
 
-// refusedOptionalField names the optional field to drop next: the one the refusal
-// mentions, else the last in document order, which is deterministic and so
-// repeats the same reduction on a re-run.
+// refusedOptionalFields names the optional fields to drop next: every one the
+// refusal mentions, else the last in document order, which is deterministic
+// and so repeats the same reduction on a re-run. A refusal that names
+// several fields at once is answered in one attempt rather than one per
+// field.
 //
 // A field the minimal create needs is never a candidate — removing it would
 // trade a refused maximal for a refused minimal.
-func (r *runner) refusedOptionalField(body, minimal map[string]any, refusal *httpResult) string {
+func (r *runner) refusedOptionalFields(body, minimal map[string]any, refusal *httpResult) []string {
 	var optional []string
 	for k := range body {
 		if _, needed := minimal[k]; !needed {
@@ -524,15 +640,19 @@ func (r *runner) refusedOptionalField(body, minimal map[string]any, refusal *htt
 		}
 	}
 	if len(optional) == 0 {
-		return ""
+		return nil
 	}
 	sort.Strings(optional)
 	if refusal != nil {
+		var mentioned []string
 		for _, k := range optional {
 			if refusal.mentions(k) {
-				return k
+				mentioned = append(mentioned, k)
 			}
 		}
+		if len(mentioned) > 0 {
+			return mentioned
+		}
 	}
-	return optional[len(optional)-1]
+	return optional[len(optional)-1:]
 }

@@ -49,6 +49,17 @@ func TestPruneKiota(t *testing.T) {
 		}
 	})
 
+	t.Run("a delete sends the query parameters it requires through the SDK's types", func(t *testing.T) {
+		want := "client.Tags().ByTagId(tagId).Delete(ctx, &abstractions.RequestConfiguration[sdk.TagsItemRequestBuilderDeleteQueryParameters]" +
+			`{QueryParameters: &sdk.TagsItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true), Reason: convert.PointerTo("retired")}})`
+		if rb.Delete.Expr != want {
+			t.Errorf("delete Expr = %q\nwant %q", rb.Delete.Expr, want)
+		}
+		if b.OperationPackages["abstractions"] != "example.com/kiotasdk/abstractions" {
+			t.Errorf("the request configuration's package was not recorded: %v", b.OperationPackages)
+		}
+	})
+
 	t.Run("scalar widths settle to the SDK's", func(t *testing.T) {
 		count := findField(t, rb.Fields, "count")
 		if count.Access.SDKType != "*int32" || count.Access.ConvertGet != "FromPtrInt32" ||
@@ -92,6 +103,27 @@ func TestPruneKiota(t *testing.T) {
 		weight := findField(t, detail.Nested, "weight")
 		if weight.Access.SDKType != "*float32" || weight.Access.ConvertGet != "FromPtrFloat32" {
 			t.Errorf("nested weight access = %+v, want the SDK's float32 width", weight.Access)
+		}
+	})
+
+	t.Run("a field the response never answers is kept from the plan", func(t *testing.T) {
+		// Read as objects and written as identifiers: the write side stays.
+		owners := findField(t, rb.Fields, "owners")
+		if !owners.KeptFromPlan || owners.Access.Get != "" || owners.Access.Set != "SetOwners" {
+			t.Errorf("owners = %+v, want kept from the plan with its setter alone", owners)
+		}
+		if owners.Access.SDKType != "[]string" || owners.Access.ConvertSet != "ToStringSlice" || owners.Access.ConvertGet != "" {
+			t.Errorf("owners settles = %+v, want the setter's shape", owners.Access)
+		}
+		// Declared by the request model and absent from the read interface.
+		owner := findField(t, rb.Fields, "owner_id")
+		if !owner.KeptFromPlan || owner.Access.Get != "" || owner.Access.Set != "SetOwnerId" || owner.Access.ConvertSet != "ToPtrString" {
+			t.Errorf("owner_id = %+v, want kept from the plan with a settled setter", owner)
+		}
+		for _, r := range removed {
+			if r.Key == "tags" && (r.Attribute == "owners" || r.Attribute == "owner_id") {
+				t.Errorf("a kept field was also recorded as removed: %v", r)
+			}
 		}
 	})
 

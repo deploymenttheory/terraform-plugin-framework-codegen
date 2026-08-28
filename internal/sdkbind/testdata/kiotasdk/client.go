@@ -7,6 +7,7 @@ package kiotasdk
 import (
 	"context"
 
+	"example.com/kiotasdk/abstractions"
 	"example.com/kiotasdk/models"
 )
 
@@ -58,8 +59,15 @@ func (b *TagsItemRequestBuilder) Patch(ctx context.Context, body models.Tagable,
 	return body, nil
 }
 
-// Delete removes one tag.
-func (b *TagsItemRequestBuilder) Delete(ctx context.Context, cfg *RequestConfiguration) error {
+// TagsItemRequestBuilderDeleteQueryParameters is the query the delete
+// takes, each field tagged with the wire parameter it carries.
+type TagsItemRequestBuilderDeleteQueryParameters struct {
+	Confirm *bool   `uriparametername:"confirm"`
+	Reason  *string `uriparametername:"reason"`
+}
+
+// Delete removes one tag, confirmed through its query.
+func (b *TagsItemRequestBuilder) Delete(ctx context.Context, cfg *abstractions.RequestConfiguration[TagsItemRequestBuilderDeleteQueryParameters]) error {
 	_, _ = ctx, cfg
 	return nil
 }

@@ -129,12 +129,20 @@ func datasourceElementTree(ds ir.Datasource) *ir.AttributeTree {
 // derivation already refused to guess their shape, and a binding for a
 // shape nothing models would be an invention.
 func fieldBindings(d dialect, t *ir.AttributeTree, mode accessMode) []FieldBinding {
+	return boundFields(d, t, mode, false)
+}
+
+// boundFields is fieldBindings with the write-only root remembered:
+// underWriteOnly marks a level beneath a property that is never read back,
+// where a member the server alone fills has no accessor in either direction
+// and is left out — it is never written, and there is no read to carry it.
+func boundFields(d dialect, t *ir.AttributeTree, mode accessMode, underWriteOnly bool) []FieldBinding {
 	if t == nil {
 		return nil
 	}
 	out := make([]FieldBinding, 0, len(t.Attributes))
 	for _, a := range t.Attributes {
-		if a.Unsupported {
+		if a.Unsupported || (underWriteOnly && a.ComputedOptionalRequired == ir.Computed) {
 			continue
 		}
 		fb := FieldBinding{
@@ -142,8 +150,23 @@ func fieldBindings(d dialect, t *ir.AttributeTree, mode accessMode) []FieldBindi
 			Kind: a.Kind, ElementType: a.ElementType,
 			Access: d.access(a, mode),
 		}
+		// A property the document declares write-only is never read back,
+		// whatever the response model offers: an API that declares one
+		// answers it masked or not at all, and neither is the value sent.
+		// Its members are write-only with it — a member only a response
+		// carries can never be read through a root that is not.
+		writeOnly := underWriteOnly
+		if a.WriteOnly && fb.Access.Set != "" {
+			fb.Access.Get = ""
+			fb.KeptFromPlan = true
+			writeOnly = true
+		}
 		if a.Nested != nil {
-			fb.Nested = fieldBindings(d, a.Nested, mode)
+			nestedMode := mode
+			if writeOnly {
+				nestedMode = accessWriteOnly
+			}
+			fb.Nested = boundFields(d, a.Nested, nestedMode, writeOnly)
 		}
 		out = append(out, fb)
 	}

@@ -90,7 +90,8 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 		t.Errorf("requiredWhen(query) = %+v, want true when mode=advanced", rw)
 	}
 	// ClosedEnum plus ConditionallyRequired: basic accepted; advanced
-	// refused while query rides nowhere; the undocumented value refused.
+	// refused while query rides nowhere, which names query rather than the
+	// value and so rejects nothing; the undocumented value refused.
 	values := wantConfirmed(t, obs, "thing", "mode", observe.KindValues)
 	raw, _ := json.Marshal(values.Value)
 	var v observe.Values
@@ -100,8 +101,8 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	if len(v.Accepted) != 1 || v.Accepted[0] != "basic" {
 		t.Errorf("values(mode).accepted = %v, want [basic]", v.Accepted)
 	}
-	if len(v.Rejected) != 1 || v.Rejected[0] != "advanced" {
-		t.Errorf("values(mode).rejected = %v, want [advanced] (refused because query was omitted)", v.Rejected)
+	if len(v.Rejected) != 0 {
+		t.Errorf("values(mode).rejected = %v, want none: the refusal named a sibling, not the value", v.Rejected)
 	}
 	if v.Closed == nil || !*v.Closed {
 		t.Errorf("values(mode).closed = %v, want true", v.Closed)

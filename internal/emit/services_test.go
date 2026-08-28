@@ -193,6 +193,12 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 
 	crud := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/crud.go").Content)
 	for _, want := range []string{
+		// A delete that the document requires a query parameter of sends it
+		// as a constant through the SDK's own request configuration, with
+		// the packages the expression names imported.
+		"Delete(ctx, &abstractions.RequestConfiguration[sdk.HttpServerItemRequestBuilderDeleteQueryParameters]{QueryParameters: &sdk.HttpServerItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true)}})",
+		`"github.com/microsoft/kiota-abstractions-go"`,
+		`"example.test/provider/internal/services/common/convert"`,
 		"const eventualConsistency = 30 * time.Second",
 		"opts.ConsistencyPredicate = consistencyPredicate",
 		"crud.DeleteWithRetry",
@@ -200,6 +206,35 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 	} {
 		if !strings.Contains(crud, want) {
 			t.Fatalf("crud.go lacks %q:\n%s", want, crud)
+		}
+	}
+
+	// An attribute whose state keeps the planned value: written, never
+	// read, plain Optional, and left out of the import verification.
+	resourceSchema := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/resource.go").Content)
+	ownerStart := strings.Index(resourceSchema, `"owner_id": schema.StringAttribute{`)
+	if ownerStart < 0 {
+		t.Fatalf("resource.go lacks the owner_id attribute:\n%s", resourceSchema)
+	}
+	ownerDeclaration := resourceSchema[ownerStart:]
+	ownerDeclaration = ownerDeclaration[:strings.Index(ownerDeclaration, "\n\t\t\t},")]
+	if !strings.Contains(ownerDeclaration, "Optional:") || strings.Contains(ownerDeclaration, "Computed:") ||
+		strings.Contains(ownerDeclaration, "UseStateForUnknown") {
+		t.Fatalf("owner_id must be plain Optional:\n%s", ownerDeclaration)
+	}
+	if !strings.Contains(ownerDeclaration, "state keeps the configured value") {
+		t.Fatalf("owner_id must say that state keeps the configured value:\n%s", ownerDeclaration)
+	}
+	if !strings.Contains(construct, "convert.FrameworkToAPIString(data.OwnerID, body.SetOwnerId)") {
+		t.Fatalf("construct.go must still send owner_id:\n%s", construct)
+	}
+	if strings.Contains(state, "OwnerID") {
+		t.Fatalf("state.go must not read owner_id back:\n%s", state)
+	}
+	for _, testFile := range []string{"resource_acceptance_test.go", "resource_test.go"} {
+		content := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/"+testFile).Content)
+		if !strings.Contains(content, `ImportStateVerifyIgnore: []string{"timeouts", "owner_id"},`) {
+			t.Fatalf("%s must leave owner_id out of the import verification:\n%s", testFile, content)
 		}
 	}
 

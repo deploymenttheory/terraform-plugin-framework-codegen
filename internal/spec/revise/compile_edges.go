@@ -156,6 +156,12 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 	if !ok {
 		return why
 	}
+	// The generated gate compares a string: a value set on a number or a
+	// boolean has no variant validator to become.
+	if declared, _, ok := loc.scalarSite(site.property, site.propPtr, "type"); ok && declared.Value != "string" {
+		return unplaceable(fmt.Sprintf("a validConfiguration observation on %s.%s gates on a %s property, and the generated validator compares a string",
+			o.Entity, o.Attribute, declared.Value))
+	}
 	edges := c.variants[[2]string{o.Entity, o.Attribute}]
 	variantMap := map[string]any{}
 	sort.Strings(values)

@@ -167,7 +167,8 @@ single recorded exception.
   set: create writes through the update call, delete stops managing the
   object rather than removing it, and `PUT` and `PATCH` are the same
   scenario. A singleton yields no datasource — the resource already reads
-  the only object there is.
+  the only object there is. Its path names no item, so every parameter on
+  it addresses a parent and becomes an addressing attribute.
 - **action** — an entity whose whole surface is a single write with no
   lifecycle around it, generated as a terraform action: an invocation
   rather than a thing terraform owns. Its operation sits in the
@@ -210,15 +211,30 @@ single recorded exception.
   name at most one remote object per provider, and an `id` alone does not
   where a parent scopes it. A list resource's results are identities in
   this shape, which is why the resource must declare it.
+- **normalisation kind** — the relation between a value sent and the
+  spelling the API stores it in, recorded on the property as
+  `x-tfpfgen-normalisation` from a confirmed `normalisation` observation:
+  `case-folded`, `trimmed`, `extended` (the answer carries the value inside
+  a longer spelling — a scheme, a port, a unit), `same-instant` (a
+  timestamp respelt) or `reordered` (a list in another order). Generated
+  state keeps the configured spelling when the answer is that form of it,
+  so a host the API answers with its port is not drift; a `date-time`
+  property answered outside RFC 3339 also loses its format, because the SDK
+  cannot read the answer through it.
 - **addressing attribute** — a generated attribute that exists to fill an
   operation's path parameter rather than to carry a field of the object.
   Every path parameter above the item key becomes one: required, spelled
   from its wire name, in path order ahead of the id, and forcing
   replacement, because an object does not move to another parent in place.
   A parent the request or response body already declares is left as the
-  body declares it. Addressing attributes and the `id` survive binding with
+  body declares it. A parent the document spells `id` cannot take that
+  name — `id` is the resource's own identity — and is named after the
+  entity it addresses (`template_id`), keeping the parameter's spelling as
+  its wire name. Addressing attributes and the `id` survive binding with
   no SDK field behind them — they address the object rather than describe
-  it, so no model carries them.
+  it, so no model carries them. A fixture for a resource under a parent
+  the provider emits carries the parent's minimal block beside its own and
+  takes the identifier from it, in both suites.
 - Naming helpers the intermediate representation exports for every
   emitter: `GoName` (the Pascal Go spelling, acronym-aware) and
   `TerraformName` (the snake_case terraform attribute spelling).
@@ -229,6 +245,9 @@ single recorded exception.
   marker is the only way back.
 - Audit runs directory: `audit/runs/` holds the activity ledgers, one
   `<runid>.activity.jsonl` per run. Never committed.
+- Audit entity flag: `--entity <key>` on `tfpfgen audit run`, repeatable,
+  narrows the run to the named entities and the parents their paths embed;
+  every other entity is listed as skipped with the flag as the reason.
 - Audit force flag: `--force-api-audit` on `tfpfgen audit run` proceeds
   despite foreign objects beyond the object budget in the tenant. There is
   no consent environment variable: the audit creates and deletes real
@@ -237,7 +256,10 @@ single recorded exception.
 - Audit plan tokens: `<runid>` is the run-id placeholder execution
   substitutes into synthesised names; `${VAR}` marks an operator input
   read from the named environment variable at execution time;
-  `$created:<entity>` is the id of an object the audit itself created.
+  `$created:<entity>` is the id of an object the audit itself created;
+  `$borrow:<collection path>` is the id of an object the API already
+  serves at that path, read once per run — the value synthesis binds to a
+  field whose name says it references another object.
 - Operator environment variables a generated provider reads:
   `<PROVIDER>_*` — the uppercased provider name, bare, e.g.
   `THOUSANDEYES_API_TOKEN`. The earlier `TF_<PROVIDER>_*` spelling is

@@ -54,6 +54,7 @@ func fictionalModel() *ir.Model {
 			{Name: "blob", WireName: "blob", ComputedOptionalRequired: ir.Optional,
 				Unsupported: true, UnsupportedReason: "free-form object declares no properties"},
 			{Name: "description", WireName: "description", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
+			{Name: "owner_id", WireName: "ownerId", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
 		},
 		ConditionalRequirements: []ir.ConditionalRequirement{
 			{Property: "kind", Equals: "advanced", Required: []string{"settings"}},
@@ -241,6 +242,10 @@ func httpServerFields() []sdkbind.FieldBinding {
 			}},
 		{Attr: "description", Wire: "description", Kind: ir.TypeString,
 			Access: kiotaAccess("Description", "*string", "FromPtrString", "ToPtrString", "")},
+		// Carried by the request and answered by no response: state keeps
+		// the planned value.
+		{Attr: "owner_id", Wire: "ownerId", Kind: ir.TypeString, KeptFromPlan: true,
+			Access: sdkbind.FieldAccess{Set: "SetOwnerId", SDKType: "*string", ConvertSet: "ToPtrString"}},
 	}
 }
 
@@ -266,14 +271,16 @@ func fictionalBindings() *sdkbind.Bindings {
 
 	able := "models.HttpServerable"
 	return &sdkbind.Bindings{
-		SDK: info,
+		SDK:               info,
+		OperationPackages: map[string]string{"abstractions": "github.com/microsoft/kiota-abstractions-go"},
 		Resources: map[string]*sdkbind.ResourceBinding{
 			"http_server": {
-				Key:              "http_server",
-				Create:           call("client.HttpServers().Post(ctx, body, nil)", nil, able, able, "error"),
-				Read:             call("client.HttpServers().ByHttpServerId(httpServerId).Get(ctx, nil)", serverParam(), able, able, "error"),
-				Update:           call("client.HttpServers().ByHttpServerId(httpServerId).Patch(ctx, body, nil)", serverParam(), able, able, "error"),
-				Delete:           call("client.HttpServers().ByHttpServerId(httpServerId).Delete(ctx, nil)", serverParam(), "", "error"),
+				Key:    "http_server",
+				Create: call("client.HttpServers().Post(ctx, body, nil)", nil, able, able, "error"),
+				Read:   call("client.HttpServers().ByHttpServerId(httpServerId).Get(ctx, nil)", serverParam(), able, able, "error"),
+				Update: call("client.HttpServers().ByHttpServerId(httpServerId).Patch(ctx, body, nil)", serverParam(), able, able, "error"),
+				Delete: call("client.HttpServers().ByHttpServerId(httpServerId).Delete(ctx, &abstractions.RequestConfiguration[sdk.HttpServerItemRequestBuilderDeleteQueryParameters]"+
+					"{QueryParameters: &sdk.HttpServerItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true)}})", serverParam(), "", "error"),
 				ReadModel:        able,
 				WriteModel:       "models.HttpServer",
 				WriteConstructor: "models.NewHttpServer()",

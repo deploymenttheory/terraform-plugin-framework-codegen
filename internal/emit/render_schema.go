@@ -93,7 +93,7 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 	fmt.Fprintf(&b, "%s%q: %s.%s{\n", indent, n.attribute.Name, sb.goPackage(), schemaTypeOf(n).SchemaAttribute)
 	b.WriteString(sb.computedOptionalRequiredLines(n, indent+"\t"))
 
-	if description := attributeDescription(n.attribute); description != "" {
+	if description := attributeDescription(n.attribute, n.fb != nil && n.fb.KeptFromPlan); description != "" {
 		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(description))
 	}
 
@@ -160,6 +160,20 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 		})
 	}
 
+	if len(n.attribute.OneOf) > 0 && n.attribute.Kind == ir.TypeList && n.attribute.ElementType == ir.TypeString {
+		quoted := make([]string, len(n.attribute.OneOf))
+		for i, v := range n.attribute.OneOf {
+			quoted[i] = strconv.Quote(v)
+		}
+		validators = append(validators, code.CustomValidator{
+			Imports: []code.Import{
+				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"},
+				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"},
+			},
+			SchemaDefinition: fmt.Sprintf("listvalidator.ValueStringsAre(stringvalidator.OneOf(%s))", strings.Join(quoted, ", ")),
+		})
+	}
+
 	validators = append(validators, constraintValidators(n)...)
 
 	if depth == sb.rootDepth {
@@ -207,6 +221,11 @@ func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string
 // well keeps the writable half; one that is only computed is dropped before
 // it reaches here.
 func (sb *schemaBuilder) computedOptionalRequiredLines(n node, indent string) string {
+	// An attribute whose state keeps the planned value is never computed:
+	// nothing fills it after apply, so a computed one would be left unknown.
+	if n.held && n.attribute.ComputedOptionalRequired != ir.Required {
+		return indent + "Optional: true,\n"
+	}
 	switch n.attribute.ComputedOptionalRequired {
 	case ir.Required:
 		return indent + "Required: true,\n"
@@ -260,7 +279,7 @@ func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 	// stable just because it is computed, and pinning it makes terraform
 	// insist on a value the next read contradicts. Which of those are settled
 	// is a fact an audit measures, not one the document states.
-	if isID || n.attribute.ComputedOptionalRequired == ir.ComputedOptional {
+	if isID || (n.attribute.ComputedOptionalRequired == ir.ComputedOptional && !n.held) {
 		modifiers = append(modifiers, code.CustomPlanModifier{
 			Imports:          imports,
 			SchemaDefinition: goPackage + ".UseStateForUnknown()",
@@ -297,12 +316,15 @@ func (sb *schemaBuilder) planModifierLines(n node, indent string) string {
 // the inferred facts qualify it. Where the document says nothing — and real
 // ones routinely annotate only a fraction of their properties — the wire
 // property name stands in.
-func attributeDescription(a ir.Attribute) string {
+func attributeDescription(a ir.Attribute, keptFromPlan bool) string {
 	var parts []string
 	if declared := strings.TrimSpace(a.Description); declared != "" {
 		parts = append(parts, terminated(declared))
 	} else {
 		parts = append(parts, "The "+a.WireName+" property.")
+	}
+	if keptFromPlan {
+		parts = append(parts, "The API does not return this attribute, so state keeps the configured value and drift in it is not detected.")
 	}
 	if len(a.AdvisoryValues) > 0 {
 		parts = append(parts, "Known values: "+strings.Join(a.AdvisoryValues, ", ")+".")

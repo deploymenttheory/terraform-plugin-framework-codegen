@@ -350,6 +350,13 @@ func (l *loader) parameter(node *yaml.Node, at string) (Parameter, error) {
 		}
 		p.Schema = schema
 	}
+	if en := deref(lookup(node, "example")); en != nil {
+		var v any
+		if err := en.Decode(&v); err != nil {
+			return Parameter{}, fmt.Errorf("%s.example: %w", at, err)
+		}
+		p.Example = v
+	}
 	return p, nil
 }
 

@@ -151,3 +151,43 @@ func TestUnit_Locator_IsJSONMediaMatchesSuffixedVariants(t *testing.T) {
 		}
 	}
 }
+
+func TestUnit_Locator_FindPathDescendsObjectsAndArrayItems(t *testing.T) {
+	t.Parallel()
+	loc := locatorFor(t, `
+components:
+  schemas:
+    Auth:
+      type: object
+      properties:
+        token:
+          type: string
+    Connector:
+      type: object
+      properties:
+        authentication:
+          $ref: '#/components/schemas/Auth'
+        headers:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+`)
+	root := loc.nodeAt("/components/schemas/Connector")
+	site, ok := loc.findPath(root, "/components/schemas/Connector", "authentication.token")
+	if !ok || site.propPtr != "/components/schemas/Auth/properties/token" {
+		t.Errorf("authentication.token located at %q (%v), want the referenced schema's property", site.propPtr, ok)
+	}
+	site, ok = loc.findPath(root, "/components/schemas/Connector", "headers.value")
+	if !ok || site.propPtr != "/components/schemas/Connector/properties/headers/items/properties/value" {
+		t.Errorf("headers.value located at %q (%v), want the array's item property", site.propPtr, ok)
+	}
+	if _, ok := loc.findPath(root, "/components/schemas/Connector", "authentication.missing"); ok {
+		t.Error("a member the schema does not declare was located")
+	}
+	if site, ok := loc.findPath(root, "/components/schemas/Connector", "authentication"); !ok || site.propPtr != "/components/schemas/Connector/properties/authentication" {
+		t.Errorf("a plain name located at %q (%v)", site.propPtr, ok)
+	}
+}

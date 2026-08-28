@@ -71,6 +71,12 @@ func writeNestedHCL(b *strings.Builder, v Entry, a Form, depth int) {
 // scalarHCL renders a scalar value, or the single-element list carrying
 // one.
 func scalarHCL(v Entry) string {
+	if v.Expression != "" {
+		if v.Kind == ir.TypeList {
+			return "[" + v.Expression + "]"
+		}
+		return v.Expression
+	}
 	literal := hclLiteral(v.Scalar)
 	switch v.Kind {
 	case ir.TypeList:

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 )
@@ -54,7 +56,12 @@ func (h *httpResult) ok() bool { return h.status >= 200 && h.status < 300 }
 
 // refused reports a 4xx: the API understood and said no, which is
 // evidence. A 5xx is not — it discriminates nothing.
-func (h *httpResult) refused() bool { return h.status >= 400 && h.status < 500 }
+func (h *httpResult) refused() bool {
+	// Too many requests and a request timeout are the server declining to
+	// answer now, not a judgement on the body; treating either as a
+	// refusal records the body's every field as rejected.
+	return h.status >= 400 && h.status < 500 && h.status != http.StatusTooManyRequests && h.status != http.StatusRequestTimeout
+}
 
 // object decodes the response body as a JSON object, nil when it is not
 // one.
@@ -69,8 +76,19 @@ func (h *httpResult) object() map[string]any {
 // mentions reports whether the response body names the attribute — what
 // lets a refusal be written down as being about the field rather than
 // about anything at all.
+//
+// Matched with case, spaces and punctuation removed on both sides, because
+// an API writes the field's name back in its own prose — "bandwidth
+// measurements" for bandwidthMeasurements — and a refusal that names the
+// field in words is still a refusal that names it.
 func (h *httpResult) mentions(attribute string) bool {
-	return attribute != "" && bytes.Contains(bytes.ToLower(h.body), []byte(strings.ToLower(attribute)))
+	if attribute == "" {
+		return false
+	}
+	if bytes.Contains(bytes.ToLower(h.body), []byte(strings.ToLower(attribute))) {
+		return true
+	}
+	return strings.Contains(lettersOf(string(h.body)), lettersOf(attribute))
 }
 
 // do sends one request: substitution, budget spend, host allowlist, rate
@@ -300,24 +318,130 @@ func (r *runner) resolveValue(ctx context.Context, entity *entityState, v string
 	if entityKey, ok := strings.CutPrefix(v, "$created:"); ok {
 		return r.resolveCreated(ctx, entity, entityKey)
 	}
+	if path, ok := strings.CutPrefix(v, BorrowToken); ok {
+		id, found := r.borrowFromPath(ctx, entity, path)
+		if !found {
+			return "", unsatisfiedReference{path: path}
+		}
+		return id, nil
+	}
 	return v, nil
 }
 
-// resolveBody substitutes tokens through the body's string values.
+// unsatisfiedReference is a borrow token whose collection served no object.
+// A caller that can leave the reference out does so; one that cannot blocks
+// the entity with the collection named.
+type unsatisfiedReference struct {
+	path string
+}
+
+func (u unsatisfiedReference) Error() string {
+	return fmt.Sprintf("the %s collection holds no object to reference, and a synthesised id is refused by construction", u.path)
+}
+
+// resolveReference resolves one body value under its field name, recording
+// a borrow adjustment the first time a bound reference is satisfied: the
+// inference reads the adjustment as the signal that the field holds a live
+// id, whether the loop borrowed it after a refusal or synthesis bound it
+// before the first request.
+func (r *runner) resolveReference(ctx context.Context, entity *entityState, field, v string) (string, error) {
+	resolved, err := r.resolveValue(ctx, entity, v)
+	if err != nil || entity == nil {
+		return resolved, err
+	}
+	if path, ok := strings.CutPrefix(v, BorrowToken); ok {
+		if entity.ev != nil {
+			if entity.ev.references == nil {
+				entity.ev.references = map[string]string{}
+			}
+			entity.ev.references[field] = path
+		}
+		if !r.borrowRecorded[entity.plan.Entity+"\x00"+field] {
+			r.borrowRecorded[entity.plan.Entity+"\x00"+field] = true
+			r.recordAdjustment(entity, infer.AdjustBorrow, field, path, "")
+		}
+	}
+	return resolved, nil
+}
+
+// resolveBody substitutes tokens through the body's string values, at every
+// depth: a reference bound inside a nested object or a list element is
+// resolved the same way as one at the top.
 func (r *runner) resolveBody(ctx context.Context, entity *entityState, body map[string]any) (map[string]any, error) {
-	out := make(map[string]any, len(body))
-	for k, v := range body {
-		if s, ok := v.(string); ok {
-			resolved, err := r.resolveValue(ctx, entity, s)
+	resolved, err := r.resolveAny(ctx, entity, "", body, true)
+	if err != nil {
+		return nil, err
+	}
+	return resolved.(map[string]any), nil
+}
+
+// resolveAny is resolveBody's recursion over maps, lists and strings, carrying
+// the field name a value sits under so a resolved reference is recorded
+// against it.
+//
+// A reference the API cannot satisfy — the collection is empty — is left out
+// where leaving it out is a body the API can still read: an element of a
+// list of ids, a top-level field the entity does not require, or a member
+// of a nested object — whether that object needed the member is the API's
+// to say, and a refusal costs one request where a block costs the entity.
+// A required top-level field blocks with the collection named: sent with an
+// invented id or left out, it is refused for a reason the refusal will not
+// spell.
+func (r *runner) resolveAny(ctx context.Context, entity *entityState, field string, value any, top bool) (any, error) {
+	switch v := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for k, inner := range v {
+			resolved, err := r.resolveAny(ctx, entity, k, inner, false)
+			var unsatisfied unsatisfiedReference
+			if errors.As(err, &unsatisfied) && (!top || !r.requiredField(entity, k)) {
+				continue
+			}
+			if err != nil {
+				return nil, blockedIfUnsatisfied(err)
+			}
+			out[k] = resolved
+		}
+		return out, nil
+	case []any:
+		out := make([]any, 0, len(v))
+		for i := range v {
+			resolved, err := r.resolveAny(ctx, entity, field, v[i], false)
+			var unsatisfied unsatisfiedReference
+			if _, isString := v[i].(string); isString && errors.As(err, &unsatisfied) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
-			out[k] = resolved
-			continue
+			out = append(out, resolved)
 		}
-		out[k] = v
+		return out, nil
+	case string:
+		return r.resolveReference(ctx, entity, field, v)
+	default:
+		return value, nil
 	}
-	return out, nil
+}
+
+// requiredField reports whether the entity's strategy declares the field
+// required in a create body. Unknown fields read as not required.
+func (r *runner) requiredField(entity *entityState, field string) bool {
+	if entity == nil {
+		return false
+	}
+	h, ok := r.hints[entity.plan.Entity][field]
+	return ok && h.Required
+}
+
+// blockedIfUnsatisfied turns an unsatisfied reference that nothing above it
+// could leave out into the block reason the entity ends on.
+func blockedIfUnsatisfied(err error) error {
+	var unsatisfied unsatisfiedReference
+	if errors.As(err, &unsatisfied) {
+		return blockedError{reason: unsatisfied.Error()}
+	}
+	return err
 }
 
 // fragment trims a body to an excerpt-sized JSON fragment; nil for an

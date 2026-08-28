@@ -41,6 +41,20 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 			flipEscaped(&fb.Access)
 			sig, ok = methodOn(read, fb.Access.Get)
 		}
+		if !ok && fb.Access.Set != "" && write != nil {
+			// The request carries the field and no response answers it: a
+			// property the write model declares and the read model does not.
+			// The practitioner can still set it, so it stays as one whose
+			// state keeps the planned value, settled against the write side
+			// in the spelling the draft gave it — the flip above changed the
+			// setter's spelling along with the getter's.
+			flipEscaped(&fb.Access)
+			if _, settable := methodOn(write, fb.Access.Set); settable {
+				keepFromPlan(fb)
+				return p.resolveField(fb, nil, write, kind, key, at)
+			}
+			flipEscaped(&fb.Access)
+		}
 		if !ok {
 			return fmt.Sprintf("%s carries no %s to read %q from%s",
 				shortType(read), fb.Access.Get, fb.Wire, didYouMean(fb.Access.Get, methodNamesOf(read)))
@@ -70,7 +84,22 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 	}
 
 	if result != nil && parameter != nil && !types.Identical(result, parameter) {
-		return p.settleEachDirection(fb, result, parameter, kind, key, at)
+		if why := p.settleEachDirection(fb, result, parameter, kind, key, at); why != "" {
+			// Read in one shape and written in another that no conversion
+			// bridges — identifiers written, objects read. The write side is
+			// what a practitioner configures, so where it settles on its own
+			// it stays and the read side goes: state keeps the planned
+			// value. Where even the write side cannot carry the attribute,
+			// the mismatch is the reason.
+			writeOnly := copyFieldBindings([]FieldBinding{*fb})[0]
+			keepFromPlan(&writeOnly)
+			if p.resolveField(&writeOnly, nil, write, kind, key, at) == "" {
+				*fb = writeOnly
+				return ""
+			}
+			return why
+		}
+		return ""
 	}
 
 	basis := result
@@ -546,4 +575,47 @@ func isKiotaDateOnly(named *types.Named) bool {
 		return false
 	}
 	return strings.HasSuffix(goPackage.Path(), "kiota-abstractions-go/serialization")
+}
+
+// keepFromPlan turns a binding into one the response never answers: the
+// getter goes at every depth, the marker is set at the root, and what is
+// left is the write side alone.
+func keepFromPlan(fb *FieldBinding) {
+	fb.KeptFromPlan = true
+	clearGetters(fb)
+}
+
+// clearGetters removes the read accessor from a binding and its subtree.
+func clearGetters(fb *FieldBinding) {
+	fb.Access.Get = ""
+	fb.Access.ConvertGet = ""
+	for i := range fb.Nested {
+		clearGetters(&fb.Nested[i])
+	}
+}
+
+// liftKeptFromPlan raises the marker to the root attribute above any member
+// that carries it. A response that cannot answer one member of an object
+// cannot rebuild the object the state holds, so the whole subtree is kept
+// from the plan rather than mapped with a hole in it.
+func liftKeptFromPlan(fbs []FieldBinding) {
+	for i := range fbs {
+		if keptBelow(&fbs[i]) {
+			keepFromPlan(&fbs[i])
+		}
+	}
+}
+
+// keptBelow reports whether a binding or any member under it is kept from
+// the plan.
+func keptBelow(fb *FieldBinding) bool {
+	if fb.KeptFromPlan {
+		return true
+	}
+	for i := range fb.Nested {
+		if keptBelow(&fb.Nested[i]) {
+			return true
+		}
+	}
+	return false
 }

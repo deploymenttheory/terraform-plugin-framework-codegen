@@ -42,8 +42,12 @@ func TestAttributes_TypeMapping(t *testing.T) {
 	if rules.ElementType != TypeObject || rules.Nested == nil {
 		t.Fatalf("rules = %+v, want a list of objects", rules)
 	}
-	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != Required {
-		t.Errorf("kind inside rules = %+v, want required", kind)
+	// rules is server-filled, so its members are computed as well, the
+	// required one included: terraform core reads a non-computed member
+	// holding a value as one the configuration set, and clears the whole
+	// attribute when the configuration omits it.
+	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != ComputedOptional {
+		t.Errorf("kind inside rules = %+v, want computed-optional under a server-filled parent", kind)
 	}
 	// Nested attributes take the same presence rule as top-level ones, and
 	// this response describes the create schema wholesale.
@@ -558,7 +562,7 @@ func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 	ensureParentParameters(tree, []Parameter{
 		{Name: "owner", Type: TypeString},
 		{Name: "repo", Type: TypeString},
-	})
+	}, "")
 
 	if len(tree.Attributes) != 4 {
 		t.Fatalf("want four attributes, got %d", len(tree.Attributes))
@@ -584,7 +588,7 @@ func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing
 	tree := &AttributeTree{Attributes: []Attribute{
 		{Name: "owner", WireName: "owner", Kind: TypeString, ComputedOptionalRequired: Optional},
 	}}
-	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}})
+	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}}, "")
 
 	if len(tree.Attributes) != 1 {
 		t.Fatalf("a declared parent must not be added twice, got %d", len(tree.Attributes))

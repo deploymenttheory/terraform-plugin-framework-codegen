@@ -334,3 +334,9 @@ func FrameworkToAPIFloat64List(ctx context.Context, value types.List, setter fun
 	setter(values)
 	return nil
 }
+
+// PointerTo answers a pointer to a value, for the SDK fields that take one
+// where the value is a constant the generated call spells in place.
+func PointerTo[T any](value T) *T {
+	return &value
+}

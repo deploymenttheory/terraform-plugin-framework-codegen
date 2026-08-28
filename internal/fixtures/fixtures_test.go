@@ -535,9 +535,11 @@ func TestUnit_Fixturespec_AReplayedBodyCarriesWhatTheAPITook(t *testing.T) {
 
 	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
 
-	// The values are the ones the request carried, not the ones derived.
-	if v := valueByName(t, got, "name").Scalar; v != "the-name-it-took" {
-		t.Errorf("name = %#v, want the value the API took", v)
+	// The values are the ones the request carried, not the ones derived —
+	// except a name, which goes back to the invented one: the one the API
+	// took is taken for good.
+	if v := valueByName(t, got, "name").Scalar; v != NamePrefix+"name" {
+		t.Errorf("name = %#v, want the invented name back", v)
 	}
 	if v := valueByName(t, got, "colour").Scalar; v != "#FF0000" {
 		t.Errorf("colour = %#v, want the value the API took", v)
@@ -606,6 +608,17 @@ func TestUnit_Fixturespec_TheRunSuffixOnlyTouchesInventedNames(t *testing.T) {
 	}
 }
 
+func TestUnit_Fixturespec_TheRunSuffixSitsBeforeAnAddressesDomain(t *testing.T) {
+	spec := Derive(acceptedTree())
+	spec.Entries[1].Scalar = NamePrefix + "user@example.invalid"
+
+	got := spec.WithRunSuffix()
+
+	if v := got.Entries[1].Scalar; v != NamePrefix+"user-"+RunSuffixExpr+"@example.invalid" {
+		t.Errorf("an invented address = %#v, want the suffix in its local part", v)
+	}
+}
+
 func TestUnit_Fixturespec_AReplayedNameGoesBackToTheInventedOne(t *testing.T) {
 	spec := Derive(exampleTree())
 	// What the audit sent and the API took: the document's own example, which
@@ -648,28 +661,80 @@ func TestUnit_Fixturespec_AReplayKeepsEveryValueThatDoesNotNameTheObject(t *test
 	}
 }
 
-func TestUnit_Fixturespec_AReplayDropsWhatTheAPIReturnsDifferently(t *testing.T) {
+func TestUnit_Fixturespec_AReplayCarriesTheAPIsOwnSpellingOfAValue(t *testing.T) {
 	spec := Derive(acceptedTree())
-	request := map[string]any{"name": "n", "colour": "#FF0000"}
-	// Sent five stars, answered six: a masked value, and no configuration can
-	// plan a value the API rewrites on the way back.
-	response := map[string]any{"name": "n", "colour": "#ff0000ff"}
+	request := map[string]any{"name": "n", "colour": "www.example.invalid"}
+	// Sent bare, answered with the scheme the API stores it under: the
+	// answered spelling is the one the API will not rewrite again.
+	response := map[string]any{"name": "n", "colour": "ftp://www.example.invalid/"}
+
+	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
+
+	if v := valueByName(t, got, "colour").Scalar; v != "ftp://www.example.invalid/" {
+		t.Errorf("colour = %#v, want the value the API answered", v)
+	}
+}
+
+func TestUnit_Fixturespec_AReplayDropsWhatTheAPIReturnsMaskedOrRetyped(t *testing.T) {
+	spec := Derive(acceptedTree())
+	request := map[string]any{"name": "n", "colour": "s3cret", "match_type": "and", "matchType": "7"}
+	// A mask is not a value; a value of another type is not one a
+	// configuration of this attribute's type can carry.
+	response := map[string]any{"name": "n", "colour": "******", "matchType": float64(7)}
 
 	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
 
 	for _, e := range got.Entries {
-		if e.Name == "colour" {
-			t.Fatal("a property the API answers differently was left in a configuration")
+		if e.Name == "colour" || e.Name == "match_type" {
+			t.Fatalf("a property the API masks or retypes was left in a configuration: %s", e.Name)
 		}
 	}
-	var explained bool
+	reasons := map[string]string{}
 	for _, o := range got.Omissions {
-		if strings.Contains(o.Name, "colour") && strings.Contains(o.Reason, "different value") {
-			explained = true
+		reasons[o.Name] = o.Reason
+	}
+	if !strings.Contains(reasons["colour"], "masked") {
+		t.Errorf("the masked property was not explained: %#v", got.Omissions)
+	}
+	if !strings.Contains(reasons["match_type"], "different value") {
+		t.Errorf("the retyped property was not explained: %#v", got.Omissions)
+	}
+}
+
+func TestUnit_Fixturespec_AKeptRootKeepsItsMembersWhateverTheEchoSays(t *testing.T) {
+	spec := Derive(acceptedTree())
+	request := map[string]any{"name": "n", "settings": map[string]any{"retries": int64(3)}}
+	// The member is answered masked; under a root the configuration keeps
+	// whatever the response says, it stays as sent.
+	response := map[string]any{"name": "n", "settings": map[string]any{"retries": "*****"}}
+
+	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true, "settings": true})
+
+	settings := valueByName(t, got, "settings")
+	if len(settings.Nested) != 1 || settings.Nested[0].Scalar != int64(3) {
+		t.Errorf("settings = %#v, want the member as sent under a kept root", settings.Nested)
+	}
+	// Without the root kept, the masked member goes, and the object it
+	// leaves empty goes with it.
+	loose := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
+	for _, e := range loose.Entries {
+		if e.Name == "settings" {
+			t.Errorf("a masked member survived under an unkept root: %#v", e.Nested)
 		}
 	}
-	if !explained {
-		t.Errorf("the rewritten property was not explained: %#v", got.Omissions)
+}
+
+func TestUnit_Fixturespec_TheLiveSuiteInventsEveryName(t *testing.T) {
+	s := Derive(exampleTree())
+	// Derivation keeps a declared example for a name where another string
+	// carries the prefix; the live suite takes the invented name back, so
+	// the run suffix makes it unique and cleanup can match it.
+	live := s.WithInventedNames().WithRunSuffix()
+	if v := valueByName(t, live, "name").Scalar; v != NamePrefix+"name-"+RunSuffixExpr {
+		t.Errorf("name = %#v, want the invented name with the run suffix", v)
+	}
+	if v := valueByName(t, live, "endpoint_url").Scalar; v != "https://api.example.otel-collector" {
+		t.Errorf("endpoint_url = %#v, want the example untouched", v)
 	}
 }
 

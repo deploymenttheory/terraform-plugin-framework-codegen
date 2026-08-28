@@ -149,6 +149,12 @@ func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema
 		refuse(attribute, "array declares no items schema")
 	case flatItems.declaredType == "string":
 		attribute.Kind, attribute.ElementType = TypeList, TypeString
+		// The element's closed set is the list's: each member the
+		// practitioner writes is validated against it, and a fixture takes
+		// its member from it.
+		if len(flatItems.enum) > 0 {
+			attribute.OneOf = renderEnum(flatItems.enum)
+		}
 	case flatItems.declaredType == "boolean":
 		attribute.Kind, attribute.ElementType = TypeList, TypeBool
 	case flatItems.declaredType == "integer":

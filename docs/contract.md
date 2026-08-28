@@ -170,6 +170,7 @@ makes.
 | `Required` | Writable and required on create | the create body's `required` |
 | `Optional` + `Computed` | Writable, and the response carries a value whether or not the request supplied one | `x-tfpfgen-server-default`, the response schema's `required`, or a `default` on the request property |
 | `Computed` | The practitioner cannot set it | absent from the create body, `readOnly`, `x-tfpfgen-server-forced`, `x-tfpfgen-volatile` |
+| the configured spelling, kept | The API stores the value in a spelling of its own and state keeps what was configured when the answer is that spelling | `x-tfpfgen-normalisation` naming the kind |
 | `Optional` | Writable, and the server leaves it absent when omitted | none of the above |
 
 `Optional` alone is the rare one. Most APIs answer with a value for every field

@@ -32,11 +32,14 @@ import (
 type Kind string
 
 const (
-	// KindWritable: the API accepts this attribute on write and stores it
-	// (true), or accepts and discards it (false). Learned by sending a
-	// value on create and reading it back. False becomes a correction
-	// marking the property readOnly, which downstream generates as
-	// Computed rather than Optional.
+	// KindWritable: the API accepts this attribute on write and returns it
+	// (true), or accepts it and never returns it — absent from the answer,
+	// or answered masked (false). Learned by sending a value on create and
+	// reading it back. False becomes a correction marking the property
+	// writeOnly, which downstream keeps configurable with state holding
+	// the configured value: the wire cannot tell a discarded value from
+	// one stored under another name, and readOnly would take a property
+	// the API may require away from the practitioner.
 	KindWritable Kind = "writable"
 
 	// KindImmutable: the API refuses to change this attribute after
@@ -74,12 +77,13 @@ const (
 	KindDerivedDefault Kind = "derivedDefault"
 
 	// KindNormalisation: the server stored a transform of the accepted
-	// value — case-folded, trimmed, reformatted — and the Value is the
-	// normalised form that came back. Learned when the read-back differs
-	// from what was sent but is derivable from it. No mechanical
-	// correction today; it is recorded so provider semantic-equality
-	// handling can be configured from evidence, and so the finding is not
-	// misread as immutability or a server-forced value.
+	// value — case-folded, trimmed, extended, the same instant, reordered
+	// — and the Value is the normalised form that came back. Learned when
+	// the read-back differs from what was sent but is derivable from it.
+	// Becomes an x-tfpfgen-normalisation correction naming the kind, read
+	// back from the excerpts, so generated state keeps the configured
+	// spelling; recorded also so the finding is not misread as
+	// immutability or a server-forced value.
 	KindNormalisation Kind = "normalisation"
 
 	// KindIgnoredOnUpdate: an update accepted a new value with a success

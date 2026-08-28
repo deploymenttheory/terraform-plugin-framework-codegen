@@ -133,13 +133,13 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
 		{Property: "ghost", Equals: "x", Required: []string{"name"}}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
+	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A conditional requirement on a non-string attribute.
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
 		{Property: "enabled", Equals: "true", Required: []string{"name"}}}
-	expectRenderError(t, pc, m, b, "http_server", "enabled")
+	expectRenderExclusion(t, pc, m, b, "http_server", "enabled")
 
 	// A conditional requirement requiring a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
@@ -151,7 +151,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ConditionalValidities = []ir.ConditionalValidity{
 		{Property: "ghost", Equals: "x", Valid: []string{"name"}}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
+	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A valid-when allowing a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
@@ -173,7 +173,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
 		{Discriminator: "ghost", Variants: []ir.ConfigVariant{{Value: "x", Valid: []string{"name"}}}}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
+	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A valid configuration admitting a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
@@ -450,7 +450,7 @@ func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *test
 	}}
 	list := &ir.Operation{PathParameters: []ir.Parameter{{Name: "org", Type: ir.TypeString}}}
 
-	names := addressingNames(read, nil, list)
+	names := addressingNames(nil, read, nil, list)
 	for _, want := range []string{"owner", "repo", "ruleset_id", "org"} {
 		if !names[want] {
 			t.Fatalf("%s must be addressing, got %v", want, names)
@@ -650,7 +650,7 @@ func TestUnit_AttributeDescription_LeadsWithTheDocumentsOwnProse(t *testing.T) {
 		AdvisoryValues:  []string{"to-target", "from-target"},
 		RequiresReplace: true,
 	}
-	got := attributeDescription(a)
+	got := attributeDescription(a, false)
 	if !strings.HasPrefix(got, "Direction for applicable alert types.") {
 		t.Fatalf("the document's sentence must lead, and be terminated: %q", got)
 	}
@@ -663,7 +663,7 @@ func TestUnit_AttributeDescription_LeadsWithTheDocumentsOwnProse(t *testing.T) {
 
 func TestUnit_AttributeDescription_FallsBackToTheWireName(t *testing.T) {
 	// Real documents leave most properties bare.
-	got := attributeDescription(ir.Attribute{Name: "path", WireName: "path"})
+	got := attributeDescription(ir.Attribute{Name: "path", WireName: "path"}, false)
 	if got != "The path property." {
 		t.Fatalf("an undescribed attribute keeps the derived sentence, got %q", got)
 	}
