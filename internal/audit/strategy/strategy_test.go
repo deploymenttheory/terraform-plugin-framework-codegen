@@ -632,13 +632,11 @@ func TestBudgetDefaultsMaxObjects(t *testing.T) {
 	}
 }
 
-// TestBudgetCoversProgram is the regression for the exhaustion the live
-// quirkserver rehearsal surfaced: a multi-variant resource's budget must be
-// derived from its actual program with enough headroom that the whole program
-// can run. The monitor-shaped resource here (a three-value discriminator, seven
-// writable fields) compiles a ~30-step program; the old base+fields×variants
-// formula sized it at 38, below the ~92 requests the program spends live. The
-// program-summed budget must clear a generous multiple of the step count.
+// TestBudgetCoversProgram pins that a multi-variant resource's budget is
+// derived from its actual program, with enough headroom that the whole program
+// can run. A budget sized from the create body's field count undercounts such a
+// resource: its program runs once per variant, so the cost tracks the step
+// count. The program-summed budget must clear a generous multiple of it.
 func TestBudgetCoversProgram(t *testing.T) {
 	s := compile(t, monitorLikeSpec, "monitor", defaultCfg())
 

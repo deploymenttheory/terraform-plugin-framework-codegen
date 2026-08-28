@@ -56,9 +56,10 @@ const (
 // resource's complexity, and the guards against a runaway are the object ceiling
 // above and the run-wide duration and rate limits — never a tight request cap. A
 // budget too small to let a resource's whole program complete is the exhaustion
-// this weighting exists to prevent: the multi-variant monitor's 33-step program
-// spends ~92 requests live, which the old base(10)+fields×variants=38 could not
-// cover, so it exhausted before completing.
+// this weighting exists to prevent. A budget derived from a field count rather
+// than from the program undercounts a multi-variant resource badly: its program
+// runs once per variant, so its cost tracks the step count and not the width of
+// the create body.
 const (
 	// refineReserve is a create-family step's reserve: one create plus the
 	// retries the adaptive loop makes as it adds, removes or borrows a field a

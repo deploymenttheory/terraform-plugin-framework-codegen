@@ -226,8 +226,8 @@ func TestUnit_UnsupportedSummary_CountsByStageAndStaysSilentWhenClean(t *testing
 // leaves out a removal the emitter kept anyway. Pruning removes the binding
 // for `id` and the addressing attributes because no model carries them —
 // they address the object rather than describe it — and the attribute
-// reaches the schema regardless. Reporting those as refusals is how this
-// file came to claim 207 losses on one pilot that were not losses.
+// reaches the schema regardless. Reporting those as refusals would be
+// wrong: the operator lost nothing.
 func TestUnit_RenderUnsupported_KeptAttributesAreNotLosses(t *testing.T) {
 	removals := []sdkbind.Removal{
 		{Kind: "resource", Key: "tag", Attribute: "id", Reason: "carries no GetId"},

@@ -278,10 +278,10 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderServices_ListEnvelopeIsDataDriven proves the ListWrap defect
-// is closed: the generated list mock keys its envelope on the entity's
-// observed list envelope key, not a hardcoded "value" — and unwraps a bare
-// array when the response carries no envelope.
+// TestUnit_RenderServices_ListEnvelopeIsDataDriven proves the generated list
+// mock keys its envelope on the entity's observed list envelope key rather than
+// a hardcoded "value", and serves a bare array when the response carries no
+// envelope.
 func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	pc := fictionalProviderCore()
 

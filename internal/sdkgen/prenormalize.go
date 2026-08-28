@@ -202,8 +202,8 @@ func dropByteFormat(schema *yaml.Node) {
 // reduceUnions rewrites every anyOf and oneOf in the document to its first
 // branch, wherever one appears: a component schema, an inline property, a
 // request body, a response. The whole document is walked rather than the
-// component schemas alone, because the shape that broke the build was inline
-// on a response.
+// component schemas alone, because a union declared inline on a response is
+// as unbuildable as one in components.
 func reduceUnions(node *yaml.Node) int {
 	if node == nil {
 		return 0

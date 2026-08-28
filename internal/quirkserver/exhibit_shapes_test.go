@@ -11,8 +11,8 @@ import (
 // EachQuirkIsExhibited. They get the same discipline in their own right: one
 // table naming every 400 the multi-variant monitor can emit, asserting both
 // the status and the exact detail sentence, because the executor parses those
-// sentences and a fixture whose phrasing drifted would make the Wave 2/3 tests
-// pass for the wrong reason.
+// sentences, and a fixture whose phrasing drifted would make every test that
+// depends on them pass for the wrong reason.
 
 func monitorsURL(s *Server) string    { return s.BaseURL() + "/monitors" }
 func assignmentsURL(s *Server) string { return s.BaseURL() + "/assignments" }

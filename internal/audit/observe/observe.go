@@ -159,7 +159,7 @@ const (
 	// list of gate values each of which produced a valid object. Learned
 	// when two or more gate values each created successfully and at least
 	// one field is valid under one value and refused under another. Emitted
-	// as x-tfpfgen-valid-configuration by a later wave.
+	// as x-tfpfgen-valid-configuration.
 	KindValidConfiguration Kind = "validConfiguration"
 
 	// KindValidWhen: a field or block is valid only when a sibling gate
@@ -168,7 +168,7 @@ const (
 	// and value it is valid under; the Value is true. Learned by variant
 	// diffing: the field is accepted in a create under exactly one gate
 	// value and removed (as not valid) under at least one other, both
-	// directions observed. Emitted as x-tfpfgen-valid-when by a later wave.
+	// directions observed. Emitted as x-tfpfgen-valid-when.
 	KindValidWhen Kind = "validWhen"
 
 	// KindDependsOn: a field is settable only when a second field is also
@@ -178,7 +178,7 @@ const (
 	// dependent field but not its requirement is refused naming both, the
 	// executor adds the requirement, and the retry succeeds — corroborated,
 	// not read from a single ambiguous refusal. Emitted as
-	// x-tfpfgen-depends-on by a later wave.
+	// x-tfpfgen-depends-on.
 	KindDependsOn Kind = "dependsOn"
 
 	// KindMutuallyExclusive: at most one of a set of fields may be set. The
@@ -186,7 +186,7 @@ const (
 	// Value is the sorted list of the mutually-exclusive field names.
 	// Learned when each field is accepted on its own but a create carrying
 	// two of them together is refused, reproducibly. Emitted as
-	// x-tfpfgen-mutually-exclusive by a later wave.
+	// x-tfpfgen-mutually-exclusive.
 	KindMutuallyExclusive Kind = "mutuallyExclusive"
 
 	// KindListResponseShape: the structural shape of a list (collection)

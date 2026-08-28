@@ -180,10 +180,9 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 
 // TestPruneKiotaWrappedList resolves a wrapped-list collection whose kiota
 // envelope is an interface with a slice getter named for the wire key —
-// the ThousandEyes Tagsable shape (GET /gizmos → {"gizmos":[...]}) that
-// used to be pruned for carrying "no single way to reach its elements".
-// The observed envelope key names GetGizmos directly, so the entity now
-// survives with its element reached through GetGizmos().
+// GET /gizmos answering {"gizmos":[...]}. The observed envelope key names
+// GetGizmos directly, so the element is reached through it rather than the
+// collection being refused for carrying no single way to reach its elements.
 func TestPruneKiotaWrappedList(t *testing.T) {
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
 		attr("id", "id", ir.TypeString, ir.Computed),
@@ -378,9 +377,8 @@ func structNamed(path, pkgName, typeName string) *types.Named {
 	return types.NewNamed(obj, types.NewStruct(nil, nil), nil)
 }
 
-// TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes proves the three
-// SDK shapes the catalog can carry but the pruner used to refuse settle to
-// their catalog shorthands.
+// TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes proves the three SDK
+// spellings the catalog can carry settle to their catalog shorthands.
 func TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes(t *testing.T) {
 	dateOnly := structNamed("github.com/microsoft/kiota-abstractions-go/serialization", "serialization", "DateOnly")
 	instant := structNamed("time", "time", "Time")

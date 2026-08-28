@@ -335,10 +335,9 @@ func TestUnit_Audit_UsageListsBothVerbs(t *testing.T) {
 	}
 }
 
-// TestUnit_PrintSkipped_GroupsByReasonCommonestFirst covers the reporting gap
-// a live GitHub run exposed: the plan skipped 56 of 61 entities and the run
-// printed only the number, so nothing said the audit had barely touched the
-// API.
+// TestUnit_PrintSkipped_GroupsByReasonCommonestFirst covers the case where the
+// plan skips most of a document's entities: printing only the count leaves
+// nothing saying the audit barely touched the API.
 func TestUnit_PrintSkipped_GroupsByReasonCommonestFirst(t *testing.T) {
 	t.Parallel()
 	const owner = `no value for path parameter "owner"`

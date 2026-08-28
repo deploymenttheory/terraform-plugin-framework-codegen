@@ -312,10 +312,11 @@ func orList(values []string) string {
 
 // listPayloadExpr is the finished Go expression the list mock answers with:
 // the item slice wrapped under the observed envelope key, or the bare slice
-// when the list response is a bare array. It closes the ListWrap defect — the
-// generated mock no longer assumes every API wraps its collection under
-// "value". slice is the expression yielding the item slice (a variable such
-// as "items" or a literal such as "[]map[string]any{object()}").
+// when the list response is a bare array. The observed key is used rather than
+// a fixed one, because an API that wraps its collection under something other
+// than "value" would otherwise get a mock the generated SDK cannot parse.
+// slice is the expression yielding the item slice (a variable such as "items"
+// or a literal such as "[]map[string]any{object()}").
 func listPayloadExpr(envelopeKey, slice string) string {
 	if envelopeKey == "" {
 		return slice

@@ -212,7 +212,7 @@ type Summary struct {
 	// RateLimited counts every rate-limit refusal the run met, and Slowdowns
 	// how many times it halved its own rate in answer. Both belong on the
 	// summary because a throttled run explains itself: an entity that came
-	// back thin after fifty refusals was not measuring a quiet API, and
+	// back thin under sustained rate-limiting was not measuring a quiet API, and
 	// reading its findings as though it were is the mistake this records
 	// against. RateLimitRPS is the rate the run finished on, which is the
 	// configured rate only when nothing forced it down.

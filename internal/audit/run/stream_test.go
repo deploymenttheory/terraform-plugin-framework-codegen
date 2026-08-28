@@ -252,8 +252,8 @@ func TestUnit_Adaptive_StreamRunIsDeterministic(t *testing.T) {
 
 // TestUnit_ClassifyRefusal_GeneralizedFieldExtraction covers the fallback the
 // classifier reaches for when the four-clause grammar does not match: scanning a
-// free-form refusal for any field the entity declares. The real ThousandEyes
-// string is the anchoring case.
+// free-form refusal for any field the entity declares. The anchoring case is a
+// real API's wording, which names the field in prose no clause matches.
 func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 	t.Parallel()
 	known := func(fields ...string) map[string]strategy.SynthHint {
@@ -270,7 +270,7 @@ func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 		want  []string
 	}{
 		{
-			name:  "real ThousandEyes dynamic-tag refusal",
+			name:  "real API dynamic-tag refusal",
 			msg:   "type: Dynamic tags are not supported for the provided object type",
 			known: known("type", "objectType", "name"),
 			want:  []string{"type"},

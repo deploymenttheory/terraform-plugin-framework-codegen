@@ -198,8 +198,8 @@ func TestUnit_BindContext_UnreadableGoModFails(t *testing.T) {
 // whether or not the API can list, and emission requires the list call — so a
 // resource whose API declares no collection GET yields no companion. The gap
 // is reported as an exclusion naming the datasource, and the resource beside
-// it still emits; it used to fail the whole run. The curated fixture gives
-// every resource a list operation for exactly this reason.
+// it still emits. The curated fixture gives every resource a list operation
+// for exactly this reason.
 func TestUnit_Run_ResourceWithoutListCannotEmitItsCompanion(t *testing.T) {
 	root, opts := curatedRepo(t, "kiota")
 	doc := `openapi: 3.0.3
