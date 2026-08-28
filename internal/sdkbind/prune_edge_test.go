@@ -203,7 +203,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 					attribute("filter_value", "filter_value", ir.TypeString, ir.Optional),
 					items,
 				}},
-				ListEnvelopeKey: "gizmos",
+				ListWrapperKey: "gizmos",
 			}},
 		}
 		b, removed := pruneKiotaVariant(t, m)

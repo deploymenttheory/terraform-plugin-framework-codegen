@@ -164,7 +164,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		d.CollectionURL = mockURL(listOp.PathTemplate)
 	}
 	item := strings.TrimSuffix(string(spec.WireJSON(fixtures.ResponseMaximal)), "\n")
-	d.ListResponse = listResponseJSON(lr.ListEnvelopeKey, item)
+	d.ListResponse = listResponseJSON(lr.ListWrapperKey, item)
 	d.ExpectedFirstID = expectedID(spec)
 	d.TestClientConfig = e.testClientConfig()
 

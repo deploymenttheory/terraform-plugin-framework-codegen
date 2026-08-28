@@ -34,10 +34,10 @@ func TestUnit_Observe_EdgeKindsRefuseMalformedValues(t *testing.T) {
 		{"dependsOn empty", KindDependsOn, "x", "", nil, false},
 		{"dependsOn non-string", KindDependsOn, "x", 3, nil, false},
 		{"mutuallyExclusive not a list", KindMutuallyExclusive, "", "a", nil, false},
-		{"listShape bad envelope", KindListResponseShape, "", map[string]any{"envelope": "weird", "pagination": "none"}, nil, false},
-		{"listShape bad pagination", KindListResponseShape, "", map[string]any{"envelope": "bare", "pagination": "spiral"}, nil, false},
-		{"listShape unknown key", KindListResponseShape, "", map[string]any{"envelope": "bare", "pagination": "none", "junk": 1}, nil, false},
-		{"listShape wrong type", KindListResponseShape, "", 42, nil, false},
+		{"listShape bad envelope", KindListWrapper, "", map[string]any{"envelope": "weird", "pagination": "none"}, nil, false},
+		{"listShape bad pagination", KindListWrapper, "", map[string]any{"envelope": "bare", "pagination": "spiral"}, nil, false},
+		{"listShape unknown key", KindListWrapper, "", map[string]any{"envelope": "bare", "pagination": "none", "junk": 1}, nil, false},
+		{"listShape wrong type", KindListWrapper, "", 42, nil, false},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -87,8 +87,8 @@ func TestUnit_Observe_EdgeKindsRoundTrip(t *testing.T) {
 			Value: "domain", Provenance: ProvenanceStructural, Outcome: OutcomeConfirmed},
 		{Entity: "monitor", Attribute: "", Kind: KindMutuallyExclusive,
 			Value: []string{"a", "b"}, Provenance: ProvenanceProse, Outcome: OutcomeConfirmed},
-		{Entity: "monitor", Attribute: "", Kind: KindListResponseShape,
-			Value:      ListResponseShape{Envelope: "wrapped", Key: "monitors", Pagination: "none"},
+		{Entity: "monitor", Attribute: "", Kind: KindListWrapper,
+			Value:      ListWrapper{Wrapped: true, Key: "monitors"},
 			Provenance: ProvenanceDerived, Outcome: OutcomeConfirmed},
 	}
 	dir := t.TempDir()

@@ -20,21 +20,21 @@ type Extensions map[string]any
 // namespace is ours, so a stray key in it is a typo or a version skew, and
 // both should die loudly rather than be silently ignored.
 const (
-	// ExtCreateOnly marks a property the API accepts on create and
+	// ExtImmutable marks a property the API accepts on create and
 	// refuses on update.
-	ExtCreateOnly = "x-tfpfgen-create-only"
+	ExtImmutable = "x-tfpfgen-immutable"
 	// ExtRequiredWhen records a value-conditional requirement: this
 	// property is required when a sibling equals a value.
 	ExtRequiredWhen = "x-tfpfgen-required-when"
-	// ExtEventualConsistency records how long a read may lag a write.
-	ExtEventualConsistency = "x-tfpfgen-eventual-consistency"
+	// ExtReadAfterWrite records how long a read may lag a write.
+	ExtReadAfterWrite = "x-tfpfgen-read-after-write"
 	// ExtUpdateStyle records how the update operation treats omitted
 	// fields: "patch-merge", "put-full" or "replace-only".
 	ExtUpdateStyle = "x-tfpfgen-update-style"
 	// ExtDeleteNotFoundOK marks a delete whose 404 means "already gone".
 	ExtDeleteNotFoundOK = "x-tfpfgen-delete-not-found-ok"
-	// ExtValuesOpen marks an enum the API accepts values beyond.
-	ExtValuesOpen = "x-tfpfgen-values-open"
+	// ExtValues marks an enum the API accepts values beyond.
+	ExtValues = "x-tfpfgen-values"
 	// ExtVolatile marks a property that differs between identical reads.
 	ExtVolatile = "x-tfpfgen-volatile"
 	// ExtServerForced marks a property the server overwrites regardless
@@ -47,9 +47,9 @@ const (
 	// attribute Optional and Computed — the practitioner may set it, and
 	// Terraform must accept the server's value when they do not.
 	ExtServerDefault = "x-tfpfgen-server-default"
-	// ExtSilentlyIgnoredOnUpdate marks a property updates accept and
+	// ExtIgnoredOnUpdate marks a property updates accept and
 	// discard.
-	ExtSilentlyIgnoredOnUpdate = "x-tfpfgen-silently-ignored-on-update"
+	ExtIgnoredOnUpdate = "x-tfpfgen-ignored-on-update"
 	// ExtValidWhen records a value-conditional validity: this property is
 	// valid only when a sibling gate equals a value.
 	ExtValidWhen = "x-tfpfgen-valid-when"
@@ -62,12 +62,13 @@ const (
 	// ExtValidConfiguration records, at the schema level, a discriminator
 	// property and the per-value sets of properties valid under each value.
 	ExtValidConfiguration = "x-tfpfgen-valid-configuration"
-	// ExtListResponseShape records, on a list operation, how the live
-	// collection response is really structured: wrapped under a key or a
-	// bare array, plus the pagination style it advertises. It sits on the
-	// operation rather than the response schema because it exists precisely
-	// where the document's own list schema is wrong.
-	ExtListResponseShape = "x-tfpfgen-list-response-shape"
+	// ExtListWrapper records, on a list operation, whether the live
+	// collection response wraps its items under a key of an object, and
+	// which key. Read from the wire, never from the document.
+	ExtListWrapper = "x-tfpfgen-list-wrapper"
+	// ExtListPagination records the pagination style a list operation's
+	// live response advertises.
+	ExtListPagination = "x-tfpfgen-list-pagination"
 	// ExtIdentifierProperty records, on a read operation, which response
 	// property carries the value the item path addresses the object by.
 	// A document whose path says {id} while its body spells the same
@@ -75,13 +76,8 @@ const (
 	ExtIdentifierProperty = "x-tfpfgen-identifier-property"
 )
 
-// The envelope spellings x-tfpfgen-list-response-shape admits.
-const (
-	// ListEnvelopeWrapped: the items sit under a key of an object.
-	ListEnvelopeWrapped = "wrapped"
-	// ListEnvelopeBare: the response is the item array itself.
-	ListEnvelopeBare = "bare"
-)
+// The pagination styles x-tfpfgen-list-pagination admits.
+const ()
 
 // listPaginations are the pagination styles the extension admits, matching
 // the observation vocabulary the audit records them in.
@@ -90,7 +86,7 @@ var listPaginations = map[string]bool{
 }
 
 // ValidListPagination reports whether s is a pagination style
-// x-tfpfgen-list-response-shape admits. Whatever compiles the key must be
+// x-tfpfgen-list-pagination admits. Whatever compiles the key must be
 // able to ask before writing it, or a vocabulary drift would land as a
 // document this package then refuses to load.
 func ValidListPagination(s string) bool { return listPaginations[s] }
@@ -139,42 +135,37 @@ type ValidVariant struct {
 	Fields []string
 }
 
-// ListResponseShape is one list operation's collection-response structure,
-// as the audit found it on the wire rather than as the document declares it.
-type ListResponseShape struct {
-	// Envelope is ListEnvelopeWrapped when the items sit under a key of an
-	// object, ListEnvelopeBare when the response is the array itself.
-	Envelope string
-	// Key is the wrapping key when the envelope is wrapped, empty for bare.
+// ListWrapper is one list operation's collection-response wrapping, as the
+// audit found it on the wire rather than as the document declares it.
+type ListWrapper struct {
+	// Wrapped is true when the items sit under a key of an object, false
+	// when the response is the item array itself.
+	Wrapped bool
+	// Key is the wrapping key when Wrapped, empty otherwise.
 	Key string
-	// Pagination names the advertised style: "cursor", "offset", "page" or
-	// "none". A document that omits it means "none".
-	Pagination string
 }
-
-// Wrapped reports whether the response wraps its items under Key.
-func (s ListResponseShape) Wrapped() bool { return s.Envelope == ListEnvelopeWrapped }
 
 // extensionParsers maps each known key to its value parser. The shape is
 // checked once at load, against the document, where the error can carry a
 // location — not at access time, where it could only panic or lie.
 var extensionParsers = map[string]func(n *yaml.Node, at string) (any, error){
-	ExtCreateOnly:              extBool,
-	ExtRequiredWhen:            extRequiredWhen,
-	ExtEventualConsistency:     extDuration,
-	ExtUpdateStyle:             extUpdateStyle,
-	ExtDeleteNotFoundOK:        extBool,
-	ExtValuesOpen:              extBool,
-	ExtVolatile:                extBool,
-	ExtServerForced:            extBool,
-	ExtServerDefault:           extScalar,
-	ExtSilentlyIgnoredOnUpdate: extBool,
-	ExtValidWhen:               extValidWhen,
-	ExtDependsOn:               extDependsOn,
-	ExtMutuallyExclusive:       extMutuallyExclusive,
-	ExtValidConfiguration:      extValidConfiguration,
-	ExtListResponseShape:       extListResponseShape,
-	ExtIdentifierProperty:      extNonEmptyString,
+	ExtImmutable:          extBool,
+	ExtRequiredWhen:       extRequiredWhen,
+	ExtReadAfterWrite:     extDuration,
+	ExtUpdateStyle:        extUpdateStyle,
+	ExtDeleteNotFoundOK:   extBool,
+	ExtValues:             extBool,
+	ExtVolatile:           extBool,
+	ExtServerForced:       extBool,
+	ExtServerDefault:      extScalar,
+	ExtIgnoredOnUpdate:    extBool,
+	ExtValidWhen:          extValidWhen,
+	ExtDependsOn:          extDependsOn,
+	ExtMutuallyExclusive:  extMutuallyExclusive,
+	ExtValidConfiguration: extValidConfiguration,
+	ExtListWrapper:        extListWrapper,
+	ExtListPagination:     extListPagination,
+	ExtIdentifierProperty: extNonEmptyString,
 }
 
 // parseExtensions collects and shape-checks a mapping node's x-tfpfgen-*
@@ -442,61 +433,64 @@ func extValidConfiguration(n *yaml.Node, at string) (any, error) {
 	return vc, nil
 }
 
-// extListResponseShape parses x-tfpfgen-list-response-shape: a mapping with
-// "envelope" ("wrapped" or "bare"), "key" (the wrapping key, required by and
-// only meaningful for a wrapped envelope) and an optional "pagination"
-// naming the advertised style. A wrapped envelope with no key is refused
-// here, at the document, rather than downstream where it could only be read
-// as "bare" and quietly unwrap a response that is not an array.
-func extListResponseShape(n *yaml.Node, at string) (any, error) {
+// extListWrapper parses x-tfpfgen-list-wrapper: a mapping with "wrapped"
+// (a boolean) and "key" (the wrapping key, required by and only meaningful
+// for a wrapped response). A wrapped response with no key is refused here, at
+// the document, rather than downstream where it could only be read as
+// unwrapped and quietly unwrap a response that is not an array.
+func extListWrapper(n *yaml.Node, at string) (any, error) {
 	if n.Kind != yaml.MappingNode {
-		return nil, fmt.Errorf("%s: must be a mapping with \"envelope\" and, when wrapped, \"key\"", at)
+		return nil, fmt.Errorf("%s: must be a mapping with \"wrapped\" and, when wrapped, \"key\"", at)
 	}
-	var s ListResponseShape
+	var w ListWrapper
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		key, value := n.Content[i].Value, deref(n.Content[i+1])
-		switch key {
-		case "envelope":
-			s.Envelope = value.Value
-		case "key":
-			s.Key = value.Value
-		case "pagination":
-			s.Pagination = value.Value
-		default:
-			return nil, fmt.Errorf("%s: unknown key %q; only \"envelope\", \"key\" and \"pagination\" are allowed", at, key)
-		}
 		if value.Kind != yaml.ScalarNode || value.Value == "" {
 			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
 		}
-	}
-	switch s.Envelope {
-	case ListEnvelopeWrapped:
-		if s.Key == "" {
-			return nil, fmt.Errorf("%s: a wrapped envelope needs the \"key\" its items sit under", at)
+		switch key {
+		case "wrapped":
+			switch value.Value {
+			case "true":
+				w.Wrapped = true
+			case "false":
+				w.Wrapped = false
+			default:
+				return nil, fmt.Errorf("%s.wrapped: must be true or false, got %q", at, value.Value)
+			}
+		case "key":
+			w.Key = value.Value
+		default:
+			return nil, fmt.Errorf("%s: unknown key %q; only \"wrapped\" and \"key\" are allowed", at, key)
 		}
-	case ListEnvelopeBare:
-		if s.Key != "" {
-			return nil, fmt.Errorf("%s: a bare envelope wraps nothing, so \"key\" is meaningless", at)
-		}
-	default:
-		return nil, fmt.Errorf("%s.envelope: must be %q or %q, got %q",
-			at, ListEnvelopeWrapped, ListEnvelopeBare, s.Envelope)
 	}
-	if s.Pagination == "" {
-		s.Pagination = "none"
+	switch {
+	case w.Wrapped && w.Key == "":
+		return nil, fmt.Errorf("%s: a wrapped response needs the \"key\" its items sit under", at)
+	case !w.Wrapped && w.Key != "":
+		return nil, fmt.Errorf("%s: an unwrapped response wraps nothing, so \"key\" is meaningless", at)
 	}
-	if !listPaginations[s.Pagination] {
-		return nil, fmt.Errorf("%s.pagination: must be one of \"cursor\", \"offset\", \"page\" or \"none\", got %q", at, s.Pagination)
+	return w, nil
+}
+
+// extListPagination parses x-tfpfgen-list-pagination: one of the advertised
+// styles, or "none".
+func extListPagination(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.ScalarNode || n.Value == "" {
+		return nil, fmt.Errorf("%s: must be a non-empty scalar", at)
 	}
-	return s, nil
+	if !listPaginations[n.Value] {
+		return nil, fmt.Errorf("%s: must be one of \"cursor\", \"offset\", \"page\" or \"none\", got %q", at, n.Value)
+	}
+	return n.Value, nil
 }
 
 // The accessors all return (value, ok) so a consumer can tell an explicit
 // false from an absent key — the audit planner treats "observed false" and
 // "never observed" differently, and collapsing them here would lose that.
 
-// CreateOnly reads x-tfpfgen-create-only.
-func (e Extensions) CreateOnly() (bool, bool) { return e.boolKey(ExtCreateOnly) }
+// Immutable reads x-tfpfgen-immutable.
+func (e Extensions) Immutable() (bool, bool) { return e.boolKey(ExtImmutable) }
 
 // RequiredWhen reads x-tfpfgen-required-when.
 func (e Extensions) RequiredWhen() (RequiredWhen, bool) {
@@ -528,10 +522,16 @@ func (e Extensions) ValidConfiguration() (ValidConfiguration, bool) {
 	return vc, ok
 }
 
-// ListResponseShape reads x-tfpfgen-list-response-shape.
-func (e Extensions) ListResponseShape() (ListResponseShape, bool) {
-	s, ok := e[ExtListResponseShape].(ListResponseShape)
-	return s, ok
+// ListWrapper reads x-tfpfgen-list-wrapper.
+func (e Extensions) ListWrapper() (ListWrapper, bool) {
+	w, ok := e[ExtListWrapper].(ListWrapper)
+	return w, ok
+}
+
+// ListPagination reads x-tfpfgen-list-pagination.
+func (e Extensions) ListPagination() (string, bool) {
+	p, ok := e[ExtListPagination].(string)
+	return p, ok
 }
 
 // IdentifierProperty reads x-tfpfgen-identifier-property.
@@ -540,9 +540,9 @@ func (e Extensions) IdentifierProperty() (string, bool) {
 	return name, ok
 }
 
-// EventualConsistency reads x-tfpfgen-eventual-consistency.
-func (e Extensions) EventualConsistency() (time.Duration, bool) {
-	d, ok := e[ExtEventualConsistency].(time.Duration)
+// ReadAfterWrite reads x-tfpfgen-read-after-write.
+func (e Extensions) ReadAfterWrite() (time.Duration, bool) {
+	d, ok := e[ExtReadAfterWrite].(time.Duration)
 	return d, ok
 }
 
@@ -557,8 +557,8 @@ func (e Extensions) UpdateStyle() (string, bool) {
 // DeleteNotFoundOK reads x-tfpfgen-delete-not-found-ok.
 func (e Extensions) DeleteNotFoundOK() (bool, bool) { return e.boolKey(ExtDeleteNotFoundOK) }
 
-// ValuesOpen reads x-tfpfgen-values-open.
-func (e Extensions) ValuesOpen() (bool, bool) { return e.boolKey(ExtValuesOpen) }
+// Values reads x-tfpfgen-values.
+func (e Extensions) Values() (bool, bool) { return e.boolKey(ExtValues) }
 
 // Volatile reads x-tfpfgen-volatile.
 func (e Extensions) Volatile() (bool, bool) { return e.boolKey(ExtVolatile) }
@@ -574,9 +574,9 @@ func (e Extensions) ServerDefault() (any, bool) {
 	return v, ok
 }
 
-// SilentlyIgnoredOnUpdate reads x-tfpfgen-silently-ignored-on-update.
-func (e Extensions) SilentlyIgnoredOnUpdate() (bool, bool) {
-	return e.boolKey(ExtSilentlyIgnoredOnUpdate)
+// IgnoredOnUpdate reads x-tfpfgen-ignored-on-update.
+func (e Extensions) IgnoredOnUpdate() (bool, bool) {
+	return e.boolKey(ExtIgnoredOnUpdate)
 }
 
 func (e Extensions) boolKey(key string) (bool, bool) {

@@ -84,7 +84,7 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 	case observe.KindWritable:
 		return c.writable(loc, cls, o), nil
 	case observe.KindImmutable:
-		return c.propertyFlag(loc, cls, o, specmodel.ExtCreateOnly,
+		return c.propertyFlag(loc, cls, o, specmodel.ExtImmutable,
 			"the live API refuses to change the value after create"), nil
 	case observe.KindRequiredByAPI:
 		return c.requiredByAPI(loc, cls, o), nil
@@ -107,7 +107,7 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 		return c.propertyFlag(loc, cls, o, specmodel.ExtServerForced,
 			"the server substitutes its own value regardless of what was sent"), nil
 	case observe.KindIgnoredOnUpdate:
-		return c.propertyFlag(loc, cls, o, specmodel.ExtSilentlyIgnoredOnUpdate,
+		return c.propertyFlag(loc, cls, o, specmodel.ExtIgnoredOnUpdate,
 			"updates accept a new value with a success status and do not apply it"), nil
 	case observe.KindUndocumentedFieldInSpec:
 		return c.undocumentedField(loc, cls, o), nil
@@ -122,8 +122,10 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 		return c.mutuallyExclusive(loc, cls, o), nil
 	case observe.KindValidConfiguration:
 		return c.validConfiguration(loc, cls, o), nil
-	case observe.KindListResponseShape:
-		return c.listResponseShape(loc, cls, o)
+	case observe.KindListWrapper:
+		return c.listWrapper(loc, cls, o)
+	case observe.KindListPagination:
+		return c.listPagination(loc, cls, o)
 	case observe.KindIdentifierProperty:
 		return c.identifierProperty(loc, cls, o)
 	default:
@@ -310,7 +312,7 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 // values compiles one values observation: documented-but-rejected values
 // leave the enum (each removal guarded by a test of what the index holds),
 // accepted-but-undocumented values join it, and an open set becomes
-// x-tfpfgen-values-open on the property.
+// x-tfpfgen-values on the property.
 func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
 	var values observe.Values
 	raw, err := json.Marshal(o.Value)
@@ -392,9 +394,9 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 	}
 
 	if values.Closed != nil && !*values.Closed {
-		if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtValuesOpen); extension == nil || extension.Value != "true" {
-			operations = append(operations, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValuesOpen, Value: true})
-			parts = append(parts, fmt.Sprintf("accepts values beyond the documented set (%s)", specmodel.ExtValuesOpen))
+		if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtValues); extension == nil || extension.Value != "true" {
+			operations = append(operations, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValues, Value: true})
+			parts = append(parts, fmt.Sprintf("accepts values beyond the documented set (%s)", specmodel.ExtValues))
 		}
 	}
 
@@ -536,7 +538,7 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 		if operation == nil {
 			continue
 		}
-		if extension := mapValue(loc.nodeAt(opPointer(operation)), specmodel.ExtEventualConsistency); extension != nil {
+		if extension := mapValue(loc.nodeAt(opPointer(operation)), specmodel.ExtReadAfterWrite); extension != nil {
 			if existing, err := time.ParseDuration(extension.Value); err == nil && existing >= observed {
 				return stated("the document already declares a read-after-write lag at least this long")
 			}
@@ -544,27 +546,27 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 	}
 	return compiled{
 		operations: []correction.Operation{{
-			Op: "add", Path: opPointer(cls.Read) + "/" + specmodel.ExtEventualConsistency, Value: lag,
+			Op: "add", Path: opPointer(cls.Read) + "/" + specmodel.ExtReadAfterWrite, Value: lag,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a readAfterWrite observation on %s: "+
-			"a read may lag a write by up to %s (%s)", o.Entity, lag, specmodel.ExtEventualConsistency),
+			"a read may lag a write by up to %s (%s)", o.Entity, lag, specmodel.ExtReadAfterWrite),
 	}
 }
 
-// listResponseShape compiles the observed collection-response structure onto
+// listWrapper compiles the observed collection-response wrapping onto
 // the entity's list operation. It is annotated beside the operation rather
 // than left to the document's own list response schema because that schema
 // is exactly what the observation was recorded to contradict: every API
 // spells its envelope differently and the document routinely gets it wrong,
 // so derivation must be able to read what the wire actually carried.
-func (c *compiler) listResponseShape(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
-	var shape observe.ListResponseShape
+func (c *compiler) listWrapper(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
+	var wrapper observe.ListWrapper
 	raw, err := json.Marshal(o.Value)
 	if err == nil {
-		err = json.Unmarshal(raw, &shape)
+		err = json.Unmarshal(raw, &wrapper)
 	}
 	if err != nil {
-		return compiled{}, fmt.Errorf("observation %s: its value is not a list-response-shape record: %w", o.ID, err)
+		return compiled{}, fmt.Errorf("observation %s: its value is not a list-wrapper record: %w", o.ID, err)
 	}
 	if cls.List == nil {
 		return unplaceable(fmt.Sprintf("entity %s has no list operation to annotate", o.Entity)), nil
@@ -573,47 +575,65 @@ func (c *compiler) listResponseShape(loc *locator, cls specmodel.Classification,
 	// vocabulary specmodel enforces at load: a correction that compiles into
 	// a document the loader then refuses would break every later stage, and
 	// the observation store is hand-editable enough for that to happen.
-	wrapped := shape.Envelope == specmodel.ListEnvelopeWrapped
 	switch {
-	case !wrapped && shape.Envelope != specmodel.ListEnvelopeBare:
-		return unplaceable(fmt.Sprintf("the observed list response on %s names the envelope %q, "+
-			"which is neither %q nor %q", o.Entity, shape.Envelope,
-			specmodel.ListEnvelopeWrapped, specmodel.ListEnvelopeBare)), nil
-	case wrapped && shape.Key == "":
+	case wrapper.Wrapped && wrapper.Key == "":
 		return unplaceable(fmt.Sprintf(
-			"the observed list response on %s is wrapped but names no envelope key", o.Entity)), nil
-	case !wrapped && shape.Key != "":
-		return unplaceable(fmt.Sprintf("the observed list response on %s is bare but names the "+
-			"envelope key %q, so what it found cannot be stated", o.Entity, shape.Key)), nil
-	}
-	if shape.Pagination == "" {
-		shape.Pagination = "none"
-	}
-	if !specmodel.ValidListPagination(shape.Pagination) {
-		return unplaceable(fmt.Sprintf("the observed list response on %s names the pagination style %q, "+
-			"which is not one of cursor, offset, page, none", o.Entity, shape.Pagination)), nil
+			"the observed list response on %s is wrapped but names no key", o.Entity)), nil
+	case !wrapper.Wrapped && wrapper.Key != "":
+		return unplaceable(fmt.Sprintf("the observed list response on %s is unwrapped but names the "+
+			"key %q, so what it found cannot be stated", o.Entity, wrapper.Key)), nil
 	}
 
 	// Sorted map keys make the correction's JSON byte-stable, and the key is
 	// carried only where it means something.
-	value := map[string]string{"envelope": shape.Envelope, "pagination": shape.Pagination}
-	finding := fmt.Sprintf("the live list response is a bare item array, pagination %s", shape.Pagination)
-	if wrapped {
-		value["key"] = shape.Key
-		finding = fmt.Sprintf("the live list response wraps its item array under %q, pagination %s",
-			shape.Key, shape.Pagination)
+	value := map[string]string{"wrapped": strconv.FormatBool(wrapper.Wrapped)}
+	finding := "the live list response is a bare item array"
+	if wrapper.Wrapped {
+		value["key"] = wrapper.Key
+		finding = fmt.Sprintf("the live list response wraps its item array under %q", wrapper.Key)
 	}
 
 	opPtr := opPointer(cls.List)
-	if extension := mapValue(loc.nodeAt(opPtr), specmodel.ExtListResponseShape); extension != nil && shapeStated(extension, value) {
-		return stated("the document already declares this list response shape"), nil
+	if extension := mapValue(loc.nodeAt(opPtr), specmodel.ExtListWrapper); extension != nil && wrapperStated(extension, value) {
+		return stated("the document already declares this list wrapping"), nil
 	}
 	return compiled{
 		operations: []correction.Operation{{
-			Op: "add", Path: opPtr + "/" + specmodel.ExtListResponseShape, Value: value,
+			Op: "add", Path: opPtr + "/" + specmodel.ExtListWrapper, Value: value,
 		}},
-		justification: fmt.Sprintf("the audit confirmed a listResponseShape observation on %s: %s (%s)",
-			o.Entity, finding, specmodel.ExtListResponseShape),
+		justification: fmt.Sprintf("the audit confirmed a listWrapper observation on %s: %s (%s)",
+			o.Entity, finding, specmodel.ExtListWrapper),
+	}, nil
+}
+
+// listPagination annotates the entity's list operation with the pagination
+// style its live response advertised.
+func (c *compiler) listPagination(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
+	style, _ := o.Value.(string)
+	if style == "" {
+		style = "none"
+	}
+	if cls.List == nil {
+		return unplaceable(fmt.Sprintf("entity %s has no list operation to annotate", o.Entity)), nil
+	}
+	if !specmodel.ValidListPagination(style) {
+		return unplaceable(fmt.Sprintf("the observed list response on %s names the pagination style %q, "+
+			"which is not one of cursor, offset, page, none", o.Entity, style)), nil
+	}
+
+	opPtr := opPointer(cls.List)
+	if extension := mapValue(loc.nodeAt(opPtr), specmodel.ExtListPagination); extension != nil {
+		if extension.Value == style {
+			return stated("the document already declares this pagination style"), nil
+		}
+	}
+	return compiled{
+		operations: []correction.Operation{{
+			Op: "add", Path: opPtr + "/" + specmodel.ExtListPagination, Value: style,
+		}},
+		justification: fmt.Sprintf("the audit confirmed a listPagination observation on %s: "+
+			"the live list response advertises %s pagination (%s)",
+			o.Entity, style, specmodel.ExtListPagination),
 	}, nil
 }
 
@@ -657,21 +677,16 @@ func (c *compiler) identifierProperty(loc *locator, cls specmodel.Classification
 	}, nil
 }
 
-// shapeStated reports whether an existing x-tfpfgen-list-response-shape node
+// wrapperStated reports whether an existing x-tfpfgen-list-wrapper node
 // already says exactly what the compiled value would say — key for key, so a
 // re-audit of an unchanged API proposes nothing.
-func shapeStated(extension *yaml.Node, value map[string]string) bool {
+func wrapperStated(extension *yaml.Node, value map[string]string) bool {
 	if extension.Kind != yaml.MappingNode {
 		return false
 	}
 	declared := map[string]string{}
 	for i := 0; i+1 < len(extension.Content); i += 2 {
 		declared[extension.Content[i].Value] = extension.Content[i+1].Value
-	}
-	// An absent pagination reads as "none", the same default the document
-	// model applies, so the two spellings converge rather than oscillate.
-	if declared["pagination"] == "" {
-		declared["pagination"] = "none"
 	}
 	if len(declared) != len(value) {
 		return false

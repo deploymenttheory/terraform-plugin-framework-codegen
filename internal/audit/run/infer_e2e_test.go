@@ -68,13 +68,19 @@ func TestUnit_Infer_MonitorEdgesFromAStrategyRun(t *testing.T) {
 	}
 
 	// The list response is wrapped under "monitors", learned from the body.
-	ls := findObs(obs, "monitor", "", observe.KindListResponseShape)
+	ls := findObs(obs, "monitor", "", observe.KindListWrapper)
 	if ls == nil || ls.Outcome != observe.OutcomeConfirmed {
-		t.Fatalf("listResponseShape(monitor) = %+v, want confirmed", ls)
+		t.Fatalf("listWrapper(monitor) = %+v, want confirmed", ls)
 	}
-	shape, _ := json.Marshal(ls.Value)
-	if string(shape) != `{"envelope":"wrapped","key":"monitors","pagination":"none"}` {
-		t.Errorf("listResponseShape(monitor) = %s, want wrapped under monitors", shape)
+	wrapper, _ := json.Marshal(ls.Value)
+	if string(wrapper) != `{"wrapped":true,"key":"monitors"}` {
+		t.Errorf("listWrapper(monitor) = %s, want wrapped under monitors", wrapper)
+	}
+
+	// Pagination is a separate observation: the two are unrelated facts.
+	lp := findObs(obs, "monitor", "", observe.KindListPagination)
+	if lp == nil || lp.Outcome != observe.OutcomeConfirmed || lp.Value != "none" {
+		t.Fatalf("listPagination(monitor) = %+v, want a confirmed \"none\"", lp)
 	}
 
 	if summary.EdgesConfirmed < 1 {

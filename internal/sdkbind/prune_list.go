@@ -14,7 +14,7 @@ import (
 // hang off: a kiota collection response or "…able" envelope reached
 // through a getter (GetValue, GetTags), or an openapi-generator envelope
 // struct with a slice field (Items, Tags). The choice is data-driven — the
-// observed envelope key (the IR's listResponseShape) names the wrapper's
+// observed wrapping key (the IR's ListWrapperKey) names the wrapper's
 // getter or field directly, so a wrapped list is bound rather than pruned.
 // Absent a key, a lone slice-returning getter or a lone slice field is
 // unambiguous. Genuine ambiguity — no envelope match and zero or several

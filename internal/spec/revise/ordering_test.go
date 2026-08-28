@@ -338,7 +338,7 @@ func TestIntegration_Revise_TagConvergesAcrossRounds(t *testing.T) {
 	if def := properties["color"].(map[string]any)["x-tfpfgen-server-default"]; def != "#A7EB10" {
 		t.Errorf("color server-default = %v, want #A7EB10", def)
 	}
-	if co := properties["objectType"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
+	if co := properties["objectType"].(map[string]any)["x-tfpfgen-immutable"]; co != true {
 		t.Errorf("objectType create-only = %v, want true", co)
 	}
 	enum, ok := properties["type"].(map[string]any)["enum"].([]any)

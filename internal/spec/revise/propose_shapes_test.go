@@ -121,7 +121,7 @@ func TestUnit_Propose_PlacesCorrectionsThroughComposedSchemas(t *testing.T) {
 	}
 
 	wantPaths := map[string]string{
-		"001": `"path": "/components/schemas/WidgetBase/properties/kind/x-tfpfgen-create-only"`,
+		"001": `"path": "/components/schemas/WidgetBase/properties/kind/x-tfpfgen-immutable"`,
 		"002": `"path": "/components/schemas/KindValue/enum/-"`,
 		"003": `"path": "/components/schemas/KindValue/readOnly"`,
 		"004": `"path": "/components/schemas/Widget/allOf/1/required"`,
@@ -225,7 +225,7 @@ paths:
                 $ref: '#/components/schemas/Tag'
   /tags/{tagId}:
     get:
-      x-tfpfgen-eventual-consistency: 5s
+      x-tfpfgen-read-after-write: 5s
       responses:
         "200":
           description: read
@@ -261,10 +261,10 @@ components:
       properties:
         name:
           type: string
-          x-tfpfgen-create-only: true
+          x-tfpfgen-immutable: true
         color:
           type: string
-          x-tfpfgen-values-open: true
+          x-tfpfgen-values: true
           enum:
             - red
             - green

@@ -309,7 +309,7 @@ func pollSpec(readOp, createOp *specmodel.Operation) *Poll {
 		if operation == nil {
 			continue
 		}
-		if d, ok := operation.Extensions.EventualConsistency(); ok {
+		if d, ok := operation.Extensions.ReadAfterWrite(); ok {
 			timeout = d
 			break
 		}

@@ -177,7 +177,7 @@ func (r *runner) preflight(ctx context.Context, entity *entityState, step *plan.
 	if !res.ok() {
 		return blockedError{reason: fmt.Sprintf("the pre-flight read of %s answered %d, so the tenant's size is unknown", entity.recipe.collectionPath, res.status)}
 	}
-	// The collection response is the evidence the list-response-shape finding
+	// The collection response is the evidence the list-wrapper finding
 	// is read from — its structure only, never a value from it.
 	if len(res.body) > 0 && len(entity.ev.listBodies) == 0 {
 		entity.ev.listBodies = append(entity.ev.listBodies, append([]byte(nil), res.body...))

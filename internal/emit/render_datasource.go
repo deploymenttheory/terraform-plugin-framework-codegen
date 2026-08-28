@@ -460,7 +460,7 @@ func (e *serviceRenderer) datasourceModelImports(models string) string {
 func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, spec fixtures.Fixture) {
 	d.RegistryName = ds.Names.TerraformType + ".data"
 	d.ResponseMaximal = goStringLiteral(string(spec.WireJSON(fixtures.ResponseMaximal)))
-	d.ListPayload = listPayloadExpr(ds.ListEnvelopeKey, "[]map[string]any{object()}")
+	d.ListPayload = listPayloadExpr(ds.ListWrapperKey, "[]map[string]any{object()}")
 	if ds.Operations.List != nil {
 		// A parent-scoped collection is requested with its addressing
 		// substituted in, so the mock matches the shape rather than the
@@ -559,7 +559,7 @@ func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fi
 		// envelope key, or is a bare array, so it and the unit-test mock
 		// agree on the shape the API actually returns — never an assumed
 		// "value".
-		response = []byte(listResponseJSON(ds.ListEnvelopeKey, item))
+		response = []byte(listResponseJSON(ds.ListWrapperKey, item))
 	}
 
 	exampleHeader := fmt.Sprintf("data %q %q", ds.Names.TerraformType, "example")

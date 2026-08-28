@@ -342,7 +342,8 @@ var compilableKinds = []string{
 	string(observe.KindUndocumentedFieldInSpec),
 	string(observe.KindValidWhen), string(observe.KindDependsOn),
 	string(observe.KindMutuallyExclusive), string(observe.KindValidConfiguration),
-	string(observe.KindListResponseShape),
+	string(observe.KindListWrapper),
+	string(observe.KindListPagination),
 }
 
 // CompilableKinds is the sorted vocabulary an audit.auto_accept entry must

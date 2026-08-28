@@ -85,7 +85,7 @@ func openAPIGeneratorModel() *ir.Model {
 			}},
 			// A wrapped list whose openapi-generator envelope is a struct
 			// with a single slice field named for the "tags" wire key.
-			ListEnvelopeKey: "tags",
+			ListWrapperKey: "tags",
 		}},
 		Actions: []ir.Action{{
 			Names: names("tag_rotate", "TagRotate", "tags"),

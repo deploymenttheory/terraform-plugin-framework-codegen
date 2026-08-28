@@ -51,7 +51,7 @@ paths:
           type: string
     get:
       operationId: getProject
-      x-tfpfgen-eventual-consistency: 5s
+      x-tfpfgen-read-after-write: 5s
       responses:
         "200":
           content:

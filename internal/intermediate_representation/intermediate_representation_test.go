@@ -124,7 +124,7 @@ paths:
       - {name: thingId, in: path, required: true, schema: {type: string}}
     get:
       operationId: getThing
-      x-tfpfgen-eventual-consistency: 30s
+      x-tfpfgen-read-after-write: 30s
       responses:
         "200":
           content:
@@ -230,20 +230,20 @@ components:
           enum: [standard, custom]
         region:
           type: string
-          x-tfpfgen-create-only: true
+          x-tfpfgen-immutable: true
         filled:
           type: integer
           x-tfpfgen-server-default: 1000
         tier:
           type: string
           enum: [gold, silver]
-          x-tfpfgen-values-open: true
+          x-tfpfgen-values: true
         proxyHost:
           type: string
           x-tfpfgen-required-when: {property: mode, equals: custom}
         notes:
           type: string
-          x-tfpfgen-silently-ignored-on-update: true
+          x-tfpfgen-ignored-on-update: true
         quantity:
           type: integer
           x-tfpfgen-valid-when: {property: mode, equals: standard}

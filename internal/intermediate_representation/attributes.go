@@ -441,9 +441,9 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 
 	serverForced, _ := extensions.ServerForced()
 	volatile, _ := extensions.Volatile()
-	createOnly, _ := extensions.CreateOnly()
+	createOnly, _ := extensions.Immutable()
 	serverDefault, serverFills := extensions.ServerDefault()
-	attribute.SilentlyIgnoredOnUpdate, _ = extensions.SilentlyIgnoredOnUpdate()
+	attribute.SilentlyIgnoredOnUpdate, _ = extensions.IgnoredOnUpdate()
 
 	// The document's prose, taken from whichever side declares any. A
 	// request schema and a response schema describe the same field, and one
@@ -531,7 +531,7 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 	// create body declares this property and the update body does not, so
 	// the API offers no way to change it after create. Free, offline, and
 	// true of the document whether or not an audit has ever run — which is
-	// the difference between this and x-tfpfgen-create-only.
+	// the difference between this and x-tfpfgen-immutable.
 	//
 	// Guarded on writable, because a response-only property is absent from
 	// the update body for the uninteresting reason that it is absent from
@@ -553,7 +553,7 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 
 	if len(flatPrimary.enum) > 0 && attribute.Kind != TypeList && attribute.Kind != TypeObject && !attribute.Unsupported {
 		values := renderEnum(flatPrimary.enum)
-		if open, _ := extensions.ValuesOpen(); open {
+		if open, _ := extensions.Values(); open {
 			attribute.AdvisoryValues = values
 		} else {
 			attribute.OneOf = values

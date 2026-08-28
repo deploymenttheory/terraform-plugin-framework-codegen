@@ -288,8 +288,8 @@ func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	// A vendor that wraps its collection under its own key.
 	m := fictionalModel()
 	m.Resources[0].ListWrapperKey = "http_servers"
-	m.Datasources[0].ListEnvelopeKey = "http_servers"
-	m.ListResources[0].ListEnvelopeKey = "records"
+	m.Datasources[0].ListWrapperKey = "http_servers"
+	m.ListResources[0].ListWrapperKey = "records"
 	out, err := RenderServices(pc, m, fictionalBindings())
 	if err != nil {
 		t.Fatalf("RenderServices: %v", err)
@@ -314,7 +314,7 @@ func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	// A vendor that returns a bare array: no wrapper object at all.
 	m = fictionalModel()
 	m.Resources[0].ListWrapperKey = ""
-	m.Datasources[0].ListEnvelopeKey = ""
+	m.Datasources[0].ListWrapperKey = ""
 	out, err = RenderServices(pc, m, fictionalBindings())
 	if err != nil {
 		t.Fatalf("RenderServices: %v", err)

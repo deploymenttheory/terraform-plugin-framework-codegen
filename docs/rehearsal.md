@@ -119,7 +119,7 @@ carrying, on `MonitorCreate`, `x-tfpfgen-valid-configuration` (the
 discriminator and its per-variant valid field sets),
 `x-tfpfgen-valid-when` on `dnssec` / `domain` / `target_host`,
 `x-tfpfgen-required-when` on `domain` / `target_host` / `web`, and
-`x-tfpfgen-eventual-consistency` on the read operations. The rerun after
+`x-tfpfgen-read-after-write` on the read operations. The rerun after
 acceptance proposed nothing — convergence held.
 
 ## Validators generated from the edges
@@ -190,7 +190,7 @@ Determinism was not free: closing it required the third fix below.
 
 3. **Non-deterministic read-after-write lag** (`#43`). `readAfterWrite`
    recorded `time.Since(create)` — wall-clock, ~340 ms one run and ~350 ms
-   the next — which folded into `x-tfpfgen-eventual-consistency` and made
+   the next — which folded into `x-tfpfgen-read-after-write` and made
    `revised.yaml` non-reproducible across audits. Fixed: the lag is now
    `failedPolls × interval`, zero on an immediate read and a clean multiple
    of the deterministic interval under real eventual consistency.

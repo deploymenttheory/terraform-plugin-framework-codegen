@@ -73,7 +73,7 @@ var explanations = map[observe.Kind]Explanation{
 			"when the object was created.",
 		Means: "Terraform would plan an in-place update the API always rejects; the only real way to change " +
 			"this value is to replace the object.",
-		Merging: "Merging records the attribute as create-only (`x-tfpfgen-create-only`), so the generated " +
+		Merging: "Merging records the attribute as create-only (`x-tfpfgen-immutable`), so the generated " +
 			"resource marks it RequiresReplace and Terraform plans a replacement instead of a doomed update.",
 		Closing: "Closing leaves the provider planning updates the API will refuse, with no warning until " +
 			"apply.",
@@ -291,16 +291,24 @@ var explanations = map[observe.Kind]Explanation{
 			"validation.",
 		Closing: "Closing leaves the conflict to surface as an apply-time error.",
 	},
-	observe.KindListResponseShape: {
-		Title:    "shape of the list response",
-		Plural:   "list-response shapes",
+	observe.KindListWrapper: {
+		Title:    "wrapping of the list response",
+		Plural:   "list-response wrappings",
 		Expected: "The document's list response schema for `{entity}` describes one structure.",
 		Observed: "The live collection read returned another: {value}.",
-		Means: "A generated list that unwraps the wrong key, or pages the wrong way, returns nothing at " +
-			"all or the same page forever.",
+		Means:    "A generated list that unwraps the wrong key returns nothing at all.",
 		Merging: "Merging records what the wire actually carried, which the generator reads in preference " +
 			"to the document's own list response schema.",
-		Closing: "Closing leaves the generated list data source reading a shape the API does not send.",
+		Closing: "Closing leaves the generated list data source reading a wrapping the API does not send.",
+	},
+	observe.KindListPagination: {
+		Title:    "pagination of the list response",
+		Plural:   "list-response pagination styles",
+		Expected: "The document says nothing about how `{entity}`'s collection pages.",
+		Observed: "The live collection read advertised {value}.",
+		Means:    "A generated list that pages the wrong way returns the same page forever.",
+		Merging:  "Merging records the style the wire advertised.",
+		Closing:  "Closing leaves the generated list data source paging the wrong way, or not at all.",
 	},
 }
 
