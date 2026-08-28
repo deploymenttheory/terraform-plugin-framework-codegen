@@ -67,9 +67,9 @@ runs:
         tfpfgen ${VERB}
 
     # upload-artifact makes entries relative to the deepest directory every
-    # listed path shares, so a stage producing spec/upstream.yaml and
-    # spec/upstream.lock.json would upload them as upstream.yaml and
-    # upstream.lock.json — and the stage that restores them would find them
+    # listed path shares, so a stage producing spec/imported.yaml and
+    # spec/imported.pin.json would upload them as imported.yaml and
+    # imported.pin.json — and the stage that restores them would find them
     # loose in the workspace root instead of under spec/. Copying the paths
     # into one staging tree first, and uploading that tree's contents, keeps
     # every artifact entry at the path the next stage expects. The staging

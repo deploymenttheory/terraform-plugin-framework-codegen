@@ -136,8 +136,8 @@ jobs:
           verb: spec import ${{ steps.source.outputs.url }}
           produce: spec-imported
           paths: |
-            spec/upstream.yaml
-            spec/upstream.lock.json
+            spec/imported.yaml
+            spec/imported.pin.json
 
   # [3] The only job whose environment carries secret values, and the only
   # one that touches a network beyond GitHub. It runs when asked
