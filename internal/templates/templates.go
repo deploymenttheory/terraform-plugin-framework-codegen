@@ -33,3 +33,11 @@ var ProviderCore embed.FS
 //
 //go:embed all:services
 var Services embed.FS
+
+// Emittance is the report template: one page saying how the pinned document
+// became this provider. It sits apart from the two above because it is
+// rendered by name rather than by the path convention — the provider is in
+// the emitted file's name, which no template path can mirror.
+//
+//go:embed all:emittance
+var Emittance embed.FS

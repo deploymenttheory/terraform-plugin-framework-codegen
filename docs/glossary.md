@@ -302,6 +302,18 @@ single recorded exception.
   acronym lowers whole in camel (`id`, `apiKey`). The acronym table lives in
   `internal/intermediate_representation/naming.go`; additions go through the
   repository owner.
+- **emittance report** — the committed page saying how the pinned document
+  became this provider, at the provider repo root as
+  `generated_provider_<name>.html`. It carries the run's causal chain, not a
+  history across runs: what the document was, what prenormalising changed
+  before the backend read it, and then, under the document's own tags, each
+  entity's journey from a path to what shipped — with every loss shown once
+  as the fact behind it and everything that fact cost. Derived like any
+  other generated file: manifest-covered, byte-compared by `provider
+  verify`, and carrying no timestamp and no count of anything outside the
+  run, because either would fail that gate on every run. It is a view of the
+  same records `unsupported.json` holds, never a second place a refusal is
+  recorded.
 - **unsupported.json** — the committed record of everything generation
   refused, at the provider repo root: `{format_version, unsupported: [{kind,
   entity, attribute, service, tag, stage, reason}]}`. The subject is fields

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Provider}} — how the document became a provider</title>
+<style>
+:root{--fg:#1a1a1a;--dim:#5c5c5c;--bg:#fff;--panel:#f6f6f4;--rule:#e0ddd8;--lost:#8a3324;--kept:#2f5d3a}
+@media(prefers-color-scheme:dark){:root{--fg:#e8e6e3;--dim:#a09c96;--bg:#16171a;--panel:#1e2024;--rule:#33363c;--lost:#e8927c;--kept:#8fc7a1}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 5rem;background:var(--bg);color:var(--fg);
+ font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:60rem;margin:0 auto}
+h1{font-size:1.5rem;margin:0 0 .25rem;font-weight:650}
+h2{font-size:1.05rem;margin:2.5rem 0 .75rem;font-weight:650}
+.sub{color:var(--dim);margin:0 0 2rem}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1rem;margin:0;
+ background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.25rem}
+dl.facts dt{color:var(--dim)}
+dl.facts dd{margin:0;word-break:break-all}
+ul.counts{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0 0 1rem}
+ul.counts li{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.35rem .7rem}
+ul.counts b{font-weight:650}
+details{border:1px solid var(--rule);border-radius:8px;margin:.5rem 0;background:var(--panel)}
+details>summary{cursor:pointer;padding:.6rem .9rem;font-weight:600;list-style:none;display:flex;
+ gap:.6rem;align-items:baseline;flex-wrap:wrap}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸";color:var(--dim);font-weight:400}
+details[open]>summary::before{content:"▾"}
+details .body{padding:0 .9rem .9rem 1.9rem}
+details details{background:var(--bg)}
+.tally{color:var(--dim);font-weight:400;font-size:.9em}
+.lost{color:var(--lost)}
+.kept{color:var(--kept)}
+.cause{border-left:3px solid var(--rule);padding:.1rem 0 .1rem .8rem;margin:.8rem 0}
+.cause .what{font-weight:600}
+.cause .why{color:var(--dim);margin:.15rem 0}
+.cause .who{margin:.3rem 0 0;font-size:.9em;word-break:break-word}
+table{border-collapse:collapse;width:100%;font-size:.92em}
+th,td{text-align:left;padding:.35rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{color:var(--dim);font-weight:600}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+p.none{color:var(--dim);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+
+<h1>{{.Provider}}</h1>
+<p class="sub">How the pinned document became this provider — every decision, and what each one cost.</p>
+
+<h2>What this is a fact about</h2>
+<dl class="facts">
+  <dt>document</dt><dd class="mono">{{.Document.Source}}</dd>
+  <dt>version</dt><dd class="mono">{{.Document.Version}}{{if .Document.OpenAPI}} · OpenAPI {{.Document.OpenAPI}}{{end}}</dd>
+  <dt>sha256</dt><dd class="mono">{{.Document.SHA256}}</dd>
+  <dt>corrections</dt><dd>{{.Document.Corrections}} accepted and applied</dd>
+  <dt>SDK</dt><dd>{{.SDK.Backend}} {{.SDK.Version}}</dd>
+</dl>
+
+<h2>What came out</h2>
+<ul class="counts">
+  <li><b>{{.Produced.Resources}}</b> resources</li>
+  <li><b>{{.Produced.Datasources}}</b> data sources</li>
+  <li><b>{{.Produced.ListResources}}</b> list resources</li>
+  <li><b>{{.Produced.Actions}}</b> actions</li>
+  <li class="lost"><b>{{.Produced.Refused}}</b> refused</li>
+  <li class="kept"><b>{{.Produced.Kept}}</b> kept unbound</li>
+</ul>
+<p class="sub">{{if .SDK.Reconciled}}The SDK settled <b>{{.SDK.Reconciled}}</b> drafted names the binder could not predict; that is the number the refusals below should be read against.{{end}}</p>
+
+<h2>What was done to the document before the SDK saw it</h2>
+{{if .Rewrites}}
+<p class="sub">The backend reads a pre-normalised copy, which the run then removes. These are the only account of how it differed.</p>
+{{range .Rewrites}}
+<details>
+  <summary>{{.Name}} <span class="tally">{{.Count}} in {{len .Sites}} {{if eq (len .Sites) 1}}place{{else}}places{{end}}</span></summary>
+  <div class="body">
+    {{if .Sites}}
+    <table><thead><tr><th>where</th><th class="num">changes</th></tr></thead><tbody>
+    {{range .Sites}}<tr><td class="mono">{{.Where}}</td><td class="num">{{.Count}}</td></tr>{{end}}
+    </tbody></table>
+    {{else}}<p class="none">Nothing.</p>{{end}}
+  </div>
+</details>
+{{end}}
+{{else}}<p class="none">The document needed no rewriting.</p>{{end}}
+
+<h2>What became of each thing</h2>
+<p class="sub">Grouped by the document's own tags. Every loss is shown once as the fact behind it, with everything that fact cost.</p>
+{{range .Tags}}
+<details>
+  <summary>{{.Name}}
+    <span class="tally">{{len .Entities}} {{if eq (len .Entities) 1}}entity{{else}}entities{{end}}{{if .Refused}} · <span class="lost">{{.Refused}} produced nothing</span>{{end}}{{if .Lost}} · <span class="lost">{{.Lost}} {{if eq .Lost 1}}attribute{{else}}attributes{{end}} lost</span>{{end}}</span>
+  </summary>
+  <div class="body">
+  {{range .Entities}}
+    <details>
+      <summary><span class="mono">{{.Key}}</span>
+        <span class="tally">{{if .Produced}}{{join .Produced}}{{else}}<span class="lost">produced nothing</span>{{end}}{{if .Causes}} · {{len .Causes}} {{if eq (len .Causes) 1}}cause{{else}}causes{{end}}{{end}}</span>
+      </summary>
+      <div class="body">
+        {{if .CollectionPath}}<p class="sub mono">{{.CollectionPath}}</p>{{end}}
+        {{if .Whole}}<p class="none">Nothing was refused.</p>{{end}}
+        {{range .Causes}}
+        <div class="cause">
+          <p class="what">{{.Code}}{{if .Subject}} <span class="mono">{{.Subject}}</span>{{end}} <span class="tally">at {{.Stage}}</span></p>
+          <p class="why">{{.Reason}}</p>
+          {{if .Attributes}}<p class="who"><span class="tally">cost {{len .Attributes}}:</span> <span class="mono">{{join .Attributes}}</span></p>{{end}}
+        </div>
+        {{end}}
+      </div>
+    </details>
+  {{end}}
+  </div>
+</details>
+{{else}}<p class="none">The document yielded no entities.</p>{{end}}
+
+{{if .Unplaced}}
+<h2>Refusals that name no derived entity</h2>
+<p class="sub">Nothing can file these under a tag, because the entity they name was never derived.</p>
+{{range .Unplaced}}
+<div class="cause">
+  <p class="what"><span class="mono">{{.Entity}}</span> — {{.Code}}{{if .Subject}} <span class="mono">{{.Subject}}</span>{{end}} <span class="tally">at {{.Stage}}</span></p>
+  <p class="why">{{.Reason}}</p>
+</div>
+{{end}}
+{{end}}
+
+</main>
+</body>
+</html>
