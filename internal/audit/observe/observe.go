@@ -23,9 +23,10 @@ import (
 )
 
 // Kind names what a single observation claims. The set is closed: the
-// revision stage switches on it exhaustively when compiling observations
-// into proposed corrections, and a kind it does not recognise would be
-// silently dropped — the one failure mode an evidence store must not have.
+// revision stage holds a compilation rule for every kind when compiling
+// observations into proposed corrections, and a kind it has no rule for
+// would be silently dropped — the one failure mode an evidence store must
+// not have.
 //
 // Each kind's comment states three things: what the claim means, how the
 // audit learns it, and which correction it can become.
@@ -227,6 +228,18 @@ var knownKinds = map[Kind]bool{
 	KindValidConfiguration:      true, KindValidWhen: true,
 	KindDependsOn: true, KindMutuallyExclusive: true,
 	KindListWrapper: true, KindListPagination: true, KindIdentifierProperty: true,
+}
+
+// Kinds is the closed observation-kind set as a sorted fresh slice, so a
+// package that must cover every kind can hold itself to the vocabulary
+// rather than to a second list of its own.
+func Kinds() []Kind {
+	out := make([]Kind, 0, len(knownKinds))
+	for kind := range knownKinds {
+		out = append(out, kind)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 // Provenance records how strongly an inferred edge is grounded: a structural

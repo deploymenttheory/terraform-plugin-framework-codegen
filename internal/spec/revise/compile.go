@@ -92,60 +92,78 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 		return unplaceable(fmt.Sprintf("entity %q is not classified in the revised document", o.Entity)), nil
 	}
 
-	switch o.Kind {
-	case observe.KindWritable:
-		return c.writable(loc, cls, o), nil
-	case observe.KindImmutable:
-		return c.propertyFlag(loc, cls, o, specmodel.ExtImmutable,
-			"the live API refuses to change the value after create"), nil
-	case observe.KindRequiredByAPI:
-		return c.requiredByAPI(loc, cls, o), nil
-	case observe.KindRequiredWhen:
-		return c.requiredWhen(loc, cls, o), nil
-	case observe.KindServerDefault:
-		return c.serverDefault(loc, cls, o), nil
-	case observe.KindValues:
-		return c.values(loc, cls, o)
-	case observe.KindUpdateStyle:
-		return c.updateStyle(loc, cls, o), nil
-	case observe.KindDeleteNotFoundOK:
-		return c.deleteNotFoundOK(loc, cls, o), nil
-	case observe.KindReadAfterWrite:
-		return c.readAfterWrite(loc, cls, o), nil
-	case observe.KindVolatile:
-		return c.propertyFlag(loc, cls, o, specmodel.ExtVolatile,
-			"the value differs between two identical reads"), nil
-	case observe.KindServerForced:
-		return c.propertyFlag(loc, cls, o, specmodel.ExtServerForced,
-			"the server substitutes its own value regardless of what was sent"), nil
-	case observe.KindIgnoredOnUpdate:
-		return c.propertyFlag(loc, cls, o, specmodel.ExtIgnoredOnUpdate,
-			"updates accept a new value with a success status and do not apply it"), nil
-	case observe.KindUndocumentedFieldInSpec:
-		return c.undocumentedField(loc, cls, o), nil
-	case observe.KindNormalisation:
-		return c.normalisation(loc, cls, o), nil
-	case observe.KindDerivedDefault:
-		return compiled{category: catNoForm, reason: noFormReason}, nil
-	case observe.KindValidWhen:
-		return c.validWhen(loc, cls, o), nil
-	case observe.KindDependsOn:
-		return c.dependsOn(loc, cls, o), nil
-	case observe.KindMutuallyExclusive:
-		return c.mutuallyExclusive(loc, cls, o), nil
-	case observe.KindValidConfiguration:
-		return c.validConfiguration(loc, cls, o), nil
-	case observe.KindListWrapper:
-		return c.listWrapper(loc, cls, o)
-	case observe.KindListPagination:
-		return c.listPagination(loc, cls, o)
-	case observe.KindIdentifierProperty:
-		return c.identifierProperty(loc, cls, o)
-	default:
+	rule, ok := compileRules[o.Kind]
+	if !ok {
 		// observe.Read validates kinds against the closed set, so reaching
 		// here means the sets have drifted — the failure mode an evidence
 		// store must surface, not drop.
 		return compiled{}, fmt.Errorf("observation %s: kind %q has no compilation rule", o.ID, o.Kind)
+	}
+	return rule(c, loc, cls, o)
+}
+
+// compileRule turns one confirmed observation into correction operations.
+// Every rule takes the same arguments so that one map can hold them all.
+type compileRule func(*compiler, *locator, specmodel.Classification, observe.Observation) (compiled, error)
+
+// compileRules is the single answer to which observation kinds compile.
+// CompilableKinds reads these keys, so the vocabulary a human meets at
+// `tfpfgen config validate` is the set of rules that exist rather than a
+// second list beside them: a kind reaches both at once or neither.
+var compileRules = map[observe.Kind]compileRule{
+	observe.KindWritable:      alwaysCompiles((*compiler).writable),
+	observe.KindRequiredByAPI: alwaysCompiles((*compiler).requiredByAPI),
+	observe.KindRequiredWhen:  alwaysCompiles((*compiler).requiredWhen),
+	observe.KindServerDefault: alwaysCompiles((*compiler).serverDefault),
+	observe.KindUpdateStyle:   alwaysCompiles((*compiler).updateStyle),
+
+	observe.KindDeleteNotFoundOK: alwaysCompiles((*compiler).deleteNotFoundOK),
+	observe.KindReadAfterWrite:   alwaysCompiles((*compiler).readAfterWrite),
+
+	observe.KindUndocumentedFieldInSpec: alwaysCompiles((*compiler).undocumentedField),
+	observe.KindNormalisation:           alwaysCompiles((*compiler).normalisation),
+
+	observe.KindValidWhen:          alwaysCompiles((*compiler).validWhen),
+	observe.KindDependsOn:          alwaysCompiles((*compiler).dependsOn),
+	observe.KindMutuallyExclusive:  alwaysCompiles((*compiler).mutuallyExclusive),
+	observe.KindValidConfiguration: alwaysCompiles((*compiler).validConfiguration),
+
+	observe.KindValues:             (*compiler).values,
+	observe.KindListWrapper:        (*compiler).listWrapper,
+	observe.KindListPagination:     (*compiler).listPagination,
+	observe.KindIdentifierProperty: (*compiler).identifierProperty,
+
+	observe.KindImmutable: propertyFlagRule(specmodel.ExtImmutable,
+		"the live API refuses to change the value after create"),
+	observe.KindVolatile: propertyFlagRule(specmodel.ExtVolatile,
+		"the value differs between two identical reads"),
+	observe.KindServerForced: propertyFlagRule(specmodel.ExtServerForced,
+		"the server substitutes its own value regardless of what was sent"),
+	observe.KindIgnoredOnUpdate: propertyFlagRule(specmodel.ExtIgnoredOnUpdate,
+		"updates accept a new value with a success status and do not apply it"),
+
+	// A derived default is real and has no correction form: the value the
+	// server substitutes depends on the request, so no static declaration
+	// states it. The kind is compilable so a reviewer is told that.
+	observe.KindDerivedDefault: func(*compiler, *locator, specmodel.Classification, observe.Observation) (compiled, error) {
+		return compiled{category: catNoForm, reason: noFormReason}, nil
+	},
+}
+
+// alwaysCompiles adapts a rule that cannot fail to the common signature, so
+// a rule declares an error return only when it has one to give.
+func alwaysCompiles(f func(*compiler, *locator, specmodel.Classification, observe.Observation) compiled) compileRule {
+	return func(c *compiler, loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
+		return f(c, loc, cls, o), nil
+	}
+}
+
+// propertyFlagRule builds the rule for a kind whose whole correction is one
+// extension key on the observed property, carrying the finding that key
+// records.
+func propertyFlagRule(key, finding string) compileRule {
+	return func(c *compiler, loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
+		return c.propertyFlag(loc, cls, o, key, finding), nil
 	}
 }
 

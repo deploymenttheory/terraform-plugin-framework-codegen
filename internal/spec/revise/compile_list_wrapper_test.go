@@ -211,11 +211,11 @@ func TestUnit_Propose_ListWrapperIsAutoAcceptable(t *testing.T) {
 	}
 }
 
-// TestUnit_CompilableKinds_IsASortedCopyOfTheVocabulary: what config
-// validation consumes is this package's own auto-accept vocabulary, sorted
-// and copied — every entry checkAutoAccept admits, and no shared backing
-// array a caller could edit under it.
-func TestUnit_CompilableKinds_IsASortedCopyOfTheVocabulary(t *testing.T) {
+// TestUnit_CompilableKinds_IsASortedCopyOfTheRules: what config validation
+// consumes is the set of compilation rules this package has, sorted and
+// copied — every entry checkAutoAccept admits, and no shared backing array a
+// caller could edit under it.
+func TestUnit_CompilableKinds_IsASortedCopyOfTheRules(t *testing.T) {
 	t.Parallel()
 	kinds := CompilableKinds()
 	for i := 1; i < len(kinds); i++ {
@@ -223,17 +223,30 @@ func TestUnit_CompilableKinds_IsASortedCopyOfTheVocabulary(t *testing.T) {
 			t.Fatalf("CompilableKinds() is not sorted: %q before %q", kinds[i-1], kinds[i])
 		}
 	}
-	if len(kinds) != len(compilableKinds) {
-		t.Errorf("CompilableKinds() has %d entries, the vocabulary %d", len(kinds), len(compilableKinds))
+	if len(kinds) != len(compileRules) {
+		t.Errorf("CompilableKinds() has %d entries, the rules %d", len(kinds), len(compileRules))
 	}
-	// A copy: mutating the answer must not reach the package's own list.
+	// A copy: mutating the answer must not reach the package's own state.
 	kinds[0] = "mutated"
 	if CompilableKinds()[0] == "mutated" {
-		t.Error("CompilableKinds() hands out the package's own slice")
+		t.Error("CompilableKinds() hands out a slice it keeps")
 	}
-	for _, k := range compilableKinds {
-		if err := checkAutoAccept([]string{k}); err != nil {
-			t.Errorf("checkAutoAccept refuses its own vocabulary entry %q: %v", k, err)
+	for kind := range compileRules {
+		if err := checkAutoAccept([]string{string(kind)}); err != nil {
+			t.Errorf("checkAutoAccept refuses the kind %q it has a rule for: %v", kind, err)
+		}
+	}
+}
+
+// TestUnit_CompilableKinds_CoversEveryObservationKindThatCompiles holds the
+// rules to the observation vocabulary itself. A kind with no rule is
+// unreachable through audit.auto_accept and meets a reviewer with no prose,
+// while still compiling into corrections a run proposes.
+func TestUnit_CompilableKinds_CoversEveryObservationKindThatCompiles(t *testing.T) {
+	t.Parallel()
+	for _, kind := range observe.Kinds() {
+		if _, ok := compileRules[kind]; !ok {
+			t.Errorf("observation kind %q has no compilation rule, so an operator cannot auto-accept it", kind)
 		}
 	}
 }

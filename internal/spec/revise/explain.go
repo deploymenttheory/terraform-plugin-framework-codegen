@@ -310,6 +310,19 @@ var explanations = map[observe.Kind]Explanation{
 		Merging:  "Merging records the style the wire advertised.",
 		Closing:  "Closing leaves the generated list data source paging the wrong way, or not at all.",
 	},
+	observe.KindIdentifierProperty: {
+		Title:  "property the identifier is carried under",
+		Plural: "identifier properties",
+		Expected: "The item path for `{entity}` addresses the object by one name, so a read should answer " +
+			"with the identifier under that name.",
+		Observed: "The live read carried it under {value} instead.",
+		Means: "A read looking for the identifier under a name the response does not carry finds none, so " +
+			"state loses what names the object and import cannot find it.",
+		Merging: "Merging records the property the wire carries the identifier under, which the generated " +
+			"read uses in place of the name the path parameter suggested.",
+		Closing: "Closing leaves the generated resource reading its identifier from a property the response " +
+			"does not carry.",
+	},
 }
 
 // Explain answers one kind's explanation. The second result is false for a
