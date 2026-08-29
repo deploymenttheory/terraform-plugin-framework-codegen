@@ -95,7 +95,11 @@ type UnclassifiedEntity struct {
 	// declares none. Carried on an exclusion as well as a classification
 	// because an entity that became nothing still belongs somewhere, and a
 	// refusal nobody can place is a refusal nobody acts on.
-	Tag    string
+	Tag string
+	// Cause is what the entity lacked, from the closed set above. Eighty
+	// entities excluded for one reason are one fact about the document, not
+	// eighty.
+	Cause  string
 	Reason string
 }
 
@@ -284,12 +288,14 @@ func (e *entity) decide() (Classification, *UnclassifiedEntity) {
 	}
 
 	if len(kinds) == 0 {
+		cause, reason := e.exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations)
 		return Classification{}, &UnclassifiedEntity{
 			Key:            e.key,
 			CollectionPath: e.collection,
 			ItemPath:       e.item,
 			Tag:            e.tag(),
-			Reason:         e.exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations),
+			Cause:          cause,
+			Reason:         reason,
 		}
 	}
 
@@ -332,30 +338,45 @@ func (e *entity) decide() (Classification, *UnclassifiedEntity) {
 
 // exclusionReason says why nothing fit, most specific first: a shape that
 // matched but lacked schemas beats a recital of what was missing.
-func (e *entity) exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations bool) string {
+// The causes an entity fits no kind for. The set is closed, and each names
+// what the entity lacked rather than what it had, because that is what a
+// reader is deciding whether they can supply.
+const (
+	CauseSchemalessLifecycle     = "schemalessLifecycle"
+	CauseSchemalessDatasource    = "schemalessDatasource"
+	CauseUnwritableFixedPath     = "unwritableFixedPath"
+	CauseSchemalessList          = "schemalessList"
+	CauseSchemalessRead          = "schemalessRead"
+	CauseNoClassifiableOperation = "noClassifiableOperation"
+	CausePartialLifecycle        = "partialLifecycle"
+)
+
+// exclusionReason answers the cause an entity fits no kind for, and the
+// account a reader gets.
+func (e *entity) exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations bool) (string, string) {
 	switch {
 	case hasResourceOperations:
-		return "create, read and delete are present but the create request or read success response declares no schema"
+		return CauseSchemalessLifecycle, "create, read and delete are present but the create request or read success response declares no schema"
 	case hasDatasourceOperations:
-		return "list and read are present but a success response schema is missing"
+		return CauseSchemalessDatasource, "list and read are present but a success response schema is missing"
 	case hasSingletonOperations:
 		// One object at a fixed path, and the API offers no way to write
 		// it. Its schema is present — a missing one is the hasListOnlyOperations
 		// case below — so what it lacks is a write, not a declaration.
-		return "one object at a fixed path with no operation that writes it, so terraform would own nothing"
+		return CauseUnwritableFixedPath, "one object at a fixed path with no operation that writes it, so terraform would own nothing"
 	case hasListOnlyOperations:
-		return "list is present but its success response declares no schema"
+		return CauseSchemalessList, "list is present but its success response declares no schema"
 	case hasLookupOperations:
 		// Any read reaching here lacks a schema: with one it would have
 		// classified as at least a lookup-by-key datasource.
-		return "readable by id but the read success response declares no schema"
+		return CauseSchemalessRead, "readable by id but the read success response declares no schema"
 	}
 
 	present := e.presentRoles()
 	if len(present) == 0 {
-		return "no operations in classifiable positions"
+		return CauseNoClassifiableOperation, "no operations in classifiable positions"
 	}
-	return fmt.Sprintf("partial lifecycle (%s) fits no kind", strings.Join(present, ", "))
+	return CausePartialLifecycle, fmt.Sprintf("partial lifecycle (%s) fits no kind", strings.Join(present, ", "))
 }
 
 // presentRoles names the roles this entity has, in a fixed order.

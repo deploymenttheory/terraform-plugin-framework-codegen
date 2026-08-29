@@ -267,10 +267,10 @@ func emitValidConfiguration(b *strings.Builder, byName map[string]node, vc ir.Va
 func stringGate(byName map[string]node, name, label string) error {
 	gate, ok := byName[name]
 	if !ok {
-		return unrenderable("%s names %q, which is not an attribute", label, name)
+		return unrenderable(CauseUnvalidatableAttribute, "%s names %q, which is not an attribute", label, name)
 	}
 	if gate.attribute.Kind != ir.TypeString || gate.attribute.Nested != nil {
-		return unrenderable("%s on %q needs a string attribute", label, name)
+		return unrenderable(CauseUnvalidatableAttribute, "%s on %q needs a string attribute", label, name)
 	}
 	return nil
 }

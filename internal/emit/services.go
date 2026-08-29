@@ -43,23 +43,46 @@ type ServiceFiles struct {
 // about that entity, and the rest still generate. Every other error still
 // aborts, because an emitter that cannot render something it accepted is a
 // bug and must say so.
-type unrenderableError struct{ reason string }
+type unrenderableError struct {
+	cause  ir.Cause
+	reason string
+}
 
 func (e *unrenderableError) Error() string { return e.reason }
 
+// The causes emission refuses an entity for. The set is closed, and each
+// names the thing the entity needed and did not have.
+const (
+	CauseNoBoundInvokeCall      = "noBoundInvokeCall"
+	CauseNoBoundReadCall        = "noBoundReadCall"
+	CauseNoBoundListCall        = "noBoundListCall"
+	CauseNoMappablePayload      = "noMappablePayload"
+	CauseNoItemsAttribute       = "noItemsAttribute"
+	CauseNoElementType          = "noElementType"
+	CauseUnmatchedPathArgument  = "unmatchedPathArgument"
+	CauseUnconvertiblePathType  = "unconvertiblePathType"
+	CauseNoIdentity             = "noIdentity"
+	CauseNoBoundLifecycleCall   = "noBoundLifecycleCall"
+	CauseUnvalidatableAttribute = "unvalidatableAttribute"
+	CauseNoKeyedReadPath        = "noKeyedReadPath"
+)
+
 // unrenderable builds the error entity emission refuses one entity with.
-func unrenderable(format string, args ...any) error {
-	return &unrenderableError{reason: fmt.Sprintf(format, args...)}
+func unrenderable(cause, format string, args ...any) error {
+	return &unrenderableError{
+		cause:  ir.Cause{Code: cause},
+		reason: fmt.Sprintf(format, args...),
+	}
 }
 
 // excludes reports whether an error refuses one entity, and the reason it
 // gave, unwrapping whatever context the call stack added on the way up.
-func excludes(err error) (string, bool) {
+func excludes(err error) (ir.Cause, string, bool) {
 	var refusal *unrenderableError
 	if errors.As(err, &refusal) {
-		return refusal.reason, true
+		return refusal.cause, refusal.reason, true
 	}
-	return "", false
+	return ir.Cause{}, "", false
 }
 
 // RenderServices renders every entity the model carries and the bindings
@@ -108,8 +131,8 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.resource(r, rb)
 		if err != nil {
-			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, excludedEntity(bindingKindResource, r.Names, reason))
+			if cause, reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindResource, r.Names, cause, reason))
 				continue
 			}
 			return nil, fmt.Errorf("resource %s: %w", r.Names.Key, err)
@@ -127,8 +150,8 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.datasource(ds, db)
 		if err != nil {
-			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, excludedEntity(bindingKindDatasource, ds.Names, reason))
+			if cause, reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindDatasource, ds.Names, cause, reason))
 				continue
 			}
 			return nil, fmt.Errorf("datasource %s: %w", ds.Names.Key, err)
@@ -150,13 +173,14 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		// resource with it.
 		if !served[lr.Names.Key] {
 			out.Excluded = append(out.Excluded, excludedEntity(bindingKindListResource, lr.Names,
+				ir.Cause{Code: CauseNoBoundListCall},
 				"list: the resource it lists is not served, and terraform refuses a provider whose list resource names no resource"))
 			continue
 		}
 		files, err := e.listResource(lr, lb)
 		if err != nil {
-			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, excludedEntity(bindingKindListResource, lr.Names, reason))
+			if cause, reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindListResource, lr.Names, cause, reason))
 				continue
 			}
 			return nil, fmt.Errorf("list resource %s: %w", lr.Names.Key, err)
@@ -173,8 +197,8 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.action(a, ab)
 		if err != nil {
-			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, excludedEntity(bindingKindAction, a.Names, reason))
+			if cause, reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindAction, a.Names, cause, reason))
 				continue
 			}
 			return nil, fmt.Errorf("action %s: %w", a.Names.Key, err)
@@ -236,12 +260,13 @@ const (
 // excludedEntity records an entity emission refused, keeping the kind it
 // was refused as. The emitter knows which kind failed, and a refusal that
 // does not say reads as an entity that became nothing at all.
-func excludedEntity(kind string, names ir.Names, reason string) ir.UnsupportedEntity {
+func excludedEntity(kind string, names ir.Names, cause ir.Cause, reason string) ir.UnsupportedEntity {
 	return ir.UnsupportedEntity{
 		Key:     names.Key,
 		Kind:    kind,
 		Service: names.Service,
 		Tag:     names.Tag,
+		Cause:   cause,
 		Reason:  reason,
 	}
 }

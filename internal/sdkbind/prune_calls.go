@@ -17,7 +17,7 @@ import (
 // flat SDK groups operations under, and the fluent body setter's name —
 // and settling the payload types from the final method's signature. The
 // returned reason is empty on success.
-func (p *pruner) resolveCall(c *Call) string {
+func (p *pruner) resolveCall(c *Call) refusal {
 	current := p.client
 	var final *types.Signature
 
@@ -27,7 +27,7 @@ func (p *pruner) resolveCall(c *Call) string {
 
 		if !seg.Call {
 			t, why := p.resolveFieldHop(current, seg, i, c)
-			if why != "" {
+			if why.refused() {
 				return why
 			}
 			current = t
@@ -41,13 +41,13 @@ func (p *pruner) resolveCall(c *Call) string {
 				repaired, found = p.repairBodySetter(current, seg)
 			}
 			if !found {
-				return fmt.Sprintf("%s has no method %s%s",
+				return because(CauseUnresolvableCall, shortType(current), "%s has no method %s%s",
 					shortType(current), seg.Name, didYouMean(seg.Name, methodNamesOf(current)))
 			}
 			sig = repaired
 		}
 		if got, want := len(seg.Args), sig.Params().Len(); got != want {
-			return fmt.Sprintf("%s takes %d argument(s) but the call passes %d: %s",
+			return because(CauseUnresolvableCall, shortType(current), "%s takes %d argument(s) but the call passes %d: %s",
 				seg.Name, want, got, shortSignature(sig))
 		}
 		settleParameterTypes(c, seg, sig)
@@ -56,19 +56,19 @@ func (p *pruner) resolveCall(c *Call) string {
 			break
 		}
 		if sig.Results().Len() != 1 {
-			return fmt.Sprintf("%s returns %d values; a builder hop must return exactly one",
+			return because(CauseUnresolvableCall, shortType(current), "%s returns %d values; a builder hop must return exactly one",
 				seg.Name, sig.Results().Len())
 		}
 		current = sig.Results().At(0).Type()
 	}
 
 	if final == nil {
-		return "the call ends without a method"
+		return because(CauseUnresolvableCall, "", "the call ends without a method")
 	}
 	p.settleCall(c, final)
 	p.settleQueryParameters(c, final)
 	c.rerender()
-	return ""
+	return refusal{}
 }
 
 // settleQueryParameters replaces the call's trailing nil request
@@ -223,13 +223,13 @@ func floatValue(value any) (float64, bool) {
 // drafted service name when exactly one of the client's fields carries
 // the following method — the generator names services after spec tags,
 // which the intermediate representation does not see.
-func (p *pruner) resolveFieldHop(current types.Type, seg *Segment, i int, c *Call) (types.Type, string) {
+func (p *pruner) resolveFieldHop(current types.Type, seg *Segment, i int, c *Call) (types.Type, refusal) {
 	st, err := structUnder(current)
 	if err != nil {
-		return nil, fmt.Sprintf("%s is not a struct, so it has no field %s", shortType(current), seg.Name)
+		return nil, because(CauseUnresolvableCall, shortType(current), "%s is not a struct, so it has no field %s", shortType(current), seg.Name)
 	}
 	if f, ok := fieldByName(st, seg.Name); ok {
-		return f.Type(), ""
+		return f.Type(), refusal{}
 	}
 
 	if i+1 < len(c.Segments) && c.Segments[i+1].Call {
@@ -246,10 +246,10 @@ func (p *pruner) resolveFieldHop(current types.Type, seg *Segment, i int, c *Cal
 		}
 		if len(matches) == 1 {
 			seg.Name = matches[0].Name()
-			return matches[0].Type(), ""
+			return matches[0].Type(), refusal{}
 		}
 	}
-	return nil, fmt.Sprintf("%s has no field %s%s",
+	return nil, because(CauseUnresolvableCall, shortType(current), "%s has no field %s%s",
 		shortType(current), seg.Name, didYouMean(seg.Name, fieldNames(st)))
 }
 
@@ -336,14 +336,14 @@ func (p *pruner) settleCall(c *Call, sig *types.Signature) {
 // type a body parameter takes: a kiota "…able" interface resolves to the
 // struct its constructor yields, a flat struct constructs itself. The
 // returned reason names what stops a body being built.
-func (p *pruner) writeModelFor(requestType string) (model, constructor, reason string) {
+func (p *pruner) writeModelFor(requestType string) (model, constructor string, why refusal) {
 	named, err := p.resolveType(requestType)
 	if err != nil {
-		return "", "", unwrapDetail(err)
+		return "", "", because(CauseNoRequestBodyType, requestType, "%s", unwrapDetail(err))
 	}
 	goPackage := named.Obj().Pkg()
 	if goPackage == nil {
-		return "", "", fmt.Sprintf("%s is not declared by the SDK", requestType)
+		return "", "", because(CauseNoRequestBodyType, requestType, "%s is not declared by the SDK", requestType)
 	}
 	qualifier := goPackage.Name()
 	name := named.Obj().Name()
@@ -355,26 +355,26 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 			// its own name rather than through a concrete type: the
 			// interface is the model.
 			if p.l.functionExists(goPackage.Path(), "New"+name) {
-				return qualifier + "." + name, qualifier + ".New" + name + "()", ""
+				return qualifier + "." + name, qualifier + ".New" + name + "()", refusal{}
 			}
-			return "", "", fmt.Sprintf("%s.%s is an interface with no constructible model behind it", qualifier, name)
+			return "", "", because(CauseNoConstructor, qualifier+"."+name, "%s.%s is an interface with no constructible model behind it", qualifier, name)
 		}
 		if _, err := p.l.lookupType(goPackage.Path(), base); err != nil {
-			return "", "", fmt.Sprintf("%s.%s names no concrete %s to construct", qualifier, name, base)
+			return "", "", because(CauseNoConstructor, qualifier+"."+name, "%s.%s names no concrete %s to construct", qualifier, name, base)
 		}
 		if !p.l.functionExists(goPackage.Path(), "New"+base) {
-			return "", "", fmt.Sprintf("the SDK declares no constructor New%s for %s.%s", base, qualifier, base)
+			return "", "", because(CauseNoConstructor, qualifier+"."+base, "the SDK declares no constructor New%s for %s.%s", base, qualifier, base)
 		}
-		return qualifier + "." + base, qualifier + ".New" + base + "()", ""
+		return qualifier + "." + base, qualifier + ".New" + base + "()", refusal{}
 	}
 
 	if _, err := structUnder(named); err != nil {
-		return "", "", fmt.Sprintf("%s.%s is not a struct a body could be built as", qualifier, name)
+		return "", "", because(CauseNoRequestBodyType, qualifier+"."+name, "%s.%s is not a struct a body could be built as", qualifier, name)
 	}
 	if p.l.functionExists(goPackage.Path(), "New"+name+"WithDefaults") {
-		return qualifier + "." + name, qualifier + ".New" + name + "WithDefaults()", ""
+		return qualifier + "." + name, qualifier + ".New" + name + "WithDefaults()", refusal{}
 	}
-	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", ""
+	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", refusal{}
 }
 
 // settleParameterTypes records what the SDK method really takes for each path

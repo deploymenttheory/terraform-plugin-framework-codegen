@@ -134,8 +134,18 @@ func (p *pruner) resolveType(expr string) (*types.Named, error) {
 	return named, nil
 }
 
-func (p *pruner) remove(kind, key, attribute, reason string) {
-	p.removed = append(p.removed, Removal{Kind: kind, Key: key, Attribute: attribute, Reason: reason})
+// under keeps a refusal's cause while saying what the caller could not do
+// because of it: the entity that could not be built is the caller's fact,
+// the reason it could not is the callee's.
+func (r refusal) under(format string, args ...any) refusal {
+	return refusal{Cause: r.Cause, Reason: fmt.Sprintf(format, append(args, r.Reason)...)}
+}
+
+func (p *pruner) remove(kind, key, attribute string, why refusal) {
+	p.removed = append(p.removed, Removal{
+		Kind: kind, Key: key, Attribute: attribute,
+		Cause: why.Cause, Reason: why.Reason,
+	})
 }
 
 // resource resolves one resource's calls and fields; false removes it.
@@ -152,8 +162,8 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 		if c.call == nil {
 			continue
 		}
-		if why := p.resolveCall(c.call); why != "" {
-			p.remove(kind, rb.Key, "", fmt.Sprintf("its %s call cannot be made: %s", c.name, why))
+		if why := p.resolveCall(c.call); why.refused() {
+			p.remove(kind, rb.Key, "", why.under("its %s call cannot be made: %s", c.name))
 			return false
 		}
 	}
@@ -168,7 +178,7 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 		rb.ReadModel = rb.Create.ResponseType
 	}
 	if rb.ReadModel == "" {
-		p.remove(kind, rb.Key, "", "no lifecycle call yields a payload to map state from")
+		p.remove(kind, rb.Key, "", because(CauseNoResponsePayload, "", "no lifecycle call yields a payload to map state from"))
 		return false
 	}
 
@@ -181,8 +191,8 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 	rb.WriteModel, rb.WriteConstructor = "", ""
 	if writeSource != nil && writeSource.RequestType != "" {
 		write, constructor, why := p.writeModelFor(writeSource.RequestType)
-		if why != "" {
-			p.remove(kind, rb.Key, "", fmt.Sprintf("its request body cannot be constructed: %s", why))
+		if why.refused() {
+			p.remove(kind, rb.Key, "", why.under("its request body cannot be constructed: %s"))
 			return false
 		}
 		rb.WriteModel, rb.WriteConstructor = write, constructor
@@ -190,14 +200,14 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 
 	read, err := p.resolveType(rb.ReadModel)
 	if err != nil {
-		p.remove(kind, rb.Key, "", unwrapDetail(err))
+		p.remove(kind, rb.Key, "", because(CauseNoNestedModel, "", "%s", unwrapDetail(err)))
 		return false
 	}
 	var write types.Type
 	if rb.WriteModel != "" {
 		w, err := p.resolveType(rb.WriteModel)
 		if err != nil {
-			p.remove(kind, rb.Key, "", unwrapDetail(err))
+			p.remove(kind, rb.Key, "", because(CauseNoNestedModel, "", "%s", unwrapDetail(err)))
 			return false
 		}
 		write = w
@@ -207,7 +217,7 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 	liftKeptFromPlan(rb.Fields)
 
 	if why := unbuildableReason(rb.Fields, writeSource != nil); why != "" {
-		p.remove(kind, rb.Key, "", why)
+		p.remove(kind, rb.Key, "", because(CauseUnbuildableEntity, "", "%s", why))
 		return false
 	}
 
@@ -277,13 +287,13 @@ func (p *pruner) settleUpdateBody(rb *ResourceBinding, read types.Type) {
 	}
 
 	model, constructor, why := p.writeModelFor(rb.Update.RequestType)
-	if why != "" {
-		p.remove("resource", rb.Key, "", fmt.Sprintf("its update body cannot be constructed: %s", why))
+	if why.refused() {
+		p.remove("resource", rb.Key, "", why.under("its update body cannot be constructed: %s"))
 		return
 	}
 	write, err := p.resolveType(model)
 	if err != nil {
-		p.remove("resource", rb.Key, "", unwrapDetail(err))
+		p.remove("resource", rb.Key, "", because(CauseNoNestedModel, "", "%s", unwrapDetail(err)))
 		return
 	}
 
@@ -316,8 +326,8 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 	const kind = string(specmodel.KindDatasource)
 	p.resolving(kind, db.Key)
 	if db.Read != nil {
-		if why := p.resolveCall(db.Read); why != "" {
-			p.remove(kind, db.Key, "", fmt.Sprintf("its read call cannot be made: %s", why))
+		if why := p.resolveCall(db.Read); why.refused() {
+			p.remove(kind, db.Key, "", why.under("its read call cannot be made: %s"))
 			return false
 		}
 		db.ReadModel = db.Read.ResponseType
@@ -326,8 +336,8 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 	var element types.Type
 	if db.List != nil {
 		resolved, why := p.resolveListElement(db.List, &db.ElementType, &db.CollectionAccess, db.ListWrapperKey)
-		if why != "" {
-			p.remove(kind, db.Key, "", why)
+		if why.refused() {
+			p.remove(kind, db.Key, "", because(CauseUnbuildableEntity, "", "%s", why))
 			return false
 		}
 		element = resolved
@@ -337,7 +347,7 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 	if model == nil {
 		named, err := p.resolveType(db.ReadModel)
 		if err != nil {
-			p.remove(kind, db.Key, "", unwrapDetail(err))
+			p.remove(kind, db.Key, "", because(CauseNoNestedModel, "", "%s", unwrapDetail(err)))
 			return false
 		}
 		model = named
@@ -345,7 +355,7 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 
 	db.Fields = p.fields(kind, db.Key, "", db.Fields, model, nil)
 	if why := unbuildableReason(db.Fields, false); why != "" {
-		p.remove(kind, db.Key, "", why)
+		p.remove(kind, db.Key, "", because(CauseUnbuildableEntity, "", "%s", why))
 		return false
 	}
 	return true
@@ -355,17 +365,17 @@ func (p *pruner) listResource(lb *ListResourceBinding) bool {
 	const kind = string(specmodel.KindListResource)
 	p.resolving(kind, lb.Key)
 	if lb.List == nil {
-		p.remove(kind, lb.Key, "", "it has no list call")
+		p.remove(kind, lb.Key, "", because(CauseNoListCall, "", "it has no list call"))
 		return false
 	}
 	element, why := p.resolveListElement(lb.List, &lb.ElementType, &lb.CollectionAccess, lb.EnvelopeKey)
-	if why != "" {
-		p.remove(kind, lb.Key, "", why)
+	if why.refused() {
+		p.remove(kind, lb.Key, "", because(CauseUnbuildableEntity, "", "%s", why))
 		return false
 	}
 	lb.Fields = p.fields(kind, lb.Key, "", lb.Fields, element, nil)
 	if why := unbuildableReason(lb.Fields, false); why != "" {
-		p.remove(kind, lb.Key, "", why)
+		p.remove(kind, lb.Key, "", because(CauseUnbuildableEntity, "", "%s", why))
 		return false
 	}
 	return true
@@ -375,11 +385,11 @@ func (p *pruner) action(ab *ActionBinding) bool {
 	const kind = string(specmodel.KindAction)
 	p.resolving(kind, ab.Key)
 	if ab.Invoke == nil {
-		p.remove(kind, ab.Key, "", "it has no invoke call")
+		p.remove(kind, ab.Key, "", because(CauseNoInvokeCall, "", "it has no invoke call"))
 		return false
 	}
-	if why := p.resolveCall(ab.Invoke); why != "" {
-		p.remove(kind, ab.Key, "", fmt.Sprintf("its invoke call cannot be made: %s", why))
+	if why := p.resolveCall(ab.Invoke); why.refused() {
+		p.remove(kind, ab.Key, "", why.under("its invoke call cannot be made: %s"))
 		return false
 	}
 
@@ -387,14 +397,14 @@ func (p *pruner) action(ab *ActionBinding) bool {
 	var write types.Type
 	if ab.Invoke.RequestType != "" {
 		model, constructor, why := p.writeModelFor(ab.Invoke.RequestType)
-		if why != "" {
-			p.remove(kind, ab.Key, "", fmt.Sprintf("its request body cannot be constructed: %s", why))
+		if why.refused() {
+			p.remove(kind, ab.Key, "", why.under("its request body cannot be constructed: %s"))
 			return false
 		}
 		ab.WriteModel, ab.WriteConstructor = model, constructor
 		w, err := p.resolveType(model)
 		if err != nil {
-			p.remove(kind, ab.Key, "", unwrapDetail(err))
+			p.remove(kind, ab.Key, "", because(CauseNoNestedModel, "", "%s", unwrapDetail(err)))
 			return false
 		}
 		write = w
@@ -409,7 +419,7 @@ func (p *pruner) action(ab *ActionBinding) bool {
 		}
 		if !settable {
 			p.remove(kind, ab.Key, "",
-				"no argument survives that can be sent in its request body, so there is nothing to invoke it with")
+				because(CauseUnbuildableEntity, "", "no argument survives that can be sent in its request body, so there is nothing to invoke it with"))
 			return false
 		}
 	}

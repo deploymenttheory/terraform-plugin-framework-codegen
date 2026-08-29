@@ -401,8 +401,8 @@ func TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes(t *testing.T) {
 			Access: FieldAccess{Get: "GetX", Set: "SetX"},
 		}
 		p := &pruner{}
-		if why := p.settleScalar(&fb, testCase.sdkType); why != "" {
-			t.Errorf("%s: settleScalar refused it: %s", testCase.name, why)
+		if why := p.settleScalar(&fb, testCase.sdkType); why.refused() {
+			t.Errorf("%s: settleScalar refused it: %s", testCase.name, why.Reason)
 			continue
 		}
 		if fb.Access.ConvertGet != testCase.wantGet || fb.Access.ConvertSet != testCase.wantSet {
@@ -435,8 +435,8 @@ func TestUnit_SettleScalar_BridgesUUID(t *testing.T) {
 	uuidType := structNamed("github.com/google/uuid", "uuid", "UUID")
 
 	scalar := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeString, Access: FieldAccess{Get: "GetX", Set: "SetX"}}
-	if why := (&pruner{}).settleScalar(&scalar, types.NewPointer(uuidType)); why != "" {
-		t.Fatalf("a uuid scalar was refused: %s", why)
+	if why := (&pruner{}).settleScalar(&scalar, types.NewPointer(uuidType)); why.refused() {
+		t.Fatalf("a uuid scalar was refused: %s", why.Reason)
 	}
 	if scalar.Access.ConvertGet != "FromPtrUUID" || scalar.Access.ConvertSet != "ToPtrUUID" {
 		t.Errorf("scalar conversions = %q/%q, want FromPtrUUID/ToPtrUUID",
@@ -445,8 +445,8 @@ func TestUnit_SettleScalar_BridgesUUID(t *testing.T) {
 
 	list := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeList, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetX", Set: "SetX"}}
-	if why := (&pruner{}).settleScalar(&list, types.NewSlice(uuidType)); why != "" {
-		t.Fatalf("a uuid slice was refused: %s", why)
+	if why := (&pruner{}).settleScalar(&list, types.NewSlice(uuidType)); why.refused() {
+		t.Fatalf("a uuid slice was refused: %s", why.Reason)
 	}
 	if list.Access.ConvertGet != "FromUUIDSlice" || list.Access.ConvertSet != "ToUUIDSlice" {
 		t.Errorf("slice conversions = %q/%q, want FromUUIDSlice/ToUUIDSlice",
@@ -481,8 +481,8 @@ func TestUnit_SettleScalar_MapThroughAdditionalData(t *testing.T) {
 
 	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetHeaders"}}
-	if why := (&pruner{}).settleScalar(&fb, named); why != "" {
-		t.Fatalf("a map carried through additionalData was refused: %s", why)
+	if why := (&pruner{}).settleScalar(&fb, named); why.refused() {
+		t.Fatalf("a map carried through additionalData was refused: %s", why.Reason)
 	}
 	if fb.Access.ConvertGet != "FromStringMapAdditionalData" {
 		t.Errorf("ConvertGet = %q, want FromStringMapAdditionalData", fb.Access.ConvertGet)
@@ -502,11 +502,11 @@ func TestUnit_SettleScalar_MapWithoutABagIsRefused(t *testing.T) {
 		Access: FieldAccess{Get: "GetHeaders"}}
 
 	why := (&pruner{}).settleScalar(&fb, named)
-	if why == "" {
+	if !why.refused() {
 		t.Fatal("a model with no bag and no map settled anyway")
 	}
-	if !strings.Contains(why, "cannot be bridged to a map attribute") {
-		t.Errorf("reason = %q", why)
+	if !strings.Contains(why.Reason, "cannot be bridged to a map attribute") {
+		t.Errorf("reason = %q", why.Reason)
 	}
 }
 
@@ -519,8 +519,8 @@ func TestUnit_SettleEachDirection_BridgesAScalarPair(t *testing.T) {
 
 	why := (&pruner{}).settleEachDirection(&fb,
 		types.NewPointer(types.Typ[types.Int64]), types.Typ[types.Int32], "resource", "thing", "count")
-	if why != "" {
-		t.Fatalf("a bridgeable pair was refused: %s", why)
+	if why.refused() {
+		t.Fatalf("a bridgeable pair was refused: %s", why.Reason)
 	}
 	if fb.Access.ConvertGet != "FromPtrInt64" {
 		t.Errorf("ConvertGet = %q, want FromPtrInt64 from the getter's type", fb.Access.ConvertGet)
@@ -543,11 +543,11 @@ func TestUnit_SettleEachDirection_RefusesWhatTheCatalogCannotCarry(t *testing.T)
 
 	why := (&pruner{}).settleEachDirection(&fb,
 		types.NewPointer(types.Typ[types.String]), opaque, "resource", "thing", "x")
-	if why == "" {
+	if !why.refused() {
 		t.Fatal("an unbridgeable write side settled anyway")
 	}
 	for _, want := range []string{"read as *string", "written as models.Opaque", "no conversion carries both"} {
-		if !strings.Contains(why, want) {
+		if !strings.Contains(why.Reason, want) {
 			t.Errorf("reason %q does not carry %q", why, want)
 		}
 	}
@@ -576,8 +576,8 @@ func TestUnit_SettleEachDirection_CarriesTheWriteConstructor(t *testing.T) {
 	// struct literal when it finds no constructor.
 	p := &pruner{l: &loader{goPackages: map[string]*packages.Package{}}}
 	if why := p.settleEachDirection(&fb, bag("HeadersRead"), bag("HeadersWrite"),
-		"resource", "thing", "headers"); why != "" {
-		t.Fatalf("a bag pair was refused: %s", why)
+		"resource", "thing", "headers"); why.refused() {
+		t.Fatalf("a bag pair was refused: %s", why.Reason)
 	}
 	if fb.NestedConstructor == "" {
 		t.Error("the write constructor did not travel; construction would emit an empty assignment")
