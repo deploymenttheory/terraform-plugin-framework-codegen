@@ -15,7 +15,7 @@ import (
 // element, and an entity that fits no kind.
 func unsupportedModel() *ir.Model {
 	return &ir.Model{
-		Excluded: []ir.UnsupportedEntity{
+		ExcludedByClassification: []ir.UnsupportedEntity{
 			{Key: "orphan", Reason: "partial lifecycle (create, update) fits no kind"},
 		},
 		Resources: []ir.Resource{{
@@ -69,9 +69,15 @@ func TestUnit_RenderUnsupported_FindsEveryRefusalAtEveryDepth(t *testing.T) {
 	if len(entries) != 5 {
 		t.Errorf("the report carries %d entries, want 5: %v", len(entries), got)
 	}
+	// The entity fits no kind and the attributes are shapes the derivation
+	// will not guess at: two decisions, and the report says which is which.
 	for path, stage := range got {
-		if stage != StageDerivation {
-			t.Errorf("%s is stage %q, want %q", path, stage, StageDerivation)
+		want := StageDerivation
+		if !strings.Contains(path, "attribute") {
+			want = StageClassification
+		}
+		if stage != want {
+			t.Errorf("%s is stage %q, want %q", path, stage, want)
 		}
 	}
 }
@@ -394,7 +400,7 @@ func TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields(t *testing.T) 
 // it by — which is most of what a large document refuses.
 func TestUnit_RenderUnsupported_AnEntityRefusedBeforeItBecameAnythingIsStillPlaced(t *testing.T) {
 	model := unsupportedModel()
-	model.Excluded[0] = ir.UnsupportedEntity{
+	model.ExcludedByClassification[0] = ir.UnsupportedEntity{
 		Key:            "orphan",
 		CollectionPath: "/v1/orphans",
 		Service:        "orphans",
@@ -448,4 +454,34 @@ func TestUnit_RenderUnsupported_ADroppedEntityKeepsItsKind(t *testing.T) {
 		return
 	}
 	t.Fatal("the dropped entity is not in the report")
+}
+
+// TestUnit_RenderUnsupported_ConfigurationAndClassificationAreSeparateStages
+// holds the two apart. An entity the operator asked not to generate and one
+// the document offers no lifecycle for are different decisions with
+// different remedies, and a single label over both tells a reader to look in
+// the wrong place.
+func TestUnit_RenderUnsupported_ConfigurationAndClassificationAreSeparateStages(t *testing.T) {
+	model := unsupportedModel()
+	model.ExcludedByConfiguration = []ir.UnsupportedEntity{
+		{Key: "unwanted", Reason: "excluded by configuration"},
+	}
+
+	_, entries, err := RenderUnsupported(model, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+
+	stages := map[string]string{}
+	for _, e := range entries {
+		if e.Attribute == "" {
+			stages[e.Entity] = e.Stage
+		}
+	}
+	if stages["unwanted"] != StageConfiguration {
+		t.Errorf("the configured exclusion is stage %q, want %q", stages["unwanted"], StageConfiguration)
+	}
+	if stages["orphan"] != StageClassification {
+		t.Errorf("the unclassifiable entity is stage %q, want %q", stages["orphan"], StageClassification)
+	}
 }

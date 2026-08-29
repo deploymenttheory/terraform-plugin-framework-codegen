@@ -69,7 +69,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		}
 		claimed[names.Key] = classification.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
-			model.Excluded = append(model.Excluded, unsupportedEntity(names, classification.CollectionPath, "", configExcludedReason))
+			model.ExcludedByConfiguration = append(model.ExcludedByConfiguration, unsupportedEntity(names, classification.CollectionPath, "", configExcludedReason))
 			continue
 		}
 		parentKey[classification.CollectionPath] = names.Key
@@ -78,7 +78,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 	}
 	for _, excluded := range classifications.Excluded {
 		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath, excluded.Tag)
-		model.Excluded = append(model.Excluded, unsupportedEntity(names, excluded.CollectionPath, "", excluded.Reason))
+		model.ExcludedByClassification = append(model.ExcludedByClassification, unsupportedEntity(names, excluded.CollectionPath, "", excluded.Reason))
 	}
 
 	// A collision family that generates more than one entity co-manages
@@ -190,12 +190,14 @@ func sortModel(model *Model) {
 	sort.Slice(model.Datasources, func(i, j int) bool { return model.Datasources[i].Names.Key < model.Datasources[j].Names.Key })
 	sort.Slice(model.ListResources, func(i, j int) bool { return model.ListResources[i].Names.Key < model.ListResources[j].Names.Key })
 	sort.Slice(model.Actions, func(i, j int) bool { return model.Actions[i].Names.Key < model.Actions[j].Names.Key })
-	sort.Slice(model.Excluded, func(i, j int) bool {
-		if model.Excluded[i].Key != model.Excluded[j].Key {
-			return model.Excluded[i].Key < model.Excluded[j].Key
-		}
-		return model.Excluded[i].Reason < model.Excluded[j].Reason
-	})
+	for _, excluded := range [][]UnsupportedEntity{model.ExcludedByConfiguration, model.ExcludedByClassification} {
+		sort.Slice(excluded, func(i, j int) bool {
+			if excluded[i].Key != excluded[j].Key {
+				return excluded[i].Key < excluded[j].Key
+			}
+			return excluded[i].Reason < excluded[j].Reason
+		})
+	}
 }
 
 // operationIndexer carries the operation index every entity builder reads.

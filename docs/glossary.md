@@ -312,8 +312,11 @@ single recorded exception.
   refused before it became any of them. `service` and `tag` are where it
   belongs — the service area derived from its path, and the group the
   document places it in — carried so an entity that became nothing can still
-  be grouped with the ones that did. `stage` is the closed set `derivation |
-  binding | emission`, naming which part of the pipeline refused it. Derived
+  be grouped with the ones that did. `stage` is the closed set `configuration |
+  classification | derivation | binding | emission`, naming which decision
+  refused it. The first three are separate because their remedies are: an
+  entry the operator wrote, a shape the document does not offer, and an
+  attribute the derivation will not guess at. Derived
   content like any other: manifest-covered and byte-compared by `provider
   verify`. Generation never fails on it — one entity must not take the whole
   provider with it — the point is that a refusal appearing or disappearing
