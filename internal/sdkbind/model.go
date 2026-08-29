@@ -96,6 +96,13 @@ type Bindings struct {
 	Actions       map[string]*ActionBinding       `json:"actions,omitempty"`
 	// Removed records everything Prune deleted, with the SDK's reason.
 	Removed []Removal `json:"removed,omitempty"`
+	// Reconciled records everywhere a drafted binding disagreed with the
+	// generated SDK and the SDK admitted exactly one answer, so the draft
+	// was brought onto it rather than deleted. It is the denominator for
+	// Removed: a run that reconciled forty accessors and deleted one says
+	// something quite different from one that deleted one and reconciled
+	// nothing.
+	Reconciled []Reconciliation `json:"reconciled,omitempty"`
 	// OperationPackages maps the package name a type expression is
 	// qualified with onto the import path it resolves to, for every SDK
 	// package outside the root and models — where a generator puts the
@@ -347,6 +354,30 @@ type FieldAccess struct {
 }
 
 // Removal is one thing pruning deleted, with the SDK's reason.
+// Reconciliation is one place the draft and the generated SDK disagreed and
+// the SDK's answer was unambiguous, so the draft was moved onto it.
+//
+// A binder drafts every SDK name from the document by convention, before it
+// has seen the SDK. A generator that mangles a name the binder could not
+// predict — a spelling reserved by the language, or one the generator itself
+// already used — leaves the draft wrong in a way only the loaded SDK can
+// settle. That is ordinary, and recording it is what tells a reader whether
+// a neighbouring deletion is one gap among many reconciliations or the only
+// thing the SDK could not answer.
+type Reconciliation struct {
+	// Kind is "resource", "datasource", "list_resource" or "action".
+	Kind string `json:"kind"`
+	// Key is the entity key.
+	Key string `json:"key"`
+	// Attribute is the attribute whose accessor was reconciled, empty for
+	// a reconciliation in the call chain.
+	Attribute string `json:"attribute,omitempty"`
+	// Drafted is the name the binder wrote from the document, and Settled
+	// the name the SDK actually carries.
+	Drafted string `json:"drafted"`
+	Settled string `json:"settled"`
+}
+
 type Removal struct {
 	// Kind is "resource", "datasource", "list_resource" or "action".
 	Kind string `json:"kind"`

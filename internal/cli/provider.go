@@ -105,6 +105,16 @@ func newProviderGenerateCommand() *cobra.Command {
 			fmt.Fprintf(out, "generated %d %s into %s from %s: %d resources, %d datasources, %d list resources, %d actions\n",
 				res.Files, noun, res.Root, res.RevisedPath,
 				res.Resources, res.Datasources, res.ListResources, res.Actions)
+			// A reconciliation is the SDK naming something the binder could not
+			// predict, which is ordinary. It is reported because it is what the
+			// refusal count below has to be read against.
+			if n := len(res.Reconciled); n > 0 {
+				noun := "reconciliations"
+				if n == 1 {
+					noun = "reconciliation"
+				}
+				fmt.Fprintf(out, "the SDK settled %d drafted %s\n", n, noun)
+			}
 			if summary := emit.UnsupportedSummary(res.Unsupported); summary != "" {
 				fmt.Fprintln(out, summary)
 			}

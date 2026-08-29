@@ -63,6 +63,11 @@ type Result struct {
 	// Removals is the prune report: everything the SDK could not carry,
 	// sorted, with the SDK's reason for each deletion.
 	Removals []sdkbind.Removal
+	// Reconciled is everywhere a drafted binding disagreed with the SDK and
+	// the SDK's answer was unambiguous, so the draft was moved onto it. It
+	// is what Removals has to be read against: the same deletion means one
+	// thing beside forty reconciliations and another beside none.
+	Reconciled []sdkbind.Reconciliation
 	// Excluded is every entity that yielded nothing, with the reason: the
 	// classification and configuration exclusions the model already carried,
 	// plus the shapes emission itself refused.
@@ -330,6 +335,7 @@ func generate(opts Options) (*generation, error) {
 			ListResources: len(entities.Registrations.ListResources.Registrations),
 			Actions:       len(entities.Registrations.Actions.Registrations),
 			Removals:      removals,
+			Reconciled:    bindings.Reconciled,
 			Excluded:      allExclusions(model, model.Excluded, excluded, entities.Excluded),
 			Unsupported:   refusals,
 		},
