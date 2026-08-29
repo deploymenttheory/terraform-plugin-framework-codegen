@@ -136,12 +136,15 @@ func frameworkElementType(kind ir.AttributeType) string {
 }
 
 // schemaTypeOf resolves one attribute's record. Nesting outranks kind: a
-// list of objects is a ListNestedAttribute and an object is a
-// SingleNestedAttribute, whatever their element kind says.
+// list of objects is a ListNestedAttribute, a map of objects a
+// MapNestedAttribute, and an object a SingleNestedAttribute, whatever their
+// element kind says.
 func schemaTypeOf(n node) schemaType {
 	switch {
 	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
 		return newSchemaType("ListNestedAttribute", "", "List")
+	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeMap:
+		return newSchemaType("MapNestedAttribute", "", "Map")
 	case n.attribute.Nested != nil:
 		return newSchemaType("SingleNestedAttribute", "", "Object")
 	case n.attribute.Kind == ir.TypeList:

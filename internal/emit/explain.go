@@ -154,9 +154,9 @@ var explanations = map[string]Explanation{
 		Fix:   "A correction can describe the object's fields, or the API vendor can add them to the specification.",
 	},
 	ir.CauseMapOfObjects: {
-		Title: "A map whose values are objects",
-		Means: "Only maps of simple values are generated. A map of objects was set aside rather than flattened into something that would not round-trip.",
-		Fix:   "Nothing here can change this yet.",
+		Title: "A map whose values have no described shape",
+		Means: "A map keyed by a name you choose is generated where the specification describes what one value looks like. This one says the values are objects and then describes nothing inside them, so there are no attributes to give the map.",
+		Fix:   "A correction can describe the value's fields, or the API vendor can add them to the specification.",
 	},
 	ir.CauseUnsupportedMapValue: {
 		Title: "A map of values Terraform has no equivalent for",

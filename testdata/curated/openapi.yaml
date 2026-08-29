@@ -303,6 +303,20 @@ components:
                 type: integer
                 description: Clear width in centimetres.
           description: The module's hatches.
+        ports:
+          type: object
+          additionalProperties:
+            type: object
+            required:
+              - bore
+            properties:
+              bore:
+                type: integer
+                description: Clear bore in centimetres.
+              sealed:
+                type: boolean
+                description: Whether the port is sealed.
+          description: The module's docking ports, keyed by the name the crew gives each one.
     Module:
       allOf:
         - $ref: '#/components/schemas/NewModule'

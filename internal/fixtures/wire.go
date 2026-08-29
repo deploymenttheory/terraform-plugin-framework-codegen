@@ -41,6 +41,8 @@ func wireOne(v Entry, a Form) any {
 	switch {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return []any{wireLevel(selected(v.Nested, a), a)}
+	case v.Nested != nil && v.Kind == ir.TypeMap:
+		return map[string]any{v.Name: wireLevel(selected(v.Nested, a), a)}
 	case v.Nested != nil:
 		return wireLevel(selected(v.Nested, a), a)
 	case v.Kind == ir.TypeList:
@@ -78,6 +80,10 @@ func writeWireValue(b *strings.Builder, v Entry, a Form, depth int) {
 		b.WriteString("[\n" + strings.Repeat("  ", depth+1))
 		writeWireObject(b, selected(v.Nested, a), a, depth+1)
 		b.WriteString("\n" + strings.Repeat("  ", depth) + "]")
+	case v.Nested != nil && v.Kind == ir.TypeMap:
+		b.WriteString("{\n" + strings.Repeat("  ", depth+1) + jsonScalar(v.Name) + ": ")
+		writeWireObject(b, selected(v.Nested, a), a, depth+1)
+		b.WriteString("\n" + strings.Repeat("  ", depth) + "}")
 	case v.Nested != nil:
 		writeWireObject(b, selected(v.Nested, a), a, depth)
 	case v.Kind == ir.TypeList:

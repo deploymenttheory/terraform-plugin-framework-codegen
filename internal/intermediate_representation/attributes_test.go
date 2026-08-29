@@ -100,7 +100,8 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 		{"nothing declared", object(nil, false), "", "", "no declared shape"},
 		{"bare boolean", object(nil, true), "", "", "bare boolean"},
 		{"object values", object(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
-			{Name: "x", Schema: &specmodel.Schema{Type: "string"}}}}, false), "", "", "map of objects"},
+			{Name: "x", Schema: &specmodel.Schema{Type: "string"}}}}, false), TypeMap, TypeObject, ""},
+		{"free-form object values", object(&specmodel.Schema{Type: "object"}, false), "", "", "map of free-form objects"},
 		{"array values", object(&specmodel.Schema{Type: "array"}, false), "", "", `map of "array" values`},
 	} {
 		tree := buildTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{

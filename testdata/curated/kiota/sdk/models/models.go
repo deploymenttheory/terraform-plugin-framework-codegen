@@ -46,6 +46,7 @@ type Moduleable interface {
 	GetTags() []string
 	GetBerth() ModuleBerthable
 	GetHatches() []ModuleHatchable
+	GetPorts() map[string]ModulePortable
 	GetStatus() *string
 }
 
@@ -61,6 +62,7 @@ type Module struct {
 	tags       []string
 	berth      ModuleBerthable
 	hatches    []ModuleHatchable
+	ports      map[string]ModulePortable
 	status     *string
 }
 
@@ -124,6 +126,12 @@ func (m *Module) GetHatches() []ModuleHatchable { return m.hatches }
 // SetHatches writes the nested list.
 func (m *Module) SetHatches(v []ModuleHatchable) { m.hatches = v }
 
+// GetPorts reads the nested map.
+func (m *Module) GetPorts() map[string]ModulePortable { return m.ports }
+
+// SetPorts writes the nested map.
+func (m *Module) SetPorts(v map[string]ModulePortable) { m.ports = v }
+
 // GetStatus reads the server's assessment.
 func (m *Module) GetStatus() *string { return m.status }
 
@@ -180,6 +188,34 @@ func (m *ModuleHatch) GetWidth() *int64 { return m.width }
 
 // SetWidth writes the width.
 func (m *ModuleHatch) SetWidth(v *int64) { m.width = v }
+
+// ModulePortable is the map's value, read through its interface the way a
+// generated collection value is.
+type ModulePortable interface {
+	GetBore() *int64
+	GetSealed() *bool
+}
+
+// ModulePort is the concrete port model.
+type ModulePort struct {
+	bore   *int64
+	sealed *bool
+}
+
+// NewModulePort constructs a settable ModulePort.
+func NewModulePort() *ModulePort { return &ModulePort{} }
+
+// GetBore reads the bore.
+func (m *ModulePort) GetBore() *int64 { return m.bore }
+
+// SetBore writes the bore.
+func (m *ModulePort) SetBore(v *int64) { m.bore = v }
+
+// GetSealed reads the sealed flag.
+func (m *ModulePort) GetSealed() *bool { return m.sealed }
+
+// SetSealed writes the sealed flag.
+func (m *ModulePort) SetSealed(v *bool) { m.sealed = v }
 
 // ModuleCollectionResponseable is the read-side collection envelope.
 type ModuleCollectionResponseable interface {

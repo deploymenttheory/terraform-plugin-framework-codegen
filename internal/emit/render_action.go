@@ -238,6 +238,8 @@ func tftype(v fixtures.Entry) string {
 	switch {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return "tftypes.List{ElementType: " + tftypeObject(v.Nested) + "}"
+	case v.Nested != nil && v.Kind == ir.TypeMap:
+		return "tftypes.Map{ElementType: " + tftypeObject(v.Nested) + "}"
 	case v.Nested != nil:
 		return tftypeObject(v.Nested)
 	case v.Kind == ir.TypeList:
@@ -281,6 +283,12 @@ func tftypeNewValue(v fixtures.Entry) string {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{%s})",
 			tftype(v), tftypeNewObject(v.Nested))
+	case v.Nested != nil && v.Kind == ir.TypeMap:
+		// One entry, keyed by the attribute's own name, for the same reason
+		// a map of scalars takes it: the keys are the practitioner's and the
+		// specification names none.
+		return fmt.Sprintf("tftypes.NewValue(%s, map[string]tftypes.Value{%q: %s})",
+			tftype(v), v.Name, tftypeNewObject(v.Nested))
 	case v.Nested != nil:
 		return tftypeNewObject(v.Nested)
 	case v.Kind == ir.TypeList:

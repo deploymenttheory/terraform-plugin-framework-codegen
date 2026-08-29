@@ -26,7 +26,7 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 		deriveListType(attribute, create, read, update)
 	case flatPrimary.declaredType == "object" || (flatPrimary.declaredType == "" && len(flatPrimary.properties) > 0):
 		if len(flatPrimary.properties) == 0 {
-			deriveMapType(attribute, flatPrimary)
+			deriveMapType(attribute, flatPrimary, create, read, update)
 			return
 		}
 		attribute.Kind = TypeObject
@@ -106,7 +106,13 @@ func anonymousBranches(branches []*specmodel.Schema) int {
 // additionalProperties carrying a schema names the value type, which is
 // what a map attribute needs; a bare boolean or nothing at all says the
 // object has no declared shape, and the refusal says which was seen.
-func deriveMapType(attribute *Attribute, flatPrimary flat) {
+//
+// A map of objects is derived the same way a list of objects is: the value
+// schema is folded from both sides of the create/read pair and becomes the
+// nested tree. terraform-plugin-framework has MapNestedAttribute for
+// exactly this, and a document that keys objects by a name the practitioner
+// chooses has no other shape to become.
+func deriveMapType(attribute *Attribute, flatPrimary flat, create, read, update *specmodel.Schema) {
 	value := flatPrimary.additionalProperties
 	if value == nil {
 		if flatPrimary.additionalPropertiesDeclared {
@@ -128,9 +134,19 @@ func deriveMapType(attribute *Attribute, flatPrimary flat) {
 	case flatValue.declaredType == "number":
 		attribute.Kind, attribute.ElementType = TypeMap, TypeFloat64
 	case flatValue.declaredType == "object" || (flatValue.declaredType == "" && len(flatValue.properties) > 0):
-		// A map of objects needs a nested model, nested state mapping and
-		// nested fixtures; only maps of scalars are modelled.
-		refuse(attribute, Cause{Code: CauseMapOfObjects}, "map of objects: only maps of scalar values are modelled")
+		// A value schema with no properties of its own describes an object
+		// of any shape, which no attribute can hold; the same answer a list
+		// of free-form objects gets.
+		if len(flatValue.properties) == 0 {
+			refuse(attribute, Cause{Code: CauseMapOfObjects}, "map of free-form objects: the value schema declares no properties to map")
+			return
+		}
+		attribute.Kind, attribute.ElementType = TypeMap, TypeObject
+		attribute.Nested = buildTree(
+			flatten(create).additionalProperties,
+			flatten(read).additionalProperties,
+			flatten(update).additionalProperties,
+			false)
 	default:
 		refuse(attribute, Cause{Code: CauseUnsupportedMapValue, Subject: flatValue.declaredType},
 			fmt.Sprintf("map of %q values is not supported", flatValue.declaredType))
