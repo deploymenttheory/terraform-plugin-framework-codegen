@@ -275,8 +275,14 @@ func nilableType(t types.Type) bool {
 // the model itself, a pointer to it, or a slice of either.
 func nestedModelOf(t types.Type) (*types.Named, refusal) {
 	current := t
-	if slice, ok := current.Underlying().(*types.Slice); ok {
-		current = slice.Elem()
+	// A collection's model is its element's: a list carries the model in
+	// its element type and a map in its value type, and the nested fields
+	// are resolved against that either way.
+	switch collection := current.Underlying().(type) {
+	case *types.Slice:
+		current = collection.Elem()
+	case *types.Map:
+		current = collection.Elem()
 	}
 	if pointer, ok := current.(*types.Pointer); ok {
 		current = pointer.Elem()

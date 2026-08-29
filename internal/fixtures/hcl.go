@@ -50,8 +50,8 @@ func writeHCLLevel(b *strings.Builder, values []Entry, a Form, depth int) {
 	flushRun(run)
 }
 
-// writeNestedHCL renders an object attribute or a list of objects as a
-// multi-line value.
+// writeNestedHCL renders an object attribute, a list of objects or a map of
+// objects as a multi-line value.
 func writeNestedHCL(b *strings.Builder, v Entry, a Form, depth int) {
 	indent := strings.Repeat("  ", depth)
 	nested := selected(v.Nested, a)
@@ -60,6 +60,15 @@ func writeNestedHCL(b *strings.Builder, v Entry, a Form, depth int) {
 		fmt.Fprintf(b, "%s%s = [\n%s  {\n", indent, v.Name, indent)
 		writeHCLLevel(b, nested, a, depth+2)
 		fmt.Fprintf(b, "%s  },\n%s]\n", indent, indent)
+		return
+	}
+
+	// One entry, keyed by the attribute's own name: a map's keys are the
+	// practitioner's, so the specification names none to take.
+	if v.Kind == ir.TypeMap {
+		fmt.Fprintf(b, "%s%s = {\n%s  %q = {\n", indent, v.Name, indent, v.Name)
+		writeHCLLevel(b, nested, a, depth+2)
+		fmt.Fprintf(b, "%s  }\n%s}\n", indent, indent)
 		return
 	}
 

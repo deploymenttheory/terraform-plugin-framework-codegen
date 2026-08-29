@@ -118,7 +118,10 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 	b.WriteString(sb.planModifierLines(n, indent+"\t"))
 
 	if n.attribute.Nested != nil {
-		if n.attribute.Kind == ir.TypeList {
+		// A list and a map both wrap their attributes in a
+		// NestedAttributeObject; only a single nested object carries them
+		// directly.
+		if n.attribute.Kind == ir.TypeList || n.attribute.Kind == ir.TypeMap {
 			fmt.Fprintf(&b, "%s\tNestedObject: %s.NestedAttributeObject{\n", indent, sb.goPackage())
 			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]%s.Attribute{\n", indent, sb.goPackage())
 			b.WriteString(sb.attributeDeclarations(n.children, depth+3))
@@ -487,7 +490,8 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 
 // fieldType is the Go type one model field carries.
 //
-// A nested attribute is held as types.Object or types.List rather than as
+// A nested attribute is held as types.Object, types.List or types.Map
+// rather than as
 // the generated struct, because a Computed attribute arrives unknown in the
 // plan and neither a struct pointer nor a slice can represent unknown. The
 // struct is still generated: it is what the object is built from and read
@@ -496,6 +500,8 @@ func fieldType(n node) string {
 	switch {
 	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
 		return "types.List"
+	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeMap:
+		return "types.Map"
 	case n.attribute.Nested != nil:
 		return "types.Object"
 	default:
@@ -509,6 +515,8 @@ func attrTypeExpr(namer *modelNamer, path string, n node) string {
 	switch {
 	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
 		return "types.ListType{ElemType: " + nestedObjectType(namer, path) + "}"
+	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeMap:
+		return "types.MapType{ElemType: " + nestedObjectType(namer, path) + "}"
 	case n.attribute.Nested != nil:
 		return nestedObjectType(namer, path)
 	default:

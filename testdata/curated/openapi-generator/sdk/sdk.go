@@ -313,6 +313,7 @@ type Module struct {
 	tags       []string
 	berth      ModuleBerth
 	hatches    []ModuleHatch
+	ports      map[string]ModulePort
 	status     string
 }
 
@@ -338,7 +339,10 @@ func (m *Module) GetBerth() ModuleBerth      { return m.berth }
 func (m *Module) SetBerth(v ModuleBerth)     { m.berth = v }
 func (m *Module) GetHatches() []ModuleHatch  { return m.hatches }
 func (m *Module) SetHatches(v []ModuleHatch) { m.hatches = v }
-func (m *Module) GetStatus() string          { return m.status }
+
+func (m *Module) GetPorts() map[string]ModulePort  { return m.ports }
+func (m *Module) SetPorts(v map[string]ModulePort) { m.ports = v }
+func (m *Module) GetStatus() string                { return m.status }
 
 // ModuleBerth is the value-typed nested model.
 type ModuleBerth struct {
@@ -359,6 +363,20 @@ type ModuleHatch struct {
 	label string
 	width int64
 }
+
+// ModulePort is the value-typed map value.
+type ModulePort struct {
+	bore   int64
+	sealed bool
+}
+
+// NewModulePortWithDefaults stands in for the generated constructor.
+func NewModulePortWithDefaults() *ModulePort { return &ModulePort{} }
+
+func (m *ModulePort) GetBore() int64   { return m.bore }
+func (m *ModulePort) SetBore(v int64)  { m.bore = v }
+func (m *ModulePort) GetSealed() bool  { return m.sealed }
+func (m *ModulePort) SetSealed(v bool) { m.sealed = v }
 
 // NewModuleHatchWithDefaults stands in for the generated constructor.
 func NewModuleHatchWithDefaults() *ModuleHatch { return &ModuleHatch{} }
