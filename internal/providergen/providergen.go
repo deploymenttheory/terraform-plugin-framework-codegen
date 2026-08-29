@@ -336,7 +336,7 @@ func generate(opts Options) (*generation, error) {
 			Actions:       len(entities.Registrations.Actions.Registrations),
 			Removals:      removals,
 			Reconciled:    bindings.Reconciled,
-			Excluded:      allExclusions(model.Excluded, excluded, entities.Excluded),
+			Excluded:      allExclusions(model, model.Excluded, excluded, entities.Excluded),
 			Unsupported:   refusals,
 		},
 		files: append(append(core, entities.Files...), unsupported),
@@ -471,11 +471,58 @@ func removeUnproducedFiles(root string, paths []string) {
 // allExclusions gathers every reason an entity yielded nothing, in pipeline
 // order: refused by classification or configuration, then dropped because the
 // SDK could not answer its binding, then refused by emission.
-func allExclusions(derived []ir.UnsupportedEntity, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
+//
+// A derived exclusion already carries where it belongs. A dropped or refused
+// one was derived first, so the model still knows: the location is read back
+// from it rather than threaded through two packages that have no use for it.
+func allExclusions(m *ir.Model, derived []ir.UnsupportedEntity, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
+	located := locationsByKey(m)
 	out := make([]ir.UnsupportedEntity, 0, len(derived)+len(dropped)+len(refused))
 	out = append(out, derived...)
 	for _, d := range dropped {
-		out = append(out, ir.UnsupportedEntity{Key: d.Key, Reason: d.Reason})
+		out = append(out, locate(located, ir.UnsupportedEntity{Key: d.Key, Kind: d.Kind, Reason: d.Reason}))
 	}
-	return append(out, refused...)
+	for _, r := range refused {
+		out = append(out, locate(located, r))
+	}
+	return out
+}
+
+// locationsByKey indexes every derived entity's naming block by key, so a
+// later stage's refusal can recover the path, service and tag the
+// derivation already worked out.
+func locationsByKey(m *ir.Model) map[string]ir.Names {
+	located := map[string]ir.Names{}
+	if m == nil {
+		return located
+	}
+	for _, e := range m.Resources {
+		located[e.Names.Key] = e.Names
+	}
+	for _, e := range m.Datasources {
+		located[e.Names.Key] = e.Names
+	}
+	for _, e := range m.ListResources {
+		located[e.Names.Key] = e.Names
+	}
+	for _, e := range m.Actions {
+		located[e.Names.Key] = e.Names
+	}
+	return located
+}
+
+// locate fills in a refusal's service and tag from the derivation, leaving
+// what the refusing stage already said alone.
+func locate(located map[string]ir.Names, u ir.UnsupportedEntity) ir.UnsupportedEntity {
+	names, ok := located[u.Key]
+	if !ok {
+		return u
+	}
+	if u.Service == "" {
+		u.Service = names.Service
+	}
+	if u.Tag == "" {
+		u.Tag = names.Tag
+	}
+	return u
 }

@@ -45,7 +45,20 @@ type Provider struct {
 // for people: a surprising omission traces to the document or the config,
 // never to a hunch.
 type UnsupportedEntity struct {
-	Key    string `json:"key"`
+	// Key is the entity key it would have had.
+	Key string `json:"key"`
+	// Kind is what it would have become, empty for an entity that became
+	// nothing at all — which is the honest answer for one refused before a
+	// kind was decided.
+	Kind string `json:"kind,omitempty"`
+	// CollectionPath is the path it was derived from, and Service and Tag
+	// are where that path and the document place it. An entity refused
+	// before it became anything still belongs somewhere, and a refusal
+	// carrying no location is one nothing can group or act on.
+	CollectionPath string `json:"collection_path,omitempty"`
+	Service        string `json:"service,omitempty"`
+	Tag            string `json:"tag,omitempty"`
+	// Reason is why it was refused, verbatim from the stage that refused.
 	Reason string `json:"reason"`
 }
 
@@ -253,6 +266,39 @@ const (
 	ComputedOptional ComputedOptionalRequired = "computed_optional"
 )
 
+// Authority names which declaration decided a computed_optional presence,
+// where four could have. It is empty where none did — see Attribute.
+// The set is closed and ordered by how strongly the
+// declaration is grounded, which is the order derivation consults them in:
+// a measurement of the live API first, then the document asserting the same
+// fact, then the document implying it, then the document merely describing
+// the property.
+//
+// docs/contract.md sets out the four and accepts a known risk on
+// requestDefault: a default on a $ref'd property is written onto a schema
+// every other use of that type shares, so one declaration can move
+// attributes that were never meant to move together. Recording the route
+// makes that accepted risk something an operator can find and correct
+// rather than only be told about.
+type Authority string
+
+const (
+	// AuthorityServerDefault is the audit's own measurement, taken by
+	// omitting the attribute and reading what came back. It is the only
+	// route that does not depend on the document being diligent.
+	AuthorityServerDefault Authority = "serverDefault"
+	// AuthorityResponseRequired is the response schema's required list:
+	// the document asserting the server always answers with a value.
+	AuthorityResponseRequired Authority = "responseRequired"
+	// AuthorityRequestDefault is a default on the request property: the
+	// document stating what the server substitutes for an omitted value.
+	AuthorityRequestDefault Authority = "requestDefault"
+	// AuthorityResponseProperty is the response schema describing the
+	// property at all — the weakest route, and the one that catches the
+	// documents which declare nothing required in their responses.
+	AuthorityResponseProperty Authority = "responseProperty"
+)
+
 // AttributeTree is one object's attributes plus the cross-attribute rules
 // declared among them. Attribute order preserves document property order —
 // load-bearing for stable output — with response-only attributes appended in
@@ -337,6 +383,12 @@ type Attribute struct {
 	// objects.
 	Nested                   *AttributeTree           `json:"nested,omitempty"`
 	ComputedOptionalRequired ComputedOptionalRequired `json:"computed_optional_required"`
+	// Authority names which declaration decided this attribute's
+	// computed_optional presence. Empty where no declaration about this
+	// attribute did: any other presence, or a member promoted to
+	// computed_optional because its parent is server-filled, which is a
+	// fact about the parent.
+	Authority Authority `json:"authority,omitempty"`
 	// RequiresReplace marks an attribute a change to which forces
 	// re-creation: x-tfpfgen-immutable, or every writable attribute of
 	// a resource with no update operation.
@@ -415,5 +467,18 @@ func defaultTimeouts() Timeouts {
 		Read:   5 * time.Minute,
 		Update: 30 * time.Minute,
 		Delete: 30 * time.Minute,
+	}
+}
+
+// unsupportedEntity records one refusal with everywhere it belongs, so a
+// refusal can be grouped by the same keys a generated entity is.
+func unsupportedEntity(names Names, collectionPath, kind, reason string) UnsupportedEntity {
+	return UnsupportedEntity{
+		Key:            names.Key,
+		Kind:           kind,
+		CollectionPath: collectionPath,
+		Service:        names.Service,
+		Tag:            names.Tag,
+		Reason:         reason,
 	}
 }
