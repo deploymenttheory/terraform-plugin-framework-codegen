@@ -67,7 +67,7 @@ const resourcePackageAlias = "listedresource"
 // listResource renders one list-only entity's file set.
 func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResourceBinding) ([]File, error) {
 	if lb.List == nil {
-		return nil, unrenderable(CauseNoBoundListCall, "a list resource needs a bound list call")
+		return nil, unrenderable(sdkbind.CauseListResourceNoListCall, "a list resource needs a bound list call")
 	}
 	nodes := e.joinTree(bindingKindListResource, lr.Names.Key, lr.Schema, lb.Fields, addressingNames(lr.Schema, &lr.ListOperation))
 
@@ -102,7 +102,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		return nil, fmt.Errorf("list: %w", err)
 	}
 	if plan.Payload == "" {
-		return nil, unrenderable(CauseNoMappablePayload, "list: the bound list call yields no payload")
+		return nil, unrenderable(CauseListResourceListYieldsNoPayload, "list: the bound list call yields no payload")
 	}
 	d.ListPlan = plan
 	d.Collection = "result"
@@ -112,7 +112,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 
 	identity := e.identities[lr.Names.Key]
 	if len(identity) == 0 {
-		return nil, unrenderable(CauseNoIdentity, "the resource it lists declares no identity, and a list result is an identity")
+		return nil, unrenderable(CauseListResourceListedResourceHasNoIdentity, "the resource it lists declares no identity, and a list result is an identity")
 	}
 	resultLines, err := listResultLines(nodes, identity, configNodes)
 	if err != nil {
@@ -237,7 +237,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 func listResultLines(nodes []node, identity []identityAttribute, config []node) (string, error) {
 	idNode, ok := findIdentityNode(nodes)
 	if !ok {
-		return "", unrenderable(CauseNoIdentity,
+		return "", unrenderable(CauseListResourceElementHasNoIdentity,
 			"the element publishes no identity: it carries no readable scalar %q%s",
 			idAttributeName, identityCandidates(nodes))
 	}
@@ -253,7 +253,7 @@ func listResultLines(nodes []node, identity []identityAttribute, config []node) 
 			continue
 		}
 		if !configured[attribute.Name] {
-			return "", unrenderable(CauseNoIdentity,
+			return "", unrenderable(CauseListResourceIdentityNotConfigurable,
 				"the list block cannot supply %q, which the resource's identity names", attribute.Name)
 		}
 		fields = append(fields, ir.GoName(attribute.Name)+": config."+ir.GoName(attribute.Name))

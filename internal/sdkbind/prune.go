@@ -365,7 +365,7 @@ func (p *pruner) listResource(lb *ListResourceBinding) bool {
 	const kind = string(specmodel.KindListResource)
 	p.resolving(kind, lb.Key)
 	if lb.List == nil {
-		p.remove(kind, lb.Key, "", because(CauseNoListCall, "", "it has no list call"))
+		p.remove(kind, lb.Key, "", because(CauseListResourceNoListCall, "", "it has no list call"))
 		return false
 	}
 	element, why := p.resolveListElement(lb.List, &lb.ElementType, &lb.CollectionAccess, lb.EnvelopeKey)
@@ -385,7 +385,7 @@ func (p *pruner) action(ab *ActionBinding) bool {
 	const kind = string(specmodel.KindAction)
 	p.resolving(kind, ab.Key)
 	if ab.Invoke == nil {
-		p.remove(kind, ab.Key, "", because(CauseNoInvokeCall, "", "it has no invoke call"))
+		p.remove(kind, ab.Key, "", because(CauseActionNoInvokeCall, "", "it has no invoke call"))
 		return false
 	}
 	if why := p.resolveCall(ab.Invoke); why.refused() {

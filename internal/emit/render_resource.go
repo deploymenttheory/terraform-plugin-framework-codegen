@@ -136,11 +136,11 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 	// forgotten on destroy, so a read and an update are all it needs.
 	if r.Singleton {
 		if r.Operations.Read == nil || rb.Read == nil || r.Operations.Update == nil || rb.Update == nil {
-			return nil, unrenderable(CauseNoBoundLifecycleCall, "a singleton resource needs bound read and update calls")
+			return nil, unrenderable(CauseResourceNoLifecycleCall, "a singleton resource needs bound read and update calls")
 		}
 	} else if r.Operations.Create == nil || rb.Create == nil || r.Operations.Read == nil || rb.Read == nil ||
 		r.Operations.Delete == nil || rb.Delete == nil {
-		return nil, unrenderable(CauseNoBoundLifecycleCall, "a resource needs bound create, read and delete calls")
+		return nil, unrenderable(CauseResourceNoLifecycleCall, "a resource needs bound create, read and delete calls")
 	}
 
 	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(r.Schema,
@@ -434,7 +434,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 		return fmt.Errorf("read: %w", err)
 	}
 	if d.ReadPlan.Payload == "" {
-		return unrenderable(CauseNoMappablePayload, "read: the bound read call yields no payload to map state from")
+		return unrenderable(CauseResourceReadYieldsNoPayload, "read: the bound read call yields no payload to map state from")
 	}
 	if !d.Singleton {
 		if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data", respDiagnostics()); err != nil {
@@ -547,7 +547,7 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 	d.ItemPattern = mockPattern(r.Operations.Read.PathTemplate)
 	d.IDSegmentIndex = parameterSegmentIndex(r.Operations.Read.PathTemplate)
 	if d.IDSegmentIndex < 0 {
-		return unrenderable(CauseNoKeyedReadPath, "the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
+		return unrenderable(CauseResourceNoKeyedReadPath, "the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
 	}
 	d.IDWire = idWire(rb.Fields)
 	d.ResponseMinimal = goStringLiteral(string(spec.WireJSON(fixtures.ResponseMinimal)))

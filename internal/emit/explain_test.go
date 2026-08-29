@@ -7,6 +7,7 @@ import (
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/templates"
 )
 
 // allCauses is every cause any stage can record, named by its constant so a
@@ -30,11 +31,17 @@ var allCauses = []string{
 	sdkbind.CauseNoConstructor, sdkbind.CauseEmptyNestedObject, sdkbind.CauseUnresolvableCall,
 	sdkbind.CauseNoRequestBodyType, sdkbind.CauseAmbiguousListShape,
 	sdkbind.CauseNoResponsePayload, sdkbind.CauseUnbuildableEntity,
-	sdkbind.CauseNoListCall, sdkbind.CauseNoInvokeCall,
-	CauseNoBoundInvokeCall, CauseNoBoundReadCall, CauseNoBoundListCall,
-	CauseNoBoundLifecycleCall, CauseNoMappablePayload, CauseNoItemsAttribute,
-	CauseNoElementType, CauseUnmatchedPathArgument, CauseUnconvertiblePathType,
-	CauseNoIdentity, CauseUnvalidatableAttribute, CauseNoKeyedReadPath,
+	sdkbind.CauseListResourceNoListCall, sdkbind.CauseActionNoInvokeCall,
+	CauseDatasourceNoReadCall, CauseDatasourceNoListCall,
+	CauseDatasourceReadYieldsNoPayload, CauseDatasourceReadAnswersCollection,
+	CauseDatasourceListYieldsNoPayload, CauseDatasourceNoItemsAttribute,
+	CauseDatasourceNoElementType,
+	CauseResourceNoLifecycleCall, CauseResourceReadYieldsNoPayload,
+	CauseResourceNoKeyedReadPath,
+	CauseListResourceListYieldsNoPayload, CauseListResourceNoCorrelatingResourceExists,
+	CauseListResourceListedResourceHasNoIdentity, CauseListResourceElementHasNoIdentity,
+	CauseListResourceIdentityNotConfigurable,
+	CauseUnmatchedPathArgument, CauseUnconvertiblePathType, CauseUnvalidatableAttribute,
 }
 
 // TestUnit_Explain_EveryCauseIsExplained holds the table and the causes to
@@ -111,5 +118,31 @@ func TestUnit_Workflow_ReadsInOrder(t *testing.T) {
 		if _, phrase := stepOf(stage); phrase == stage {
 			t.Errorf("stage %q reaches the reader under its own name", stage)
 		}
+	}
+}
+
+// TestUnit_Explain_NoEmDashesReachTheReader keeps the report's punctuation
+// to what its reader wants. An em dash is a house style this one does not
+// hold, and prose has no compiler, so the rule is a test.
+func TestUnit_Explain_NoEmDashesReachTheReader(t *testing.T) {
+	t.Parallel()
+	for code, e := range explanations {
+		for label, text := range map[string]string{"title": e.Title, "means": e.Means, "fix": e.Fix} {
+			if strings.ContainsRune(text, '\u2014') {
+				t.Errorf("the %s of %q uses an em dash: %s", label, code, text)
+			}
+		}
+	}
+	for _, step := range Workflow {
+		if strings.ContainsRune(step.Name+step.Detail, '\u2014') {
+			t.Errorf("workflow step %d uses an em dash: %s", step.Number, step.Detail)
+		}
+	}
+	page, err := templates.Emittance.ReadFile(emittanceTemplate)
+	if err != nil {
+		t.Fatalf("reading the report template: %v", err)
+	}
+	if strings.ContainsRune(string(page), '\u2014') {
+		t.Error("the report template uses an em dash")
 	}
 }

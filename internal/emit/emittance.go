@@ -273,7 +273,7 @@ func groupByTag(m *ir.Model, refusals []Unsupported) ([]EmittanceTag, []Emittanc
 
 // explained fills in what the reader is told, and the step it happened at.
 // A cause with no explanation keeps its code as the title, so a reader meets
-// something rather than nothing — and the missing prose is visible in the
+// something rather than nothing, and the missing prose is visible in the
 // page instead of silently absent.
 func explained(c EmittanceCause) EmittanceCause {
 	c.Step, c.Where = stepOf(c.Stage)
