@@ -280,6 +280,7 @@ func (p *pruner) repairBodySetter(current types.Type, seg *Segment) (*types.Sign
 	if found == nil {
 		return nil, false
 	}
+	p.reconcile("", seg.Name, name)
 	seg.Name = name
 	return found, true
 }
@@ -450,6 +451,7 @@ func (p *pruner) repairIndexer(current types.Type, seg *Segment) (*types.Signatu
 	if found == nil {
 		return nil, false
 	}
+	p.reconcile("", seg.Name, name)
 	seg.Name = name
 	return found, true
 }

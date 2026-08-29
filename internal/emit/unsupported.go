@@ -21,9 +21,18 @@ const unsupportedFormatVersion = 2
 // pipeline, so a reader can tell a document the toolkit could not model
 // from an SDK that could not carry it.
 const (
-	// StageDerivation is the intermediate representation: an entity that
-	// fits no kind, an entity dropped by services.exclude, or an attribute
-	// whose shape the derivation will not guess at.
+	// StageConfiguration is services.exclude: an entity the operator asked
+	// not to generate. It is the one refusal the operator already knows
+	// about, and the only one whose remedy is an edit to tfpfgen.yaml.
+	StageConfiguration = "configuration"
+	// StageClassification is the classification: a set of operations that
+	// fits no kind, so the entity became nothing. Its remedy is a
+	// correction to the document, or nothing at all where the API offers
+	// no lifecycle to model.
+	StageClassification = "classification"
+	// StageDerivation is the attribute tree: an attribute whose shape the
+	// derivation will not guess at. It refuses fields of entities that
+	// otherwise generate, which is a different loss from either above.
 	StageDerivation = "derivation"
 	// StageBinding is sdkbind: the generated SDK does not carry the call or
 	// the field the entity needs.
@@ -66,6 +75,25 @@ type Unsupported struct {
 type UnsupportedReport struct {
 	FormatVersion int           `json:"format_version"`
 	Unsupported   []Unsupported `json:"unsupported"`
+}
+
+// SeparateKept divides prune's removals into the ones that cost the
+// operator something and the ones the emitter kept anyway.
+//
+// A kept removal is an attribute whose binding went because no model
+// carries the field, and which reaches the schema regardless — the id and
+// the addressing attributes. Reporting it as a refusal overstates what the
+// provider will not carry, and reporting nothing at all leaves a reader who
+// saw prune remove it with no answer.
+func SeparateKept(removals []sdkbind.Removal, keptUnbound map[string]bool) (refused, kept []sdkbind.Removal) {
+	for _, removal := range removals {
+		if keptUnbound[keptUnboundKey(removal.Kind, removal.Key, removal.Attribute)] {
+			kept = append(kept, removal)
+			continue
+		}
+		refused = append(refused, removal)
+	}
+	return refused, kept
 }
 
 // located fills a refusal's service and tag from the derived entity of the
@@ -120,27 +148,29 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 	report := UnsupportedReport{FormatVersion: unsupportedFormatVersion}
 
 	if m != nil {
-		for _, exclusion := range m.Excluded {
-			report.Unsupported = append(report.Unsupported, Unsupported{
-				Kind:    exclusion.Kind,
-				Entity:  exclusion.Key,
-				Service: exclusion.Service,
-				Tag:     exclusion.Tag,
-				Stage:   StageDerivation,
-				Reason:  exclusion.Reason,
-			})
+		for _, excluded := range []struct {
+			stage   string
+			entries []ir.UnsupportedEntity
+		}{
+			{StageConfiguration, m.ExcludedByConfiguration},
+			{StageClassification, m.ExcludedByClassification},
+		} {
+			for _, exclusion := range excluded.entries {
+				report.Unsupported = append(report.Unsupported, Unsupported{
+					Kind:    exclusion.Kind,
+					Entity:  exclusion.Key,
+					Service: exclusion.Service,
+					Tag:     exclusion.Tag,
+					Stage:   excluded.stage,
+					Reason:  exclusion.Reason,
+				})
+			}
 		}
 		report.Unsupported = append(report.Unsupported, refusedAttributes(m)...)
 	}
 
-	for _, removal := range removals {
-		// A removal the emitter kept anyway costs the operator nothing: the
-		// binding goes because no model carries the field, and the
-		// attribute reaches the schema regardless. Reporting it as a
-		// refusal overstates what the provider will not carry.
-		if keptUnbound[keptUnboundKey(removal.Kind, removal.Key, removal.Attribute)] {
-			continue
-		}
+	refused, _ := SeparateKept(removals, keptUnbound)
+	for _, removal := range refused {
 		report.Unsupported = append(report.Unsupported, located(m, Unsupported{
 			Kind:      removal.Kind,
 			Entity:    removal.Key,

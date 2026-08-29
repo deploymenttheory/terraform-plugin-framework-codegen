@@ -98,6 +98,12 @@ func newProviderGenerateCommand() *cobra.Command {
 			for _, r := range res.Removals {
 				fmt.Fprintf(out, "pruned %s\n", r)
 			}
+			// Reported apart from the pruned lines above, because the
+			// attribute is in the schema: a reader who saw prune remove it
+			// needs an answer, and "pruned" would be the wrong one.
+			for _, r := range res.Kept {
+				fmt.Fprintf(out, "kept %s\n", r)
+			}
 			noun := "files"
 			if res.Files == 1 {
 				noun = "file"
@@ -105,6 +111,16 @@ func newProviderGenerateCommand() *cobra.Command {
 			fmt.Fprintf(out, "generated %d %s into %s from %s: %d resources, %d datasources, %d list resources, %d actions\n",
 				res.Files, noun, res.Root, res.RevisedPath,
 				res.Resources, res.Datasources, res.ListResources, res.Actions)
+			// A reconciliation is the SDK naming something the binder could not
+			// predict, which is ordinary. It is reported because it is what the
+			// refusal count below has to be read against.
+			if n := len(res.Reconciled); n > 0 {
+				noun := "reconciliations"
+				if n == 1 {
+					noun = "reconciliation"
+				}
+				fmt.Fprintf(out, "the SDK settled %d drafted %s\n", n, noun)
+			}
 			if summary := emit.UnsupportedSummary(res.Unsupported); summary != "" {
 				fmt.Fprintln(out, summary)
 			}

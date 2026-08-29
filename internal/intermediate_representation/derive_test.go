@@ -53,7 +53,7 @@ func TestDerive_ModelShape(t *testing.T) {
 	// The junk entity classifies as nothing and passes through with the
 	// classifier's reason.
 	found := false
-	for _, e := range m.Excluded {
+	for _, e := range m.ExcludedByClassification {
 		if e.Key == "junk" {
 			found = true
 			if !strings.Contains(e.Reason, "partial lifecycle") {
@@ -62,7 +62,7 @@ func TestDerive_ModelShape(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("the junk entity is not in Excluded: %+v", m.Excluded)
+		t.Errorf("the junk entity is not in ExcludedByClassification: %+v", m.ExcludedByClassification)
 	}
 }
 
@@ -386,13 +386,13 @@ func TestDerive_ConfigExcludesByService(t *testing.T) {
 		t.Errorf("the things service still yields actions: %+v", m.Actions)
 	}
 	var reasons []string
-	for _, e := range m.Excluded {
+	for _, e := range m.ExcludedByConfiguration {
 		if e.Key == "thing" || e.Key == "things_restart" {
 			reasons = append(reasons, e.Reason)
 		}
 	}
 	if len(reasons) != 2 {
-		t.Fatalf("expected both things entities excluded, got %+v", m.Excluded)
+		t.Fatalf("expected both things entities excluded, got %+v", m.ExcludedByConfiguration)
 	}
 	for _, r := range reasons {
 		if r != configExcludedReason {
@@ -411,13 +411,13 @@ func TestDerive_ConfigExcludesByEntityKey(t *testing.T) {
 		}
 	}
 	found := false
-	for _, e := range m.Excluded {
+	for _, e := range m.ExcludedByConfiguration {
 		if e.Key == "event" && e.Reason == configExcludedReason {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("no configuration exclusion for event: %+v", m.Excluded)
+		t.Errorf("no configuration exclusion for event: %+v", m.ExcludedByConfiguration)
 	}
 }
 
@@ -460,8 +460,9 @@ paths:
 	if first.Names.Key != "tag" || second.Names.Key != "tag_v7" {
 		t.Fatalf("colliding keys = %q, %q; want tag, tag_v7", first.Names.Key, second.Names.Key)
 	}
-	if len(m.Excluded) != 0 {
-		t.Errorf("a key collision produced exclusions: %+v", m.Excluded)
+	if len(m.ExcludedByClassification)+len(m.ExcludedByConfiguration) != 0 {
+		t.Errorf("a key collision produced exclusions: %+v %+v",
+			m.ExcludedByClassification, m.ExcludedByConfiguration)
 	}
 	// Each family member's note names its sibling and says what
 	// co-management costs.
@@ -506,8 +507,9 @@ paths:
 			t.Errorf("action %s lacks a co-management note", a.Names.Key)
 		}
 	}
-	if len(m.Excluded) != 0 {
-		t.Errorf("a key collision produced exclusions: %+v", m.Excluded)
+	if len(m.ExcludedByClassification)+len(m.ExcludedByConfiguration) != 0 {
+		t.Errorf("a key collision produced exclusions: %+v %+v",
+			m.ExcludedByClassification, m.ExcludedByConfiguration)
 	}
 }
 
@@ -640,10 +642,12 @@ func TestDerive_SlicesAreSortedByKey(t *testing.T) {
 				m.Datasources[i-1].Names.Key, m.Datasources[i].Names.Key)
 		}
 	}
-	for i := 1; i < len(m.Excluded); i++ {
-		if m.Excluded[i-1].Key > m.Excluded[i].Key {
-			t.Errorf("exclusions out of order: %q before %q",
-				m.Excluded[i-1].Key, m.Excluded[i].Key)
+	for _, excluded := range [][]UnsupportedEntity{m.ExcludedByConfiguration, m.ExcludedByClassification} {
+		for i := 1; i < len(excluded); i++ {
+			if excluded[i-1].Key > excluded[i].Key {
+				t.Errorf("exclusions out of order: %q before %q",
+					excluded[i-1].Key, excluded[i].Key)
+			}
 		}
 	}
 }

@@ -30,10 +30,13 @@ type Model struct {
 	Datasources   []Datasource   `json:"datasources,omitempty"`
 	ListResources []ListResource `json:"list_resources,omitempty"`
 	Actions       []Action       `json:"actions,omitempty"`
-	// Excluded lists every entity that yields nothing, with the reason:
-	// classification exclusions pass through, and entities dropped by
-	// services.exclude are recorded as "excluded by configuration".
-	Excluded []UnsupportedEntity `json:"excluded,omitempty"`
+	// ExcludedByConfiguration is what services.exclude dropped, and
+	// ExcludedByClassification what fit no kind. Two decisions taken at
+	// different points and remedied differently — one is an entry the
+	// operator wrote, the other a shape the document does not offer — so
+	// one slice holding both would report them under one label.
+	ExcludedByConfiguration  []UnsupportedEntity `json:"excluded_by_configuration,omitempty"`
+	ExcludedByClassification []UnsupportedEntity `json:"excluded_by_classification,omitempty"`
 }
 
 // Provider is the identity the generated provider publishes under.
