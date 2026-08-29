@@ -549,6 +549,7 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 		// removal from configuration is sticky — which is a diff to explain
 		// rather than an apply that cannot succeed.
 		attribute.ComputedOptionalRequired = ComputedOptional
+		attribute.Authority = computedOptionalAuthority(serverFills, attributeSite.requiredRead, flatCreate.hasDefault)
 	default:
 		// Writable, and the server leaves it absent when the request omits it.
 		// Genuinely rare: most APIs answer with something.
@@ -603,4 +604,25 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 		edges.dependsOn = &dependsOnEdge
 	}
 	return attribute, edges
+}
+
+// computedOptionalAuthority names the strongest declaration that applies,
+// in the order the presence decision consults them. Several routes reach
+// computed_optional at once and the strongest is the one worth recording:
+// an attribute the audit measured is not made weaker by the document also
+// describing the property.
+//
+// The fourth route needs no condition. It is the remaining disjunct of the
+// case that got here, so reaching the default arm is what identifies it.
+func computedOptionalAuthority(serverFills, requiredRead, hasDefault bool) Authority {
+	switch {
+	case serverFills:
+		return AuthorityServerDefault
+	case requiredRead:
+		return AuthorityResponseRequired
+	case hasDefault:
+		return AuthorityRequestDefault
+	default:
+		return AuthorityResponseProperty
+	}
 }
