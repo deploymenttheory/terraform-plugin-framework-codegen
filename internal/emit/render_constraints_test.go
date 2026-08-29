@@ -245,3 +245,36 @@ func TestUnit_ImportVerifyIgnores_HeldAndNormalisedAttributes(t *testing.T) {
 		t.Errorf("importVerifyIgnores = %q, want the held and the normalised attribute", got)
 	}
 }
+
+func TestUnit_AddPlanImports_ACallSpellingAConversionTakesTheConvertPackage(t *testing.T) {
+	// A query parameter pointed to in a datasource read is the case the
+	// generated tree caught: the call spells convert., and nothing else in
+	// that file does.
+	set := newImportSet("github.com/exampleco/terraform-provider-petstore")
+	addPlanImports(set, finalisedAPIRequest{
+		Assign: `result, err := client.Packages().Get(ctx, &abstractions.RequestConfiguration[v1.GetQueryParameters]{` +
+			`QueryParameters: &v1.GetQueryParameters{Application: convert.PointerTo("protect")}})`,
+	})
+	if got := set.render(); !strings.Contains(got, "internal/services/common/convert") {
+		t.Errorf("imports = %q, want the convert package", got)
+	}
+
+	// The declarations and a delete closure count too.
+	for _, plan := range []finalisedAPIRequest{
+		{ParameterDeclarations: `id := convert.PointerTo(data.ID.ValueString())`},
+		{ClosureBody: `return client.Packages().Delete(ctx, convert.PointerTo(id))`},
+	} {
+		set := newImportSet("github.com/exampleco/terraform-provider-petstore")
+		addPlanImports(set, plan)
+		if got := set.render(); !strings.Contains(got, "internal/services/common/convert") {
+			t.Errorf("imports for %+v = %q, want the convert package", plan, got)
+		}
+	}
+
+	// A call that spells no conversion does not take it.
+	plain := newImportSet("github.com/exampleco/terraform-provider-petstore")
+	addPlanImports(plain, finalisedAPIRequest{Assign: `result, err := client.Packages().Get(ctx, nil)`})
+	if got := plain.render(); strings.Contains(got, "internal/services/common/convert") {
+		t.Errorf("imports = %q, want no convert package", got)
+	}
+}
