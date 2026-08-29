@@ -22,20 +22,20 @@ func unsupportedModel() *ir.Model {
 			Names: ir.Names{Key: "tag"},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				{Name: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-				{Name: "metadata", Unsupported: true, UnsupportedReason: "free-form object: map support is out of scope"},
+				{Name: "metadata", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseShapelessObject}, UnsupportedReason: "free-form object: map support is out of scope"},
 				{Name: "settings", Kind: ir.TypeObject, Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "retries", Kind: ir.TypeInt64},
-					{Name: "extra", Unsupported: true, UnsupportedReason: "no type declared"},
+					{Name: "extra", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseUndeclaredType}, UnsupportedReason: "no type declared"},
 				}}},
 				{Name: "rules", Kind: ir.TypeList, Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "shape", Unsupported: true, UnsupportedReason: "oneOf/anyOf union: no single attribute type describes it"},
+					{Name: "shape", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseWritableUnion}, UnsupportedReason: "oneOf/anyOf union: no single attribute type describes it"},
 				}}},
 			}},
 		}},
 		Actions: []ir.Action{{
 			Names: ir.Names{Key: "deploy"},
 			RequestSchema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "payload", Unsupported: true, UnsupportedReason: "free-form object: map support is out of scope"},
+				{Name: "payload", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseShapelessObject}, UnsupportedReason: "free-form object: map support is out of scope"},
 			}},
 		}},
 	}
@@ -526,5 +526,73 @@ func TestUnit_RenderUnsupported_ConfigurationAndClassificationAreSeparateStages(
 	}
 	if stages["orphan"] != StageClassification {
 		t.Errorf("the unclassifiable entity is stage %q, want %q", stages["orphan"], StageClassification)
+	}
+}
+
+// TestUnit_RenderUnsupported_EveryRefusalCarriesACause is the invariant the
+// report rests on. A refusal with no cause cannot be grouped with the ones
+// that share its fact, so it reads as its own finding — which for a model
+// carrying none of an entity's fields means one finding per attribute
+// instead of one fact with a list of casualties.
+func TestUnit_RenderUnsupported_EveryRefusalCarriesACause(t *testing.T) {
+	model := unsupportedModel()
+	model.ExcludedByConfiguration = []ir.UnsupportedEntity{
+		{Key: "unwanted", Cause: ir.Cause{Code: ir.CauseExcludedByConfiguration}, Reason: "excluded by configuration"},
+	}
+	model.ExcludedByClassification[0].Cause = ir.Cause{Code: "partialLifecycle"}
+
+	removals := []sdkbind.Removal{{
+		Kind: "resource", Key: "tag", Attribute: "colour",
+		Cause:  ir.Cause{Code: sdkbind.CauseNoAccessor, Subject: "models.Tagable"},
+		Reason: "models.Tagable carries no GetColour",
+	}}
+	dropped := []sdkbind.Dropped{{Key: "ruleset", Kind: "resource", Reason: "the SDK does not carry this resource's binding"}}
+	emission := []ir.UnsupportedEntity{{
+		Key: "nested_path", Kind: "datasource",
+		Cause:  ir.Cause{Code: CauseUnmatchedPathArgument},
+		Reason: "a path parameter no attribute answers",
+	}}
+
+	_, entries, err := RenderUnsupported(model, removals, dropped, emission, nil)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("the report is empty")
+	}
+	for _, e := range entries {
+		if e.Cause == nil || e.Cause.Code == "" {
+			t.Errorf("%s %q attribute %q (%s) carries no cause: %s",
+				e.Kind, e.Entity, e.Attribute, e.Stage, e.Reason)
+		}
+	}
+}
+
+// TestUnit_RenderUnsupported_RefusalsSharingAFactShareACause proves the
+// grouping is an exact comparison of fields rather than a guess at which
+// prose reasons mean the same thing. The two reasons below differ — they
+// name different accessors — and the fact behind them does not.
+func TestUnit_RenderUnsupported_RefusalsSharingAFactShareACause(t *testing.T) {
+	shared := ir.Cause{Code: sdkbind.CauseNoAccessor, Subject: "models.Envelopeable"}
+	removals := []sdkbind.Removal{
+		{Kind: "datasource", Key: "preload", Attribute: "asset_tag", Cause: shared,
+			Reason: "models.Envelopeable carries no GetAssetTag"},
+		{Kind: "datasource", Key: "preload", Attribute: "serial_number", Cause: shared,
+			Reason: "models.Envelopeable carries no GetSerialNumber"},
+	}
+
+	_, entries, err := RenderUnsupported(&ir.Model{}, removals, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("got %d entries, want the two removals", len(entries))
+	}
+	if *entries[0].Cause != *entries[1].Cause {
+		t.Errorf("two consequences of one fact carry different causes: %+v and %+v",
+			entries[0].Cause, entries[1].Cause)
+	}
+	if entries[0].Reason == entries[1].Reason {
+		t.Error("the fixture no longer proves the point: the reasons must differ where the cause does not")
 	}
 }

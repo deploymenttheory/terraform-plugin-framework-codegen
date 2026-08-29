@@ -44,6 +44,47 @@ type Provider struct {
 	Name string `json:"name"`
 }
 
+// Cause is the one fact behind a refusal, and behind every other refusal
+// that shares it. Two refusals belong to the same cause when their code and
+// subject match, so grouping is an exact comparison of fields rather than a
+// guess at which prose reasons mean the same thing.
+//
+// A datasource that loses twenty-four attributes because the SDK models the
+// search envelope rather than the record has one cause and twenty-four
+// consequences. Reported without it that is twenty-four findings, and a
+// reader has to notice for themselves that they are one.
+type Cause struct {
+	// Code names what went wrong, from a closed set. It does not repeat the
+	// stage, which the refusal already carries.
+	Code string `json:"code"`
+	// Subject is what it went wrong about — an SDK type, a declared type —
+	// and is empty where the code is the whole account.
+	Subject string `json:"subject,omitempty"`
+}
+
+// The causes the derivation refuses an attribute for. The set is closed: a
+// refusal with no code cannot be grouped with the refusals that share its
+// fact, which is the whole reason a cause is recorded.
+const (
+	CauseUndeclaredType              = "undeclaredType"
+	CauseUnsupportedType             = "unsupportedType"
+	CauseWritableUnion               = "writableUnion"
+	CauseUnnamedUnionBranch          = "unnamedUnionBranch"
+	CauseEmptyUnion                  = "emptyUnion"
+	CauseUntypedAdditionalProperties = "untypedAdditionalProperties"
+	CauseShapelessObject             = "shapelessObject"
+	CauseMapOfObjects                = "mapOfObjects"
+	CauseUnsupportedMapValue         = "unsupportedMapValue"
+	CauseItemlessArray               = "itemlessArray"
+	CauseFreeFormArrayElement        = "freeFormArrayElement"
+	CauseUnsupportedArrayElement     = "unsupportedArrayElement"
+	CauseReservedRootName            = "reservedRootName"
+
+	// CauseExcludedByConfiguration is the operator's own services.exclude
+	// entry, which is the one refusal they already know about.
+	CauseExcludedByConfiguration = "excludedByConfiguration"
+)
+
 // UnsupportedEntity is one entity that became nothing, and why. The reasons are
 // for people: a surprising omission traces to the document or the config,
 // never to a hunch.
@@ -61,6 +102,9 @@ type UnsupportedEntity struct {
 	CollectionPath string `json:"collection_path,omitempty"`
 	Service        string `json:"service,omitempty"`
 	Tag            string `json:"tag,omitempty"`
+	// Cause is the fact behind the refusal, shared with every other entity
+	// refused for the same fact.
+	Cause Cause `json:"cause,omitempty"`
 	// Reason is why it was refused, verbatim from the stage that refused.
 	Reason string `json:"reason"`
 }
@@ -450,7 +494,10 @@ type Attribute struct {
 	SilentlyIgnoredOnUpdate bool `json:"silently_ignored_on_update,omitempty"`
 	// Unsupported marks a shape derivation refuses to guess at (free-form
 	// objects, unions, undeclared types); the reason says which.
-	Unsupported       bool   `json:"unsupported,omitempty"`
+	Unsupported bool `json:"unsupported,omitempty"`
+	// UnsupportedCause is the fact behind the refusal, shared with every
+	// other attribute refused for the same fact.
+	UnsupportedCause  Cause  `json:"unsupported_cause,omitempty"`
 	UnsupportedReason string `json:"unsupported_reason,omitempty"`
 }
 
@@ -475,13 +522,14 @@ func defaultTimeouts() Timeouts {
 
 // unsupportedEntity records one refusal with everywhere it belongs, so a
 // refusal can be grouped by the same keys a generated entity is.
-func unsupportedEntity(names Names, collectionPath, kind, reason string) UnsupportedEntity {
+func unsupportedEntity(names Names, collectionPath, kind string, cause Cause, reason string) UnsupportedEntity {
 	return UnsupportedEntity{
 		Key:            names.Key,
 		Kind:           kind,
 		CollectionPath: collectionPath,
 		Service:        names.Service,
 		Tag:            names.Tag,
+		Cause:          cause,
 		Reason:         reason,
 	}
 }

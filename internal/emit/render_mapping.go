@@ -510,7 +510,7 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 			}
 		}
 	}
-	return node{}, unrenderable("path parameter %q matches no scalar attribute and the entity has no id attribute", p.Wire)
+	return node{}, unrenderable(CauseUnmatchedPathArgument, "path parameter %q matches no scalar attribute and the entity has no id attribute", p.Wire)
 }
 
 // namesAnAttribute reports whether a path parameter matches an attribute by
@@ -587,7 +587,7 @@ func parameterValue(p sdkbind.CallParameter, modelVar, field string, kind ir.Att
 	case kind == ir.TypeBool && p.GoType == "string":
 		return "strconv.FormatBool(" + read + ")", "strconv", nil
 	}
-	return "", "", unrenderable(
+	return "", "", unrenderable(CauseUnconvertiblePathType,
 		"path parameter %q is %s in the schema but %s in the generated SDK, and no conversion between them is safe without a parse that can fail",
 		p.Wire, kind, p.GoType)
 }

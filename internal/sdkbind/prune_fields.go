@@ -21,7 +21,7 @@ func (p *pruner) fields(kind, key, prefix string, fbs []FieldBinding, read, writ
 		if prefix != "" {
 			at = prefix + "." + fb.Attr
 		}
-		if why := p.resolveField(&fb, read, write, kind, key, at); why != "" {
+		if why := p.resolveField(&fb, read, write, kind, key, at); why.refused() {
 			p.remove(kind, key, at, why)
 			continue
 		}
@@ -32,7 +32,7 @@ func (p *pruner) fields(kind, key, prefix string, fbs []FieldBinding, read, writ
 
 // resolveField settles one field's accessors, carried type and
 // conversions; the returned reason is empty when the field survives.
-func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, key, at string) string {
+func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, key, at string) refusal {
 	var result, parameter types.Type
 
 	if fb.Access.Get != "" && read != nil {
@@ -62,11 +62,12 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 			flipEscaped(&fb.Access)
 		}
 		if !ok {
-			return fmt.Sprintf("%s carries no %s to read %q from%s",
+			return because(CauseNoAccessor, shortType(read), "%s carries no %s to read %q from%s",
 				shortType(read), fb.Access.Get, fb.Wire, didYouMean(fb.Access.Get, methodNamesOf(read)))
 		}
 		if sig.Params().Len() != 0 || sig.Results().Len() != 1 {
-			return fmt.Sprintf("%s.%s is not an accessor: %s", shortType(read), fb.Access.Get, shortSignature(sig))
+			return because(CauseNotAnAccessor, shortType(read), "%s.%s is not an accessor: %s",
+				shortType(read), fb.Access.Get, shortSignature(sig))
 		}
 		result = sig.Results().At(0).Type()
 	}
@@ -84,17 +85,18 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 			}
 		}
 		if !ok {
-			return fmt.Sprintf("%s carries no settable %s to write %q to%s",
+			return because(CauseNoSetter, shortType(write), "%s carries no settable %s to write %q to%s",
 				shortType(write), fb.Access.Set, fb.Wire, didYouMean(fb.Access.Set, methodNamesOf(write)))
 		}
 		if sig.Params().Len() != 1 {
-			return fmt.Sprintf("%s.%s is not a setter: %s", shortType(write), fb.Access.Set, shortSignature(sig))
+			return because(CauseNotASetter, shortType(write), "%s.%s is not a setter: %s",
+				shortType(write), fb.Access.Set, shortSignature(sig))
 		}
 		parameter = sig.Params().At(0).Type()
 	}
 
 	if result != nil && parameter != nil && !types.Identical(result, parameter) {
-		if why := p.settleEachDirection(fb, result, parameter, kind, key, at); why != "" {
+		if why := p.settleEachDirection(fb, result, parameter, kind, key, at); why.refused() {
 			// Read in one shape and written in another that no conversion
 			// bridges — identifiers written, objects read. The write side is
 			// what a practitioner configures, so where it settles on its own
@@ -103,13 +105,13 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 			// the mismatch is the reason.
 			writeOnly := copyFieldBindings([]FieldBinding{*fb})[0]
 			keepFromPlan(&writeOnly)
-			if p.resolveField(&writeOnly, nil, write, kind, key, at) == "" {
+			if !p.resolveField(&writeOnly, nil, write, kind, key, at).refused() {
 				*fb = writeOnly
-				return ""
+				return refusal{}
 			}
 			return why
 		}
-		return ""
+		return refusal{}
 	}
 
 	basis := result
@@ -119,7 +121,7 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 	if basis == nil {
 		// Neither direction is live — nothing to settle and nothing to
 		// generate against; the field carries no risk either way.
-		return ""
+		return refusal{}
 	}
 
 	if len(fb.Nested) > 0 {
@@ -140,8 +142,9 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 //
 // Nested objects are excluded: their fields would have to pair recursively
 // against two model trees, which is a larger question than one accessor.
-func (p *pruner) settleEachDirection(fb *FieldBinding, result, parameter types.Type, kind, key, at string) string {
-	mismatch := fmt.Sprintf("it is read as %s but written as %s; no conversion carries both",
+func (p *pruner) settleEachDirection(fb *FieldBinding, result, parameter types.Type, kind, key, at string) refusal {
+	mismatch := because(CauseUnbridgeableType, shortType(result),
+		"it is read as %s but written as %s; no conversion carries both",
 		shortType(result), shortType(parameter))
 
 	if len(fb.Nested) > 0 {
@@ -150,13 +153,13 @@ func (p *pruner) settleEachDirection(fb *FieldBinding, result, parameter types.T
 
 	readSide := *fb
 	readSide.Access.Set = ""
-	if why := p.settleScalar(&readSide, result); why != "" {
+	if why := p.settleScalar(&readSide, result); why.refused() {
 		return mismatch
 	}
 
 	writeSide := *fb
 	writeSide.Access.Get = ""
-	if why := p.settleScalar(&writeSide, parameter); why != "" {
+	if why := p.settleScalar(&writeSide, parameter); why.refused() {
 		return mismatch
 	}
 
@@ -176,7 +179,7 @@ func (p *pruner) settleEachDirection(fb *FieldBinding, result, parameter types.T
 	if fb.Access.ParseFunc == "" {
 		fb.Access.ParseFunc = readSide.Access.ParseFunc
 	}
-	return ""
+	return refusal{}
 }
 
 // resolveNestedPair points a nested object at two models — the one its
@@ -188,18 +191,18 @@ func (p *pruner) settleEachDirection(fb *FieldBinding, result, parameter types.T
 // then the pair has to be resolved from both accessors. The per-field walk
 // is the same one either way: it already takes a read model and a write
 // model, and every child settles against its own two types.
-func (p *pruner) resolveNestedPair(fb *FieldBinding, result, parameter types.Type, kind, key, at, mismatch string) string {
+func (p *pruner) resolveNestedPair(fb *FieldBinding, result, parameter types.Type, kind, key, at string, mismatch refusal) refusal {
 	readNamed, why := nestedModelOf(result)
-	if why != "" {
+	if why.refused() {
 		return mismatch
 	}
 	writeNamed, why := nestedModelOf(parameter)
-	if why != "" {
+	if why.refused() {
 		return mismatch
 	}
 
 	model, constructor, why := p.writeModelFromNamed(writeNamed)
-	if why != "" {
+	if why.refused() {
 		return mismatch
 	}
 	writeModel, err := p.l.typeFromExpr(p.info, model)
@@ -215,16 +218,16 @@ func (p *pruner) resolveNestedPair(fb *FieldBinding, result, parameter types.Typ
 
 	fb.Nested = p.fields(kind, key, at, fb.Nested, types.Type(readNamed), writeModel)
 	if len(fb.Nested) == 0 {
-		return "every field of its nested object went, leaving nothing to map"
+		return because(CauseEmptyNestedObject, qualifiedName(readNamed), "every field of its nested object went, leaving nothing to map")
 	}
-	return ""
+	return refusal{}
 }
 
 // resolveNested points a nested object at the SDK model its parent
 // accessor actually carries, and recurses into its fields.
-func (p *pruner) resolveNested(fb *FieldBinding, basis types.Type, kind, key, at string) string {
+func (p *pruner) resolveNested(fb *FieldBinding, basis types.Type, kind, key, at string) refusal {
 	named, why := nestedModelOf(basis)
-	if why != "" {
+	if why.refused() {
 		return why
 	}
 	fb.Access.SDKType = shortType(basis)
@@ -236,22 +239,22 @@ func (p *pruner) resolveNested(fb *FieldBinding, basis types.Type, kind, key, at
 	fb.NestedWriteModel, fb.NestedConstructor = "", ""
 	if fb.Access.Set != "" {
 		model, constructor, wwhy := p.writeModelFromNamed(named)
-		if wwhy != "" {
-			return fmt.Sprintf("its nested object cannot be constructed: %s", wwhy)
+		if wwhy.refused() {
+			return refusal{Cause: wwhy.Cause, Reason: fmt.Sprintf("its nested object cannot be constructed: %s", wwhy.Reason)}
 		}
 		fb.NestedWriteModel, fb.NestedConstructor = model, constructor
 		w, err := p.l.typeFromExpr(p.info, model)
 		if err != nil {
-			return unwrapDetail(err)
+			return because(CauseNoNestedModel, shortType(basis), "%s", unwrapDetail(err))
 		}
 		writeModel = w
 	}
 
 	fb.Nested = p.fields(kind, key, at, fb.Nested, readModel, writeModel)
 	if len(fb.Nested) == 0 {
-		return "every field of its nested object went, leaving nothing to map"
+		return because(CauseEmptyNestedObject, shortType(basis), "every field of its nested object went, leaving nothing to map")
 	}
-	return ""
+	return refusal{}
 }
 
 // nilableType reports whether a value of t can be nil — a pointer,
@@ -270,7 +273,7 @@ func nilableType(t types.Type) bool {
 
 // nestedModelOf reaches the named model under a nested accessor's type:
 // the model itself, a pointer to it, or a slice of either.
-func nestedModelOf(t types.Type) (*types.Named, string) {
+func nestedModelOf(t types.Type) (*types.Named, refusal) {
 	current := t
 	if slice, ok := current.Underlying().(*types.Slice); ok {
 		current = slice.Elem()
@@ -280,39 +283,39 @@ func nestedModelOf(t types.Type) (*types.Named, string) {
 	}
 	n, ok := current.(*types.Named)
 	if !ok || n.Obj().Pkg() == nil {
-		return nil, fmt.Sprintf("the SDK carries it as %s, which names no model to map fields on", shortType(t))
+		return nil, because(CauseNoNestedModel, shortType(t), "the SDK carries it as %s, which names no model to map fields on", shortType(t))
 	}
 	switch n.Underlying().(type) {
 	case *types.Interface, *types.Struct:
-		return n, ""
+		return n, refusal{}
 	}
-	return nil, fmt.Sprintf("the SDK carries it as %s, which names no model to map fields on", shortType(t))
+	return nil, because(CauseNoNestedModel, shortType(t), "the SDK carries it as %s, which names no model to map fields on", shortType(t))
 }
 
 // writeModelFromNamed is writeModelFor after type resolution: interface
 // models resolve to the struct their constructor yields, structs
 // construct themselves.
-func (p *pruner) writeModelFromNamed(named *types.Named) (model, constructor, reason string) {
+func (p *pruner) writeModelFromNamed(named *types.Named) (model, constructor string, why refusal) {
 	goPackage := named.Obj().Pkg()
 	qualifier, name := goPackage.Name(), named.Obj().Name()
 
 	if _, isInterface := named.Underlying().(*types.Interface); isInterface {
 		base, ok := strings.CutSuffix(name, "able")
 		if !ok {
-			return "", "", fmt.Sprintf("%s.%s is an interface with no constructible model behind it", qualifier, name)
+			return "", "", because(CauseNoConstructor, qualifier+"."+name, "%s.%s is an interface with no constructible model behind it", qualifier, name)
 		}
 		if _, err := p.l.lookupType(goPackage.Path(), base); err != nil {
-			return "", "", fmt.Sprintf("%s.%s names no concrete %s to construct", qualifier, name, base)
+			return "", "", because(CauseNoConstructor, qualifier+"."+name, "%s.%s names no concrete %s to construct", qualifier, name, base)
 		}
 		if !p.l.functionExists(goPackage.Path(), "New"+base) {
-			return "", "", fmt.Sprintf("the SDK declares no constructor New%s for %s.%s", base, qualifier, base)
+			return "", "", because(CauseNoConstructor, qualifier+"."+base, "the SDK declares no constructor New%s for %s.%s", base, qualifier, base)
 		}
-		return qualifier + "." + base, qualifier + ".New" + base + "()", ""
+		return qualifier + "." + base, qualifier + ".New" + base + "()", refusal{}
 	}
 	if p.l.functionExists(goPackage.Path(), "New"+name+"WithDefaults") {
-		return qualifier + "." + name, qualifier + ".New" + name + "WithDefaults()", ""
+		return qualifier + "." + name, qualifier + ".New" + name + "WithDefaults()", refusal{}
 	}
-	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", ""
+	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", refusal{}
 }
 
 // settleScalar records the type the SDK actually carries a scalar field
@@ -320,7 +323,7 @@ func (p *pruner) writeModelFromNamed(named *types.Named) (model, constructor, re
 // the SDK's own width, generated enumerations with their parse
 // companions, and slices of both. Anything else names itself in the
 // reason.
-func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
+func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 	fa := &fb.Access
 	settle := func(sdkType, get, set, parse string) {
 		fa.SDKType = sdkType
@@ -332,8 +335,9 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			fa.ConvertSet = ""
 		}
 	}
-	cannot := func(shape string) string {
-		return fmt.Sprintf("the SDK carries it as %s, which cannot be bridged to a %s attribute", shape, fb.Kind)
+	cannot := func(shape string) refusal {
+		return because(CauseUnbridgeableType, shape,
+			"the SDK carries it as %s, which cannot be bridged to a %s attribute", shape, fb.Kind)
 	}
 
 	// A slice of scalars or enumerations.
@@ -343,7 +347,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			if named, isNamed := element.(*types.Named); isNamed {
 				if parse, isEnum := p.enumParse(named); isEnum && fb.ElementType == ir.TypeString {
 					settle("[]"+qualifiedName(named), "FromEnumSlice", "ToEnumSlice", parse)
-					return ""
+					return refusal{}
 				}
 				return cannot(shortType(t))
 			}
@@ -352,17 +356,17 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			}
 			title := exportedName(basic.Name())
 			settle("[]"+basic.Name(), "From"+title+"Slice", "To"+title+"Slice", "")
-			return ""
+			return refusal{}
 		}
 		// time.Time is a struct, not a basic, so a slice of them does not
 		// match the branch above.
 		if named, isNamed := element.(*types.Named); isNamed && isStdTime(named) && fb.ElementType == ir.TypeString {
 			settle("[]time.Time", "FromTimeSlice", "ToTimeSlice", "")
-			return ""
+			return refusal{}
 		}
 		if named, isNamed := element.(*types.Named); isNamed && isGoogleUUID(named) && fb.ElementType == ir.TypeString {
 			settle("[]uuid.UUID", "FromUUIDSlice", "ToUUIDSlice", "")
-			return ""
+			return refusal{}
 		}
 		return cannot(shortType(t))
 	}
@@ -380,7 +384,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 				// field has no constructor to name.
 				if fa.Set != "" {
 					model, constructor, why := p.writeModelFromNamed(named)
-					if why != "" {
+					if why.refused() {
 						return why
 					}
 					fb.NestedWriteModel, fb.NestedConstructor = model, constructor
@@ -388,7 +392,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 				fb.NestedModel = qualifiedName(named)
 				fa.NestedNilable = nilableType(t)
 				settle(shortType(t), "From"+title+"MapAdditionalData", "To"+title+"MapAdditionalData", "")
-				return ""
+				return refusal{}
 			}
 		}
 	}
@@ -405,7 +409,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		}
 		title := exportedName(basic.Name())
 		settle("map[string]"+basic.Name(), "From"+title+"Map", "To"+title+"Map", "")
-		return ""
+		return refusal{}
 	}
 
 	// OpenAPI's `format: byte` is base64, which derives a string attribute
@@ -413,7 +417,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Kind == ir.TypeString {
 		if basic, isBasic := slice.Elem().Underlying().(*types.Basic); isBasic && basic.Kind() == types.Byte {
 			settle("[]byte", "FromBytesBase64", "ToBytesBase64", "")
-			return ""
+			return refusal{}
 		}
 	}
 
@@ -443,7 +447,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			}
 			get, set := convert("Enum")
 			settle(prefix(qualifiedName(named)), get, set, parse)
-			return ""
+			return refusal{}
 		}
 		if isStdTime(named) {
 			if fb.Kind != ir.TypeString {
@@ -451,7 +455,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			}
 			get, set := convert("Time")
 			settle(prefix("time.Time"), get, set, "")
-			return ""
+			return refusal{}
 		}
 		// kiota mints its own date-only type rather than using time.Time
 		// for a `format: date` field.
@@ -461,7 +465,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			}
 			get, set := convert("DateOnly")
 			settle(prefix("serialization.DateOnly"), get, set, "")
-			return ""
+			return refusal{}
 		}
 		// A uuid is a string to a practitioner. Parsing one back can fail,
 		// which the write bridge reports rather than guessing at.
@@ -471,7 +475,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			}
 			get, set := convert("UUID")
 			settle(prefix("uuid.UUID"), get, set, "")
-			return ""
+			return refusal{}
 		}
 		return cannot(shortType(t))
 	}
@@ -482,7 +486,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		}
 		get, set := convert(exportedName(basic.Name()))
 		settle(prefix(basic.Name()), get, set, "")
-		return ""
+		return refusal{}
 	}
 
 	return cannot(shortType(t))

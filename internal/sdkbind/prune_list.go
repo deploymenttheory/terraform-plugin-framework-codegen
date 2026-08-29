@@ -5,7 +5,6 @@
 package sdkbind
 
 import (
-	"fmt"
 	"go/types"
 )
 
@@ -20,16 +19,16 @@ import (
 // unambiguous. Genuine ambiguity — no envelope match and zero or several
 // candidates — is refused with the SDK's shape in the reason, because
 // guessing among several slices would be invention.
-func (p *pruner) resolveListElement(list *Call, elementType, access *string, listWrapperKey string) (types.Type, string) {
-	if why := p.resolveCall(list); why != "" {
-		return nil, fmt.Sprintf("its list call cannot be made: %s", why)
+func (p *pruner) resolveListElement(list *Call, elementType, access *string, listWrapperKey string) (types.Type, refusal) {
+	if why := p.resolveCall(list); why.refused() {
+		return nil, why.under("its list call cannot be made: %s")
 	}
 	if list.ResponseType == "" {
-		return nil, "its list call yields no payload to read elements from"
+		return nil, because(CauseNoResponsePayload, list.ResponseType, "its list call yields no payload to read elements from")
 	}
 	sig, _, err := resolveChain(p.client, list.Segments)
 	if err != nil || sig.Results().Len() == 0 {
-		return nil, "its list call yields no payload to read elements from"
+		return nil, because(CauseNoResponsePayload, list.ResponseType, "its list call yields no payload to read elements from")
 	}
 	result := sig.Results().At(0).Type()
 
@@ -38,17 +37,17 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, lis
 		*access = ""
 		*elementType = shortType(slice.Elem())
 		p.recordTypePackage(slice.Elem())
-		return slice.Elem(), ""
+		return slice.Elem(), refusal{}
 	}
 
 	getters := sliceGetters(result)
 	fields := sliceFields(result)
 
-	settle := func(c listElementCandidate) (types.Type, string) {
+	settle := func(c listElementCandidate) (types.Type, refusal) {
 		*access = c.access
 		*elementType = shortType(c.element)
 		p.recordTypePackage(c.element)
-		return c.element, ""
+		return c.element, refusal{}
 	}
 
 	// The observed envelope key names the wrapper's getter or field
@@ -73,7 +72,7 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, lis
 		return settle(fields[0])
 	}
 
-	return nil, fmt.Sprintf(
+	return nil, because(CauseAmbiguousListShape, shortType(result),
 		"its list call returns %s, which carries no single way to reach its elements",
 		shortType(result))
 }

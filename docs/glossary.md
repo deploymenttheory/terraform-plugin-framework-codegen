@@ -312,7 +312,12 @@ single recorded exception.
   refused before it became any of them. `service` and `tag` are where it
   belongs — the service area derived from its path, and the group the
   document places it in — carried so an entity that became nothing can still
-  be grouped with the ones that did. `stage` is the closed set `configuration |
+  be grouped with the ones that did. `cause` is the fact behind
+  the refusal — a code from a closed set per stage, and the subject it is
+  about, such as the SDK type that carries none of an entity's fields. Two
+  refusals belong to one cause when both match, so consequences of one fact
+  group by an exact comparison rather than by a guess at which prose reasons
+  mean the same thing. `stage` is the closed set `configuration |
   classification | derivation | binding | emission`, naming which decision
   refused it. The first three are separate because their remedies are: an
   entry the operator wrote, a shape the document does not offer, and an

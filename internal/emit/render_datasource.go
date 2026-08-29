@@ -140,7 +140,7 @@ func keyAttrName(ds *ir.Datasource) string {
 // entity's object comes back.
 func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Operations.Read == nil || db.Read == nil {
-		return fixtures.Fixture{}, unrenderable("a lookup-by-key datasource needs a bound read call")
+		return fixtures.Fixture{}, unrenderable(CauseNoBoundReadCall, "a lookup-by-key datasource needs a bound read call")
 	}
 
 	nodes := e.joinTree(bindingKindDatasource, ds.Names.Key, ds.Schema, db.Fields, addressingNames(ds.Schema, ds.Operations.Read, ds.Operations.List))
@@ -178,7 +178,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 
 	for _, p := range db.Read.Parameters {
 		if !namesAnAttribute(p, nodes) {
-			return fixtures.Fixture{}, unrenderable(
+			return fixtures.Fixture{}, unrenderable(CauseUnmatchedPathArgument,
 				"read: the path parameter %q matches no argument the caller supplies, and a datasource has no id of its own to fall back on",
 				p.Wire)
 		}
@@ -188,7 +188,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 		return fixtures.Fixture{}, fmt.Errorf("read: %w", err)
 	}
 	if plan.Payload == "" {
-		return fixtures.Fixture{}, unrenderable("read: the bound read call yields no payload to map from")
+		return fixtures.Fixture{}, unrenderable(CauseNoMappablePayload, "read: the bound read call yields no payload to map from")
 	}
 	// A read that answers with a collection is not a lookup, whatever the
 	// path shape suggests. The state mapper reads fields off one object and
@@ -197,7 +197,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	// is not something the document says, and taking the first would be a
 	// guess dressed up as a lookup.
 	if strings.HasPrefix(d.ReadModel, "[]") {
-		return fixtures.Fixture{}, unrenderable(
+		return fixtures.Fixture{}, unrenderable(CauseNoMappablePayload,
 			"read: the by-key read answers with a collection (%s), which is not one object to map into state", d.ReadModel)
 	}
 	d.ReadPlan = plan
@@ -240,11 +240,11 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 // computed list of the objects they selected.
 func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Operations.List == nil || db.List == nil {
-		return fixtures.Fixture{}, unrenderable("a companion datasource needs a bound list call")
+		return fixtures.Fixture{}, unrenderable(CauseNoBoundListCall, "a companion datasource needs a bound list call")
 	}
 	itemTree := companionItemTree(ds)
 	if itemTree == nil {
-		return fixtures.Fixture{}, unrenderable("the companion schema carries no items attribute")
+		return fixtures.Fixture{}, unrenderable(CauseNoItemsAttribute, "the companion schema carries no items attribute")
 	}
 	itemNodes := e.joinTree(bindingKindDatasource, ds.Names.Key, itemTree, db.Fields)
 
@@ -340,7 +340,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 		return fixtures.Fixture{}, fmt.Errorf("list: %w", err)
 	}
 	if listPlan.Payload == "" {
-		return fixtures.Fixture{}, unrenderable("list: the bound list call yields no payload")
+		return fixtures.Fixture{}, unrenderable(CauseNoMappablePayload, "list: the bound list call yields no payload")
 	}
 	d.ListPlan = listPlan
 	d.Collection = "result"
@@ -349,7 +349,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	}
 	d.ElementType = db.ElementType
 	if d.ElementType == "" {
-		return fixtures.Fixture{}, unrenderable("list: the binding names no element type")
+		return fixtures.Fixture{}, unrenderable(CauseNoElementType, "list: the binding names no element type")
 	}
 
 	if d.HasIDFilter {

@@ -1,6 +1,10 @@
 package sdkbind
 
-import "testing"
+import (
+	"testing"
+
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+)
 
 // findReconciliation answers the reconciliation for one attribute, or fails.
 func findReconciliation(t *testing.T, reconciled []Reconciliation, key, attribute string) Reconciliation {
@@ -92,5 +96,46 @@ func reconciliationLess(a, z Reconciliation) bool {
 		return a.Attribute < z.Attribute
 	default:
 		return a.Drafted <= z.Drafted
+	}
+}
+
+// TestUnit_Prune_RefusalsOnOneModelShareOneCause is the point of a cause. A
+// model that carries none of an entity's fields refuses every one of them,
+// and reported without a cause that is one finding per attribute — leaving a
+// reader to notice for themselves that they are one fact.
+func TestUnit_Prune_RefusalsOnOneModelShareOneCause(t *testing.T) {
+	_, removed := prunedKiota(t)
+
+	byCause := map[ir.Cause][]string{}
+	for _, r := range removed {
+		if r.Attribute == "" {
+			continue
+		}
+		byCause[r.Cause] = append(byCause[r.Cause], r.Key+"."+r.Attribute)
+	}
+	if len(byCause) == 0 {
+		t.Fatal("no attribute was refused; the fixture no longer exercises pruning")
+	}
+	for cause, attributes := range byCause {
+		if cause.Code == "" {
+			t.Errorf("%d attribute refusals carry no cause: %v", len(attributes), attributes)
+		}
+	}
+}
+
+// TestUnit_Prune_ACauseNamesTheSDKTypeItIsAbout holds the subject to the
+// thing that groups. Two entities missing an accessor on different models
+// are two facts; on the same model they are one, and only the subject tells
+// them apart.
+func TestUnit_Prune_ACauseNamesTheSDKTypeItIsAbout(t *testing.T) {
+	_, removed := prunedKiota(t)
+	for _, r := range removed {
+		switch r.Cause.Code {
+		case CauseNoAccessor, CauseNoSetter, CauseNotAnAccessor, CauseNotASetter, CauseUnbridgeableType:
+			if r.Cause.Subject == "" {
+				t.Errorf("%s %s.%s: cause %q names no SDK type, so it groups with everything",
+					r.Kind, r.Key, r.Attribute, r.Cause.Code)
+			}
+		}
 	}
 }

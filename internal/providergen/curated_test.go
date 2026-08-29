@@ -96,6 +96,16 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				t.Errorf("entity counts = %d resources, %d datasources, %d list resources, %d actions; the fixture declares 3, 5, 3, 1",
 					res.Resources, res.Datasources, res.ListResources, res.Actions)
 			}
+			// A refusal with no cause cannot be grouped with the ones that
+			// share its fact, so it reads as its own finding. Asserted on a
+			// whole run rather than per stage, because a new refusal path
+			// that forgets one is exactly what this has to catch.
+			for _, u := range res.Unsupported {
+				if u.Cause == nil || u.Cause.Code == "" {
+					t.Errorf("refusal carries no cause: %s %q attribute %q (%s): %s",
+						u.Kind, u.Entity, u.Attribute, u.Stage, u.Reason)
+				}
+			}
 			for _, r := range res.Removals {
 				t.Errorf("pruned unexpectedly: %s", r)
 			}

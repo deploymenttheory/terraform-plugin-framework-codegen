@@ -65,6 +65,13 @@ type Unsupported struct {
 	// entity is, including one refused before it became anything.
 	Service string `json:"service,omitempty"`
 	Tag     string `json:"tag,omitempty"`
+	// Cause is the fact behind the refusal, shared with every other refusal
+	// that has the same fact. Two refusals group when their cause matches,
+	// which is an exact comparison rather than a guess at which prose
+	// reasons mean the same thing.
+	// A pointer because omitempty does not reach inside a struct: recorded
+	// as a value, every refusal without one would carry an empty cause.
+	Cause *ir.Cause `json:"cause,omitempty"`
 	// Stage is which part of the pipeline refused it.
 	Stage string `json:"stage"`
 	// Reason is the account that stage gave, verbatim.
@@ -94,6 +101,16 @@ func SeparateKept(removals []sdkbind.Removal, keptUnbound map[string]bool) (refu
 		refused = append(refused, removal)
 	}
 	return refused, kept
+}
+
+// causeOf carries a cause onto a refusal, and nothing where none was
+// recorded. A stage that does not yet name its causes says so by their
+// absence rather than by an empty one.
+func causeOf(cause ir.Cause) *ir.Cause {
+	if cause.Code == "" {
+		return nil
+	}
+	return &cause
 }
 
 // located fills a refusal's service and tag from the derived entity of the
@@ -161,6 +178,7 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 					Entity:  exclusion.Key,
 					Service: exclusion.Service,
 					Tag:     exclusion.Tag,
+					Cause:   causeOf(exclusion.Cause),
 					Stage:   excluded.stage,
 					Reason:  exclusion.Reason,
 				})
@@ -175,6 +193,7 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 			Kind:      removal.Kind,
 			Entity:    removal.Key,
 			Attribute: removal.Attribute,
+			Cause:     causeOf(removal.Cause),
 			Stage:     StageBinding,
 			Reason:    removal.Reason,
 		}))
@@ -184,6 +203,7 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 		report.Unsupported = append(report.Unsupported, located(m, Unsupported{
 			Kind:   drop.Kind,
 			Entity: drop.Key,
+			Cause:  causeOf(ir.Cause{Code: sdkbind.CauseUnbuildableEntity}),
 			Stage:  StageBinding,
 			Reason: drop.Reason,
 		}))
@@ -195,6 +215,7 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 			Entity:  refusal.Key,
 			Service: refusal.Service,
 			Tag:     refusal.Tag,
+			Cause:   causeOf(refusal.Cause),
 			Stage:   StageEmission,
 			Reason:  refusal.Reason,
 		})
@@ -258,6 +279,7 @@ func refusedAttributes(m *ir.Model) []Unsupported {
 						Kind:      kind,
 						Entity:    key,
 						Attribute: name,
+						Cause:     causeOf(attribute.UnsupportedCause),
 						Service:   service,
 						Tag:       tag,
 						Stage:     StageDerivation,

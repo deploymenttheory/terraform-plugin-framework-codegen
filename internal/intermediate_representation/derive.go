@@ -69,7 +69,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		}
 		claimed[names.Key] = classification.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
-			model.ExcludedByConfiguration = append(model.ExcludedByConfiguration, unsupportedEntity(names, classification.CollectionPath, "", configExcludedReason))
+			model.ExcludedByConfiguration = append(model.ExcludedByConfiguration, unsupportedEntity(names, classification.CollectionPath, "", Cause{Code: CauseExcludedByConfiguration}, configExcludedReason))
 			continue
 		}
 		parentKey[classification.CollectionPath] = names.Key
@@ -78,7 +78,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 	}
 	for _, excluded := range classifications.Excluded {
 		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath, excluded.Tag)
-		model.ExcludedByClassification = append(model.ExcludedByClassification, unsupportedEntity(names, excluded.CollectionPath, "", excluded.Reason))
+		model.ExcludedByClassification = append(model.ExcludedByClassification, unsupportedEntity(names, excluded.CollectionPath, "", Cause{Code: excluded.Cause}, excluded.Reason))
 	}
 
 	// A collision family that generates more than one entity co-manages

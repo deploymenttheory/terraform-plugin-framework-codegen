@@ -378,6 +378,45 @@ type Reconciliation struct {
 	Settled string `json:"settled"`
 }
 
+// refusal is one reason the SDK cannot carry something, together with the
+// cause it belongs to. Every resolver that can refuse answers one of these,
+// so a refusal arrives at the record already knowing which fact it shares
+// with its siblings — rather than being grouped later by reading its prose.
+type refusal struct {
+	Cause  ir.Cause
+	Reason string
+}
+
+// refused answers whether anything was refused at all.
+func (r refusal) refused() bool { return r.Reason != "" }
+
+// because builds a refusal from its cause and the account a reader gets.
+func because(code, subject, format string, args ...any) refusal {
+	return refusal{Cause: ir.Cause{Code: code, Subject: subject}, Reason: fmt.Sprintf(format, args...)}
+}
+
+// The causes the SDK cannot carry something for. The set is closed, and each
+// names what the SDK lacked. The subject is the SDK type it lacked it on,
+// which is what makes one model's missing accessors one fact rather than
+// one per attribute.
+const (
+	CauseNoAccessor         = "noAccessor"
+	CauseNoSetter           = "noSetter"
+	CauseNotAnAccessor      = "notAnAccessor"
+	CauseNotASetter         = "notASetter"
+	CauseUnbridgeableType   = "unbridgeableType"
+	CauseNoNestedModel      = "noNestedModel"
+	CauseNoConstructor      = "noConstructor"
+	CauseEmptyNestedObject  = "emptyNestedObject"
+	CauseUnresolvableCall   = "unresolvableCall"
+	CauseNoRequestBodyType  = "noRequestBodyType"
+	CauseAmbiguousListShape = "ambiguousListShape"
+	CauseNoResponsePayload  = "noResponsePayload"
+	CauseUnbuildableEntity  = "unbuildableEntity"
+	CauseNoListCall         = "noListCall"
+	CauseNoInvokeCall       = "noInvokeCall"
+)
+
 type Removal struct {
 	// Kind is "resource", "datasource", "list_resource" or "action".
 	Kind string `json:"kind"`
@@ -386,6 +425,9 @@ type Removal struct {
 	// Attribute is the pruned attribute path, empty when the whole entity
 	// went.
 	Attribute string `json:"attribute,omitempty"`
+	// Cause is the fact behind the removal, shared with every other removal
+	// that has the same fact.
+	Cause ir.Cause `json:"cause,omitempty"`
 	// Reason is why the SDK cannot carry it.
 	Reason string `json:"reason"`
 }

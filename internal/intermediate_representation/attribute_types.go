@@ -34,9 +34,10 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 	case flatPrimary.declaredType == "" && flatPrimary.hasUnion:
 		deriveUnionType(attribute, flatPrimary, create, read)
 	case flatPrimary.declaredType == "":
-		refuse(attribute, "no type declared")
+		refuse(attribute, Cause{Code: CauseUndeclaredType}, "no type declared")
 	default:
-		refuse(attribute, fmt.Sprintf("type %q is not supported", flatPrimary.declaredType))
+		refuse(attribute, Cause{Code: CauseUnsupportedType, Subject: flatPrimary.declaredType},
+			fmt.Sprintf("type %q is not supported", flatPrimary.declaredType))
 	}
 }
 
@@ -57,14 +58,14 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 // that.
 func deriveUnionType(attribute *Attribute, flatPrimary flat, create, read *specmodel.Schema) {
 	if create != nil {
-		refuse(attribute, "oneOf/anyOf union in a writable position: its variants would have to be mutually exclusive in configuration, which the schema alone does not express")
+		refuse(attribute, Cause{Code: CauseWritableUnion}, "oneOf/anyOf union in a writable position: its variants would have to be mutually exclusive in configuration, which the schema alone does not express")
 		return
 	}
 
 	variants := make([]Attribute, 0, len(flatPrimary.unionBranches))
 	for _, branch := range flatPrimary.unionBranches {
 		if branch == nil || branch.Ref == "" {
-			refuse(attribute, fmt.Sprintf(
+			refuse(attribute, Cause{Code: CauseUnnamedUnionBranch}, fmt.Sprintf(
 				"oneOf/anyOf union with %d branches, of which %d name no component: a variant the document does not name has no attribute to become",
 				len(flatPrimary.unionBranches), anonymousBranches(flatPrimary.unionBranches)))
 			return
@@ -81,7 +82,7 @@ func deriveUnionType(attribute *Attribute, flatPrimary flat, create, read *specm
 		})
 	}
 	if len(variants) == 0 {
-		refuse(attribute, "oneOf/anyOf union declaring no branches")
+		refuse(attribute, Cause{Code: CauseEmptyUnion}, "oneOf/anyOf union declaring no branches")
 		return
 	}
 
@@ -109,10 +110,10 @@ func deriveMapType(attribute *Attribute, flatPrimary flat) {
 	value := flatPrimary.additionalProperties
 	if value == nil {
 		if flatPrimary.additionalPropertiesDeclared {
-			refuse(attribute, "object whose additionalProperties is a bare boolean: it declares no value type to map")
+			refuse(attribute, Cause{Code: CauseUntypedAdditionalProperties}, "object whose additionalProperties is a bare boolean: it declares no value type to map")
 			return
 		}
-		refuse(attribute, "object declaring neither properties nor additionalProperties: it has no declared shape")
+		refuse(attribute, Cause{Code: CauseShapelessObject}, "object declaring neither properties nor additionalProperties: it has no declared shape")
 		return
 	}
 
@@ -129,9 +130,10 @@ func deriveMapType(attribute *Attribute, flatPrimary flat) {
 	case flatValue.declaredType == "object" || (flatValue.declaredType == "" && len(flatValue.properties) > 0):
 		// A map of objects needs a nested model, nested state mapping and
 		// nested fixtures; only maps of scalars are modelled.
-		refuse(attribute, "map of objects: only maps of scalar values are modelled")
+		refuse(attribute, Cause{Code: CauseMapOfObjects}, "map of objects: only maps of scalar values are modelled")
 	default:
-		refuse(attribute, fmt.Sprintf("map of %q values is not supported", flatValue.declaredType))
+		refuse(attribute, Cause{Code: CauseUnsupportedMapValue, Subject: flatValue.declaredType},
+			fmt.Sprintf("map of %q values is not supported", flatValue.declaredType))
 	}
 }
 
@@ -146,7 +148,7 @@ func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema
 	flatItems := flatten(primary)
 	switch {
 	case flatItems.empty:
-		refuse(attribute, "array declares no items schema")
+		refuse(attribute, Cause{Code: CauseItemlessArray}, "array declares no items schema")
 	case flatItems.declaredType == "string":
 		attribute.Kind, attribute.ElementType = TypeList, TypeString
 		// The element's closed set is the list's: each member the
@@ -163,20 +165,22 @@ func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema
 		attribute.Kind, attribute.ElementType = TypeList, TypeFloat64
 	case flatItems.declaredType == "object" || (flatItems.declaredType == "" && len(flatItems.properties) > 0):
 		if len(flatItems.properties) == 0 {
-			refuse(attribute, "array of free-form objects: map support is out of scope")
+			refuse(attribute, Cause{Code: CauseFreeFormArrayElement}, "array of free-form objects: map support is out of scope")
 			return
 		}
 		attribute.Kind, attribute.ElementType = TypeList, TypeObject
 		attribute.Nested = buildTree(createItems, readItems, updateItems, false)
 	default:
-		refuse(attribute, fmt.Sprintf("array of %q elements is not supported", flatItems.declaredType))
+		refuse(attribute, Cause{Code: CauseUnsupportedArrayElement, Subject: flatItems.declaredType},
+			fmt.Sprintf("array of %q elements is not supported", flatItems.declaredType))
 	}
 }
 
 // refuse marks an attribute unsupported with the reason a person reads.
-func refuse(attribute *Attribute, reason string) {
+func refuse(attribute *Attribute, cause Cause, reason string) {
 	attribute.Kind = ""
 	attribute.Unsupported = true
+	attribute.UnsupportedCause = cause
 	attribute.UnsupportedReason = reason
 }
 
@@ -209,7 +213,7 @@ func refuseReservedRootNames(tree *AttributeTree) {
 		if !reservedRootNames[attribute.Name] {
 			continue
 		}
-		refuse(attribute, fmt.Sprintf(
+		refuse(attribute, Cause{Code: CauseReservedRootName, Subject: attribute.Name}, fmt.Sprintf(
 			"terraform reserves %q at the root of a schema, and refuses to load a provider that declares it; rename the property in a correction",
 			attribute.Name))
 	}
