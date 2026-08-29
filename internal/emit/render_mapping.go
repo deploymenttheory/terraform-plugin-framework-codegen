@@ -736,5 +736,12 @@ func addPlanImports(set *importSet, plans ...finalisedAPIRequest) {
 		for _, name := range plan.Imports {
 			set.add("", name)
 		}
+		// A call that spells a conversion needs the package it comes from,
+		// wherever the call is rendered: a query parameter pointed to in a
+		// datasource read reaches for it as surely as a body built in a
+		// create does.
+		if strings.Contains(plan.ParameterDeclarations+plan.Assign+plan.ClosureBody, "convert.") {
+			set.add("", set.module+"/internal/services/common/convert")
+		}
 	}
 }
