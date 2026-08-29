@@ -98,6 +98,12 @@ func newProviderGenerateCommand() *cobra.Command {
 			for _, r := range res.Removals {
 				fmt.Fprintf(out, "pruned %s\n", r)
 			}
+			// Reported apart from the pruned lines above, because the
+			// attribute is in the schema: a reader who saw prune remove it
+			// needs an answer, and "pruned" would be the wrong one.
+			for _, r := range res.Kept {
+				fmt.Fprintf(out, "kept %s\n", r)
+			}
 			noun := "files"
 			if res.Files == 1 {
 				noun = "file"

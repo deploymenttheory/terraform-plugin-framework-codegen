@@ -60,9 +60,14 @@ type Result struct {
 	// Resources, Datasources, ListResources and Actions count the entities
 	// that survived pruning and were emitted.
 	Resources, Datasources, ListResources, Actions int
-	// Removals is the prune report: everything the SDK could not carry,
+	// Removals is what prune deleted and the operator therefore loses,
 	// sorted, with the SDK's reason for each deletion.
 	Removals []sdkbind.Removal
+	// Kept is what prune deleted and emission kept anyway: an attribute
+	// with no SDK field behind it that reaches the schema regardless. It is
+	// separate from Removals because the two cost the operator different
+	// things — nothing, and a missing attribute.
+	Kept []sdkbind.Removal
 	// Reconciled is everywhere a drafted binding disagreed with the SDK and
 	// the SDK's answer was unambiguous, so the draft was moved onto it. It
 	// is what Removals has to be read against: the same deletion means one
@@ -317,6 +322,7 @@ func generate(opts Options) (*generation, error) {
 	// staging, the manifest and the drift gate, so a refusal that appears
 	// or disappears is a line in the generation pull request rather than a
 	// line in a CI log nobody reads.
+	refusedRemovals, keptRemovals := emit.SeparateKept(removals, entities.KeptUnbound)
 	unsupported, refusals, err := emit.RenderUnsupported(model, removals, excluded, entities.Excluded, entities.KeptUnbound)
 	if err != nil {
 		return nil, err
@@ -334,7 +340,8 @@ func generate(opts Options) (*generation, error) {
 			Datasources:   len(entities.Registrations.Datasources.Registrations),
 			ListResources: len(entities.Registrations.ListResources.Registrations),
 			Actions:       len(entities.Registrations.Actions.Registrations),
-			Removals:      removals,
+			Removals:      refusedRemovals,
+			Kept:          keptRemovals,
 			Reconciled:    bindings.Reconciled,
 			Excluded:      allExclusions(model, excluded, entities.Excluded),
 			Unsupported:   refusals,
