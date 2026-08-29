@@ -38,444 +38,497 @@ type APIClient struct {
 	configuration *Configuration
 
 	// The flat service structs the bindings reach through.
-	ModulesAPI  *ModulesAPIService
-	BeaconsAPI  *BeaconsAPIService
-	DocksAPI    *DocksAPIService
-	PermitsAPI  *PermitsAPIService
-	TransitsAPI *TransitsAPIService
+	PatchUpdatedResourcesAPI   *PatchUpdatedResourcesAPIService
+	ReplaceOnlyResourcesAPI    *ReplaceOnlyResourcesAPIService
+	PutUpdatedResourcesAPI     *PutUpdatedResourcesAPIService
+	KeyAddressedDatasourcesAPI *KeyAddressedDatasourcesAPIService
+	ListOnlyDatasourcesAPI     *ListOnlyDatasourcesAPIService
 }
 
 // NewAPIClient stands in for the generated constructor.
 func NewAPIClient(configuration *Configuration) *APIClient {
 	return &APIClient{
-		configuration: configuration,
-		ModulesAPI:    &ModulesAPIService{},
-		BeaconsAPI:    &BeaconsAPIService{},
-		DocksAPI:      &DocksAPIService{},
-		PermitsAPI:    &PermitsAPIService{},
-		TransitsAPI:   &TransitsAPIService{},
+		configuration:              configuration,
+		PatchUpdatedResourcesAPI:   &PatchUpdatedResourcesAPIService{},
+		ReplaceOnlyResourcesAPI:    &ReplaceOnlyResourcesAPIService{},
+		PutUpdatedResourcesAPI:     &PutUpdatedResourcesAPIService{},
+		KeyAddressedDatasourcesAPI: &KeyAddressedDatasourcesAPIService{},
+		ListOnlyDatasourcesAPI:     &ListOnlyDatasourcesAPIService{},
 	}
 }
 
-// ModulesAPIService is the generated module service.
-type ModulesAPIService struct{}
+// PatchUpdatedResourcesAPIService is the generated patchUpdatedResource service.
+type PatchUpdatedResourcesAPIService struct{}
 
-// ApiCreateModuleRequest is the create request builder.
-type ApiCreateModuleRequest struct{ module *Module }
+// ApiCreatePatchUpdatedResourceRequest is the create request builder.
+type ApiCreatePatchUpdatedResourceRequest struct{ patchUpdatedResource *PatchUpdatedResource }
 
-// Module sets the request body.
-func (r ApiCreateModuleRequest) Module(v Module) ApiCreateModuleRequest { r.module = &v; return r }
+// PatchUpdatedResource sets the request body.
+func (r ApiCreatePatchUpdatedResourceRequest) PatchUpdatedResource(v PatchUpdatedResource) ApiCreatePatchUpdatedResourceRequest {
+	r.patchUpdatedResource = &v
+	return r
+}
 
 // Execute runs the request.
-func (r ApiCreateModuleRequest) Execute() (*Module, *http.Response, error) {
+func (r ApiCreatePatchUpdatedResourceRequest) Execute() (*PatchUpdatedResource, *http.Response, error) {
 	return nil, nil, errStub
 }
 
-// CreateModule begins a create.
-func (s *ModulesAPIService) CreateModule(_ context.Context) ApiCreateModuleRequest {
-	return ApiCreateModuleRequest{}
+// CreatePatchUpdatedResource begins a create.
+func (s *PatchUpdatedResourcesAPIService) CreatePatchUpdatedResource(_ context.Context) ApiCreatePatchUpdatedResourceRequest {
+	return ApiCreatePatchUpdatedResourceRequest{}
 }
 
-// ApiListModulesRequest is the list request builder.
-type ApiListModulesRequest struct{}
+// ApiListPatchUpdatedResourcesRequest is the list request builder.
+type ApiListPatchUpdatedResourcesRequest struct{}
 
 // Execute runs the request.
-func (r ApiListModulesRequest) Execute() ([]Module, *http.Response, error) {
+func (r ApiListPatchUpdatedResourcesRequest) Execute() ([]PatchUpdatedResource, *http.Response, error) {
 	return nil, nil, errStub
 }
 
-// ListModules begins a list.
-func (s *ModulesAPIService) ListModules(_ context.Context) ApiListModulesRequest {
-	return ApiListModulesRequest{}
+// ListPatchUpdatedResources begins a list.
+func (s *PatchUpdatedResourcesAPIService) ListPatchUpdatedResources(_ context.Context) ApiListPatchUpdatedResourcesRequest {
+	return ApiListPatchUpdatedResourcesRequest{}
 }
 
-// ApiGetModuleRequest is the read request builder.
-type ApiGetModuleRequest struct{}
+// ApiGetPatchUpdatedResourceRequest is the read request builder.
+type ApiGetPatchUpdatedResourceRequest struct{}
 
 // Execute runs the request.
-func (r ApiGetModuleRequest) Execute() (*Module, *http.Response, error) { return nil, nil, errStub }
-
-// GetModule begins a read.
-func (s *ModulesAPIService) GetModule(_ context.Context, _ string) ApiGetModuleRequest {
-	return ApiGetModuleRequest{}
-}
-
-// ApiUpdateModuleRequest is the update request builder.
-type ApiUpdateModuleRequest struct{ module *Module }
-
-// Module sets the request body.
-func (r ApiUpdateModuleRequest) Module(v Module) ApiUpdateModuleRequest { r.module = &v; return r }
-
-// Execute runs the request.
-func (r ApiUpdateModuleRequest) Execute() (*Module, *http.Response, error) {
+func (r ApiGetPatchUpdatedResourceRequest) Execute() (*PatchUpdatedResource, *http.Response, error) {
 	return nil, nil, errStub
 }
 
-// UpdateModule begins an update.
-func (s *ModulesAPIService) UpdateModule(_ context.Context, _ string) ApiUpdateModuleRequest {
-	return ApiUpdateModuleRequest{}
+// GetPatchUpdatedResource begins a read.
+func (s *PatchUpdatedResourcesAPIService) GetPatchUpdatedResource(_ context.Context, _ string) ApiGetPatchUpdatedResourceRequest {
+	return ApiGetPatchUpdatedResourceRequest{}
 }
 
-// ApiDeleteModuleRequest is the delete request builder.
-type ApiDeleteModuleRequest struct{}
+// ApiUpdatePatchUpdatedResourceRequest is the update request builder.
+type ApiUpdatePatchUpdatedResourceRequest struct{ patchUpdatedResource *PatchUpdatedResource }
+
+// PatchUpdatedResource sets the request body.
+func (r ApiUpdatePatchUpdatedResourceRequest) PatchUpdatedResource(v PatchUpdatedResource) ApiUpdatePatchUpdatedResourceRequest {
+	r.patchUpdatedResource = &v
+	return r
+}
 
 // Execute runs the request.
-func (r ApiDeleteModuleRequest) Execute() (*http.Response, error) { return nil, errStub }
-
-// DeleteModule begins a delete.
-func (s *ModulesAPIService) DeleteModule(_ context.Context, _ string) ApiDeleteModuleRequest {
-	return ApiDeleteModuleRequest{}
+func (r ApiUpdatePatchUpdatedResourceRequest) Execute() (*PatchUpdatedResource, *http.Response, error) {
+	return nil, nil, errStub
 }
 
-// ApiRebootModuleRequest is the invocation request builder.
-type ApiRebootModuleRequest struct{ body *RebootRequest }
+// UpdatePatchUpdatedResource begins an update.
+func (s *PatchUpdatedResourcesAPIService) UpdatePatchUpdatedResource(_ context.Context, _ string) ApiUpdatePatchUpdatedResourceRequest {
+	return ApiUpdatePatchUpdatedResourceRequest{}
+}
 
-// RebootRequest sets the request body.
-func (r ApiRebootModuleRequest) RebootRequest(v RebootRequest) ApiRebootModuleRequest {
+// ApiDeletePatchUpdatedResourceRequest is the delete request builder.
+type ApiDeletePatchUpdatedResourceRequest struct{}
+
+// Execute runs the request.
+func (r ApiDeletePatchUpdatedResourceRequest) Execute() (*http.Response, error) { return nil, errStub }
+
+// DeletePatchUpdatedResource begins a delete.
+func (s *PatchUpdatedResourcesAPIService) DeletePatchUpdatedResource(_ context.Context, _ string) ApiDeletePatchUpdatedResourceRequest {
+	return ApiDeletePatchUpdatedResourceRequest{}
+}
+
+// ApiInvokeCustomActionRequest is the invocation request builder.
+type ApiInvokeCustomActionRequest struct{ body *CustomActionRequest }
+
+// CustomActionRequest sets the request body.
+func (r ApiInvokeCustomActionRequest) CustomActionRequest(v CustomActionRequest) ApiInvokeCustomActionRequest {
 	r.body = &v
 	return r
 }
 
 // Execute runs the request.
-func (r ApiRebootModuleRequest) Execute() (*http.Response, error) { return nil, errStub }
+func (r ApiInvokeCustomActionRequest) Execute() (*http.Response, error) { return nil, errStub }
 
-// RebootModule begins an invocation.
-func (s *ModulesAPIService) RebootModule(_ context.Context, _ string) ApiRebootModuleRequest {
-	return ApiRebootModuleRequest{}
+// InvokeCustomAction begins an invocation.
+func (s *PatchUpdatedResourcesAPIService) InvokeCustomAction(_ context.Context, _ string) ApiInvokeCustomActionRequest {
+	return ApiInvokeCustomActionRequest{}
 }
 
-// BeaconsAPIService is the generated beacon service.
-type BeaconsAPIService struct{}
+// ReplaceOnlyResourcesAPIService is the generated replaceOnlyResource service.
+type ReplaceOnlyResourcesAPIService struct{}
 
-// ApiCreateBeaconRequest is the create request builder.
-type ApiCreateBeaconRequest struct{ beacon *Beacon }
+// ApiCreateReplaceOnlyResourceRequest is the create request builder.
+type ApiCreateReplaceOnlyResourceRequest struct{ replaceOnlyResource *ReplaceOnlyResource }
 
-// Beacon sets the request body.
-func (r ApiCreateBeaconRequest) Beacon(v Beacon) ApiCreateBeaconRequest { r.beacon = &v; return r }
+// ReplaceOnlyResource sets the request body.
+func (r ApiCreateReplaceOnlyResourceRequest) ReplaceOnlyResource(v ReplaceOnlyResource) ApiCreateReplaceOnlyResourceRequest {
+	r.replaceOnlyResource = &v
+	return r
+}
 
 // Execute runs the request.
-func (r ApiCreateBeaconRequest) Execute() (*Beacon, *http.Response, error) {
+func (r ApiCreateReplaceOnlyResourceRequest) Execute() (*ReplaceOnlyResource, *http.Response, error) {
 	return nil, nil, errStub
 }
 
-// CreateBeacon begins a create.
-func (s *BeaconsAPIService) CreateBeacon(_ context.Context) ApiCreateBeaconRequest {
-	return ApiCreateBeaconRequest{}
+// CreateReplaceOnlyResource begins a create.
+func (s *ReplaceOnlyResourcesAPIService) CreateReplaceOnlyResource(_ context.Context) ApiCreateReplaceOnlyResourceRequest {
+	return ApiCreateReplaceOnlyResourceRequest{}
 }
 
-// ApiListBeaconsRequest is the list request builder.
-type ApiListBeaconsRequest struct{}
+// ApiListReplaceOnlyResourcesRequest is the list request builder.
+type ApiListReplaceOnlyResourcesRequest struct{}
 
 // Execute runs the request.
-func (r ApiListBeaconsRequest) Execute() ([]Beacon, *http.Response, error) {
+func (r ApiListReplaceOnlyResourcesRequest) Execute() ([]ReplaceOnlyResource, *http.Response, error) {
 	return nil, nil, errStub
 }
 
-// ListBeacons begins a list.
-func (s *BeaconsAPIService) ListBeacons(_ context.Context) ApiListBeaconsRequest {
-	return ApiListBeaconsRequest{}
+// ListReplaceOnlyResources begins a list.
+func (s *ReplaceOnlyResourcesAPIService) ListReplaceOnlyResources(_ context.Context) ApiListReplaceOnlyResourcesRequest {
+	return ApiListReplaceOnlyResourcesRequest{}
 }
 
-// ApiGetBeaconRequest is the read request builder.
-type ApiGetBeaconRequest struct{}
+// ApiGetReplaceOnlyResourceRequest is the read request builder.
+type ApiGetReplaceOnlyResourceRequest struct{}
 
 // Execute runs the request.
-func (r ApiGetBeaconRequest) Execute() (*Beacon, *http.Response, error) { return nil, nil, errStub }
-
-// GetBeacon begins a read.
-func (s *BeaconsAPIService) GetBeacon(_ context.Context, _ string) ApiGetBeaconRequest {
-	return ApiGetBeaconRequest{}
-}
-
-// ApiDeleteBeaconRequest is the delete request builder.
-type ApiDeleteBeaconRequest struct{}
-
-// Execute runs the request.
-func (r ApiDeleteBeaconRequest) Execute() (*http.Response, error) { return nil, errStub }
-
-// DeleteBeacon begins a delete.
-func (s *BeaconsAPIService) DeleteBeacon(_ context.Context, _ string) ApiDeleteBeaconRequest {
-	return ApiDeleteBeaconRequest{}
-}
-
-// DocksAPIService is the generated dock service.
-type DocksAPIService struct{}
-
-// ApiCreateDockRequest is the create request builder.
-type ApiCreateDockRequest struct{ dock *Dock }
-
-// Dock sets the request body.
-func (r ApiCreateDockRequest) Dock(v Dock) ApiCreateDockRequest { r.dock = &v; return r }
-
-// Execute runs the request.
-func (r ApiCreateDockRequest) Execute() (*Dock, *http.Response, error) { return nil, nil, errStub }
-
-// CreateDock begins a create.
-func (s *DocksAPIService) CreateDock(_ context.Context) ApiCreateDockRequest {
-	return ApiCreateDockRequest{}
-}
-
-// ApiListDocksRequest is the list request builder.
-type ApiListDocksRequest struct{}
-
-// Execute runs the request.
-func (r ApiListDocksRequest) Execute() ([]Dock, *http.Response, error) { return nil, nil, errStub }
-
-// ListDocks begins a list.
-func (s *DocksAPIService) ListDocks(_ context.Context) ApiListDocksRequest {
-	return ApiListDocksRequest{}
-}
-
-// ApiGetDockRequest is the read request builder.
-type ApiGetDockRequest struct{}
-
-// Execute runs the request.
-func (r ApiGetDockRequest) Execute() (*Dock, *http.Response, error) { return nil, nil, errStub }
-
-// GetDock begins a read.
-func (s *DocksAPIService) GetDock(_ context.Context, _ string) ApiGetDockRequest {
-	return ApiGetDockRequest{}
-}
-
-// ApiReplaceDockRequest is the replace request builder.
-type ApiReplaceDockRequest struct{ dock *Dock }
-
-// Dock sets the request body.
-func (r ApiReplaceDockRequest) Dock(v Dock) ApiReplaceDockRequest { r.dock = &v; return r }
-
-// Execute runs the request.
-func (r ApiReplaceDockRequest) Execute() (*Dock, *http.Response, error) { return nil, nil, errStub }
-
-// ReplaceDock begins a replace.
-func (s *DocksAPIService) ReplaceDock(_ context.Context, _ string) ApiReplaceDockRequest {
-	return ApiReplaceDockRequest{}
-}
-
-// ApiDeleteDockRequest is the delete request builder.
-type ApiDeleteDockRequest struct{}
-
-// Execute runs the request.
-func (r ApiDeleteDockRequest) Execute() (*http.Response, error) { return nil, errStub }
-
-// DeleteDock begins a delete.
-func (s *DocksAPIService) DeleteDock(_ context.Context, _ string) ApiDeleteDockRequest {
-	return ApiDeleteDockRequest{}
-}
-
-// PermitsAPIService is the generated permit service.
-type PermitsAPIService struct{}
-
-// ApiGetPermitRequest is the read request builder.
-type ApiGetPermitRequest struct{}
-
-// Execute runs the request.
-func (r ApiGetPermitRequest) Execute() (*Permit, *http.Response, error) { return nil, nil, errStub }
-
-// GetPermit begins a read.
-func (s *PermitsAPIService) GetPermit(_ context.Context, _ string) ApiGetPermitRequest {
-	return ApiGetPermitRequest{}
-}
-
-// TransitsAPIService is the generated transit service.
-type TransitsAPIService struct{}
-
-// ApiListTransitsRequest is the list request builder.
-type ApiListTransitsRequest struct{}
-
-// Execute runs the request.
-func (r ApiListTransitsRequest) Execute() ([]Transit, *http.Response, error) {
+func (r ApiGetReplaceOnlyResourceRequest) Execute() (*ReplaceOnlyResource, *http.Response, error) {
 	return nil, nil, errStub
 }
 
-// ListTransits begins a list.
-func (s *TransitsAPIService) ListTransits(_ context.Context) ApiListTransitsRequest {
-	return ApiListTransitsRequest{}
+// GetReplaceOnlyResource begins a read.
+func (s *ReplaceOnlyResourcesAPIService) GetReplaceOnlyResource(_ context.Context, _ string) ApiGetReplaceOnlyResourceRequest {
+	return ApiGetReplaceOnlyResourceRequest{}
 }
 
-// ModuleKind is the generated string enumeration.
-type ModuleKind string
+// ApiDeleteReplaceOnlyResourceRequest is the delete request builder.
+type ApiDeleteReplaceOnlyResourceRequest struct{}
 
-// NewModuleKindFromValue parses the wire spelling, generator-shaped.
-func NewModuleKindFromValue(v string) (*ModuleKind, error) {
-	k := ModuleKind(v)
+// Execute runs the request.
+func (r ApiDeleteReplaceOnlyResourceRequest) Execute() (*http.Response, error) { return nil, errStub }
+
+// DeleteReplaceOnlyResource begins a delete.
+func (s *ReplaceOnlyResourcesAPIService) DeleteReplaceOnlyResource(_ context.Context, _ string) ApiDeleteReplaceOnlyResourceRequest {
+	return ApiDeleteReplaceOnlyResourceRequest{}
+}
+
+// PutUpdatedResourcesAPIService is the generated putUpdatedResource service.
+type PutUpdatedResourcesAPIService struct{}
+
+// ApiCreatePutUpdatedResourceRequest is the create request builder.
+type ApiCreatePutUpdatedResourceRequest struct{ putUpdatedResource *PutUpdatedResource }
+
+// PutUpdatedResource sets the request body.
+func (r ApiCreatePutUpdatedResourceRequest) PutUpdatedResource(v PutUpdatedResource) ApiCreatePutUpdatedResourceRequest {
+	r.putUpdatedResource = &v
+	return r
+}
+
+// Execute runs the request.
+func (r ApiCreatePutUpdatedResourceRequest) Execute() (*PutUpdatedResource, *http.Response, error) {
+	return nil, nil, errStub
+}
+
+// CreatePutUpdatedResource begins a create.
+func (s *PutUpdatedResourcesAPIService) CreatePutUpdatedResource(_ context.Context) ApiCreatePutUpdatedResourceRequest {
+	return ApiCreatePutUpdatedResourceRequest{}
+}
+
+// ApiListPutUpdatedResourcesRequest is the list request builder.
+type ApiListPutUpdatedResourcesRequest struct{}
+
+// Execute runs the request.
+func (r ApiListPutUpdatedResourcesRequest) Execute() ([]PutUpdatedResource, *http.Response, error) {
+	return nil, nil, errStub
+}
+
+// ListPutUpdatedResources begins a list.
+func (s *PutUpdatedResourcesAPIService) ListPutUpdatedResources(_ context.Context) ApiListPutUpdatedResourcesRequest {
+	return ApiListPutUpdatedResourcesRequest{}
+}
+
+// ApiGetPutUpdatedResourceRequest is the read request builder.
+type ApiGetPutUpdatedResourceRequest struct{}
+
+// Execute runs the request.
+func (r ApiGetPutUpdatedResourceRequest) Execute() (*PutUpdatedResource, *http.Response, error) {
+	return nil, nil, errStub
+}
+
+// GetPutUpdatedResource begins a read.
+func (s *PutUpdatedResourcesAPIService) GetPutUpdatedResource(_ context.Context, _ string) ApiGetPutUpdatedResourceRequest {
+	return ApiGetPutUpdatedResourceRequest{}
+}
+
+// ApiReplacePutUpdatedResourceRequest is the replace request builder.
+type ApiReplacePutUpdatedResourceRequest struct{ putUpdatedResource *PutUpdatedResource }
+
+// PutUpdatedResource sets the request body.
+func (r ApiReplacePutUpdatedResourceRequest) PutUpdatedResource(v PutUpdatedResource) ApiReplacePutUpdatedResourceRequest {
+	r.putUpdatedResource = &v
+	return r
+}
+
+// Execute runs the request.
+func (r ApiReplacePutUpdatedResourceRequest) Execute() (*PutUpdatedResource, *http.Response, error) {
+	return nil, nil, errStub
+}
+
+// ReplacePutUpdatedResource begins a replace.
+func (s *PutUpdatedResourcesAPIService) ReplacePutUpdatedResource(_ context.Context, _ string) ApiReplacePutUpdatedResourceRequest {
+	return ApiReplacePutUpdatedResourceRequest{}
+}
+
+// ApiDeletePutUpdatedResourceRequest is the delete request builder.
+type ApiDeletePutUpdatedResourceRequest struct{}
+
+// Execute runs the request.
+func (r ApiDeletePutUpdatedResourceRequest) Execute() (*http.Response, error) { return nil, errStub }
+
+// DeletePutUpdatedResource begins a delete.
+func (s *PutUpdatedResourcesAPIService) DeletePutUpdatedResource(_ context.Context, _ string) ApiDeletePutUpdatedResourceRequest {
+	return ApiDeletePutUpdatedResourceRequest{}
+}
+
+// KeyAddressedDatasourcesAPIService is the generated keyAddressedDatasource service.
+type KeyAddressedDatasourcesAPIService struct{}
+
+// ApiGetKeyAddressedDatasourceRequest is the read request builder.
+type ApiGetKeyAddressedDatasourceRequest struct{}
+
+// Execute runs the request.
+func (r ApiGetKeyAddressedDatasourceRequest) Execute() (*KeyAddressedDatasource, *http.Response, error) {
+	return nil, nil, errStub
+}
+
+// GetKeyAddressedDatasource begins a read.
+func (s *KeyAddressedDatasourcesAPIService) GetKeyAddressedDatasource(_ context.Context, _ string) ApiGetKeyAddressedDatasourceRequest {
+	return ApiGetKeyAddressedDatasourceRequest{}
+}
+
+// ListOnlyDatasourcesAPIService is the generated listOnlyDatasource service.
+type ListOnlyDatasourcesAPIService struct{}
+
+// ApiListListOnlyDatasourcesRequest is the list request builder.
+type ApiListListOnlyDatasourcesRequest struct{}
+
+// Execute runs the request.
+func (r ApiListListOnlyDatasourcesRequest) Execute() ([]ListOnlyDatasource, *http.Response, error) {
+	return nil, nil, errStub
+}
+
+// ListListOnlyDatasources begins a list.
+func (s *ListOnlyDatasourcesAPIService) ListListOnlyDatasources(_ context.Context) ApiListListOnlyDatasourcesRequest {
+	return ApiListListOnlyDatasourcesRequest{}
+}
+
+// PatchUpdatedResourceEnumString is the generated string enumeration.
+type PatchUpdatedResourceEnumString string
+
+// NewPatchUpdatedResourceEnumStringFromValue parses the wire spelling, generator-shaped.
+func NewPatchUpdatedResourceEnumStringFromValue(v string) (*PatchUpdatedResourceEnumString, error) {
+	k := PatchUpdatedResourceEnumString(v)
 	return &k, nil
 }
 
-// Module is the flat model; getters deref, setters take values.
-type Module struct {
-	ports         map[string]ModulePort
-	id            string
-	name          string
-	kind          ModuleKind
-	serial        string
-	occupied      bool
-	berthCount    int32
-	massRatio     float64
-	tags          []string
-	berth         ModuleBerth
-	hatches       []ModuleHatch
-	mapOfStrings  map[string]string
-	mapOfIntegers map[string]int64
-	mapOfNumbers  map[string]float64
-	mapOfBooleans map[string]bool
-	status        string
+// PatchUpdatedResource is the flat model; getters deref, setters take values.
+type PatchUpdatedResource struct {
+	id                  string
+	requiredString      string
+	enumString          PatchUpdatedResourceEnumString
+	immutableString     string
+	boolean             bool
+	integer             int32
+	number              float64
+	listOfStrings       []string
+	nestedObject        PatchUpdatedResourceNestedObject
+	listOfNestedObjects []PatchUpdatedResourceListElement
+	mapOfNestedObjects  map[string]PatchUpdatedResourceMapValue
+	mapOfStrings        map[string]string
+	mapOfIntegers       map[string]int64
+	mapOfNumbers        map[string]float64
+	mapOfBooleans       map[string]bool
+	computedString      string
 }
 
-// NewModuleWithDefaults stands in for the generated constructor.
-func NewModuleWithDefaults() *Module { return &Module{} }
+// NewPatchUpdatedResourceWithDefaults stands in for the generated constructor.
+func NewPatchUpdatedResourceWithDefaults() *PatchUpdatedResource { return &PatchUpdatedResource{} }
 
-func (m *Module) GetId() string              { return m.id }
-func (m *Module) GetName() string            { return m.name }
-func (m *Module) SetName(v string)           { m.name = v }
-func (m *Module) GetKind() ModuleKind        { return m.kind }
-func (m *Module) SetKind(v ModuleKind)       { m.kind = v }
-func (m *Module) GetSerial() string          { return m.serial }
-func (m *Module) SetSerial(v string)         { m.serial = v }
-func (m *Module) GetOccupied() bool          { return m.occupied }
-func (m *Module) SetOccupied(v bool)         { m.occupied = v }
-func (m *Module) GetBerthCount() int32       { return m.berthCount }
-func (m *Module) SetBerthCount(v int32)      { m.berthCount = v }
-func (m *Module) GetMassRatio() float64      { return m.massRatio }
-func (m *Module) SetMassRatio(v float64)     { m.massRatio = v }
-func (m *Module) GetTags() []string          { return m.tags }
-func (m *Module) SetTags(v []string)         { m.tags = v }
-func (m *Module) GetBerth() ModuleBerth      { return m.berth }
-func (m *Module) SetBerth(v ModuleBerth)     { m.berth = v }
-func (m *Module) GetHatches() []ModuleHatch  { return m.hatches }
-func (m *Module) SetHatches(v []ModuleHatch) { m.hatches = v }
+func (m *PatchUpdatedResource) GetId() string                                  { return m.id }
+func (m *PatchUpdatedResource) GetRequiredString() string                      { return m.requiredString }
+func (m *PatchUpdatedResource) SetRequiredString(v string)                     { m.requiredString = v }
+func (m *PatchUpdatedResource) GetEnumString() PatchUpdatedResourceEnumString  { return m.enumString }
+func (m *PatchUpdatedResource) SetEnumString(v PatchUpdatedResourceEnumString) { m.enumString = v }
+func (m *PatchUpdatedResource) GetImmutableString() string                     { return m.immutableString }
+func (m *PatchUpdatedResource) SetImmutableString(v string)                    { m.immutableString = v }
+func (m *PatchUpdatedResource) GetBoolean() bool                               { return m.boolean }
+func (m *PatchUpdatedResource) SetBoolean(v bool)                              { m.boolean = v }
+func (m *PatchUpdatedResource) GetInteger() int32                              { return m.integer }
+func (m *PatchUpdatedResource) SetInteger(v int32)                             { m.integer = v }
+func (m *PatchUpdatedResource) GetNumber() float64                             { return m.number }
+func (m *PatchUpdatedResource) SetNumber(v float64)                            { m.number = v }
+func (m *PatchUpdatedResource) GetListOfStrings() []string                     { return m.listOfStrings }
+func (m *PatchUpdatedResource) SetListOfStrings(v []string)                    { m.listOfStrings = v }
+func (m *PatchUpdatedResource) GetNestedObject() PatchUpdatedResourceNestedObject {
+	return m.nestedObject
+}
+func (m *PatchUpdatedResource) SetNestedObject(v PatchUpdatedResourceNestedObject) {
+	m.nestedObject = v
+}
+func (m *PatchUpdatedResource) GetListOfNestedObjects() []PatchUpdatedResourceListElement {
+	return m.listOfNestedObjects
+}
+func (m *PatchUpdatedResource) SetListOfNestedObjects(v []PatchUpdatedResourceListElement) {
+	m.listOfNestedObjects = v
+}
 
 // The generator carries additionalProperties as a real Go map, so these
 // four need no bag and no runtime assertion.
-func (m *Module) GetPorts() map[string]ModulePort      { return m.ports }
-func (m *Module) SetPorts(v map[string]ModulePort)     { m.ports = v }
-func (m *Module) GetMapOfStrings() map[string]string   { return m.mapOfStrings }
-func (m *Module) SetMapOfStrings(v map[string]string)  { m.mapOfStrings = v }
-func (m *Module) GetMapOfIntegers() map[string]int64   { return m.mapOfIntegers }
-func (m *Module) SetMapOfIntegers(v map[string]int64)  { m.mapOfIntegers = v }
-func (m *Module) GetMapOfNumbers() map[string]float64  { return m.mapOfNumbers }
-func (m *Module) SetMapOfNumbers(v map[string]float64) { m.mapOfNumbers = v }
-func (m *Module) GetMapOfBooleans() map[string]bool    { return m.mapOfBooleans }
-func (m *Module) SetMapOfBooleans(v map[string]bool)   { m.mapOfBooleans = v }
-func (m *Module) GetStatus() string                    { return m.status }
-
-// ModuleBerth is the value-typed nested model.
-type ModuleBerth struct {
-	ring int64
-	spin bool
+func (m *PatchUpdatedResource) GetMapOfNestedObjects() map[string]PatchUpdatedResourceMapValue {
+	return m.mapOfNestedObjects
 }
 
-// NewModuleBerthWithDefaults stands in for the generated constructor.
-func NewModuleBerthWithDefaults() *ModuleBerth { return &ModuleBerth{} }
-
-func (m *ModuleBerth) GetRing() int64  { return m.ring }
-func (m *ModuleBerth) SetRing(v int64) { m.ring = v }
-func (m *ModuleBerth) GetSpin() bool   { return m.spin }
-func (m *ModuleBerth) SetSpin(v bool)  { m.spin = v }
-
-// ModuleHatch is the value-typed list element.
-type ModuleHatch struct {
-	label string
-	width int64
+func (m *PatchUpdatedResource) SetMapOfNestedObjects(v map[string]PatchUpdatedResourceMapValue) {
+	m.mapOfNestedObjects = v
 }
 
-// ModulePort is the value-typed map value.
-type ModulePort struct {
-	bore   int64
-	sealed bool
+// PatchUpdatedResourceMapValue is the value-typed map value.
+type PatchUpdatedResourceMapValue struct {
+	valueInteger int64
+	valueBoolean bool
 }
 
-// NewModulePortWithDefaults stands in for the generated constructor.
-func NewModulePortWithDefaults() *ModulePort { return &ModulePort{} }
-
-func (m *ModulePort) GetBore() int64   { return m.bore }
-func (m *ModulePort) SetBore(v int64)  { m.bore = v }
-func (m *ModulePort) GetSealed() bool  { return m.sealed }
-func (m *ModulePort) SetSealed(v bool) { m.sealed = v }
-
-// NewModuleHatchWithDefaults stands in for the generated constructor.
-func NewModuleHatchWithDefaults() *ModuleHatch { return &ModuleHatch{} }
-
-func (m *ModuleHatch) GetLabel() string  { return m.label }
-func (m *ModuleHatch) SetLabel(v string) { m.label = v }
-func (m *ModuleHatch) GetWidth() int64   { return m.width }
-func (m *ModuleHatch) SetWidth(v int64)  { m.width = v }
-
-// RebootRequest is the invocation body.
-type RebootRequest struct {
-	mode  string
-	force bool
+// NewPatchUpdatedResourceMapValueWithDefaults stands in for the generated constructor.
+func NewPatchUpdatedResourceMapValueWithDefaults() *PatchUpdatedResourceMapValue {
+	return &PatchUpdatedResourceMapValue{}
 }
 
-// NewRebootRequestWithDefaults stands in for the generated constructor.
-func NewRebootRequestWithDefaults() *RebootRequest { return &RebootRequest{} }
+func (m *PatchUpdatedResourceMapValue) GetValueInteger() int64  { return m.valueInteger }
+func (m *PatchUpdatedResourceMapValue) SetValueInteger(v int64) { m.valueInteger = v }
+func (m *PatchUpdatedResourceMapValue) GetValueBoolean() bool   { return m.valueBoolean }
+func (m *PatchUpdatedResourceMapValue) SetValueBoolean(v bool)  { m.valueBoolean = v }
 
-// SetMode writes the mode.
-func (m *RebootRequest) SetMode(v string) { m.mode = v }
+func (m *PatchUpdatedResource) GetMapOfStrings() map[string]string   { return m.mapOfStrings }
+func (m *PatchUpdatedResource) SetMapOfStrings(v map[string]string)  { m.mapOfStrings = v }
+func (m *PatchUpdatedResource) GetMapOfIntegers() map[string]int64   { return m.mapOfIntegers }
+func (m *PatchUpdatedResource) SetMapOfIntegers(v map[string]int64)  { m.mapOfIntegers = v }
+func (m *PatchUpdatedResource) GetMapOfNumbers() map[string]float64  { return m.mapOfNumbers }
+func (m *PatchUpdatedResource) SetMapOfNumbers(v map[string]float64) { m.mapOfNumbers = v }
+func (m *PatchUpdatedResource) GetMapOfBooleans() map[string]bool    { return m.mapOfBooleans }
+func (m *PatchUpdatedResource) SetMapOfBooleans(v map[string]bool)   { m.mapOfBooleans = v }
+func (m *PatchUpdatedResource) GetComputedString() string            { return m.computedString }
 
-// SetForce writes the flag.
-func (m *RebootRequest) SetForce(v bool) { m.force = v }
-
-// Beacon is the flat beacon model.
-type Beacon struct {
-	id       string
-	callsign string
-	rangeKm  int64
-	active   bool
+// PatchUpdatedResourceNestedObject is the value-typed nested model.
+type PatchUpdatedResourceNestedObject struct {
+	nestedInteger int64
+	nestedBoolean bool
 }
 
-// NewBeaconWithDefaults stands in for the generated constructor.
-func NewBeaconWithDefaults() *Beacon { return &Beacon{} }
-
-func (m *Beacon) GetId() string        { return m.id }
-func (m *Beacon) GetCallsign() string  { return m.callsign }
-func (m *Beacon) SetCallsign(v string) { m.callsign = v }
-func (m *Beacon) GetRangeKm() int64    { return m.rangeKm }
-func (m *Beacon) SetRangeKm(v int64)   { m.rangeKm = v }
-func (m *Beacon) GetActive() bool      { return m.active }
-func (m *Beacon) SetActive(v bool)     { m.active = v }
-
-// Dock is the flat dock model.
-type Dock struct {
-	id       string
-	label    string
-	shielded bool
+// NewPatchUpdatedResourceNestedObjectWithDefaults stands in for the generated constructor.
+func NewPatchUpdatedResourceNestedObjectWithDefaults() *PatchUpdatedResourceNestedObject {
+	return &PatchUpdatedResourceNestedObject{}
 }
 
-// NewDockWithDefaults stands in for the generated constructor.
-func NewDockWithDefaults() *Dock { return &Dock{} }
+func (m *PatchUpdatedResourceNestedObject) GetNestedInteger() int64  { return m.nestedInteger }
+func (m *PatchUpdatedResourceNestedObject) SetNestedInteger(v int64) { m.nestedInteger = v }
+func (m *PatchUpdatedResourceNestedObject) GetNestedBoolean() bool   { return m.nestedBoolean }
+func (m *PatchUpdatedResourceNestedObject) SetNestedBoolean(v bool)  { m.nestedBoolean = v }
 
-func (m *Dock) GetId() string      { return m.id }
-func (m *Dock) GetLabel() string   { return m.label }
-func (m *Dock) SetLabel(v string)  { m.label = v }
-func (m *Dock) GetShielded() bool  { return m.shielded }
-func (m *Dock) SetShielded(v bool) { m.shielded = v }
-
-// Permit is the flat permit model.
-type Permit struct {
-	id         string
-	permitCode string
-	holder     string
-	seats      int64
+// PatchUpdatedResourceListElement is the value-typed list element.
+type PatchUpdatedResourceListElement struct {
+	elementString  string
+	elementInteger int64
 }
 
-// NewPermitWithDefaults stands in for the generated constructor.
-func NewPermitWithDefaults() *Permit { return &Permit{} }
-
-func (m *Permit) GetId() string         { return m.id }
-func (m *Permit) GetPermitCode() string { return m.permitCode }
-func (m *Permit) GetHolder() string     { return m.holder }
-func (m *Permit) GetSeats() int64       { return m.seats }
-
-// Transit is the flat transit model.
-type Transit struct {
-	id     string
-	window string
-	craft  string
+// NewPatchUpdatedResourceListElementWithDefaults stands in for the generated constructor.
+func NewPatchUpdatedResourceListElementWithDefaults() *PatchUpdatedResourceListElement {
+	return &PatchUpdatedResourceListElement{}
 }
 
-// NewTransitWithDefaults stands in for the generated constructor.
-func NewTransitWithDefaults() *Transit { return &Transit{} }
+func (m *PatchUpdatedResourceListElement) GetElementString() string  { return m.elementString }
+func (m *PatchUpdatedResourceListElement) SetElementString(v string) { m.elementString = v }
+func (m *PatchUpdatedResourceListElement) GetElementInteger() int64  { return m.elementInteger }
+func (m *PatchUpdatedResourceListElement) SetElementInteger(v int64) { m.elementInteger = v }
 
-func (m *Transit) GetId() string     { return m.id }
-func (m *Transit) GetWindow() string { return m.window }
-func (m *Transit) GetCraft() string  { return m.craft }
+// CustomActionRequest is the invocation body.
+type CustomActionRequest struct {
+	requiredString string
+	boolean        bool
+}
+
+// NewCustomActionRequestWithDefaults stands in for the generated constructor.
+func NewCustomActionRequestWithDefaults() *CustomActionRequest { return &CustomActionRequest{} }
+
+// SetRequiredString writes the requiredString.
+func (m *CustomActionRequest) SetRequiredString(v string) { m.requiredString = v }
+
+// SetBoolean writes the flag.
+func (m *CustomActionRequest) SetBoolean(v bool) { m.boolean = v }
+
+// ReplaceOnlyResource is the flat replaceOnlyResource model.
+type ReplaceOnlyResource struct {
+	id             string
+	requiredString string
+	integer        int64
+	boolean        bool
+}
+
+// NewReplaceOnlyResourceWithDefaults stands in for the generated constructor.
+func NewReplaceOnlyResourceWithDefaults() *ReplaceOnlyResource { return &ReplaceOnlyResource{} }
+
+func (m *ReplaceOnlyResource) GetId() string              { return m.id }
+func (m *ReplaceOnlyResource) GetRequiredString() string  { return m.requiredString }
+func (m *ReplaceOnlyResource) SetRequiredString(v string) { m.requiredString = v }
+func (m *ReplaceOnlyResource) GetInteger() int64          { return m.integer }
+func (m *ReplaceOnlyResource) SetInteger(v int64)         { m.integer = v }
+func (m *ReplaceOnlyResource) GetBoolean() bool           { return m.boolean }
+func (m *ReplaceOnlyResource) SetBoolean(v bool)          { m.boolean = v }
+
+// PutUpdatedResource is the flat putUpdatedResource model.
+type PutUpdatedResource struct {
+	id             string
+	requiredString string
+	boolean        bool
+}
+
+// NewPutUpdatedResourceWithDefaults stands in for the generated constructor.
+func NewPutUpdatedResourceWithDefaults() *PutUpdatedResource { return &PutUpdatedResource{} }
+
+func (m *PutUpdatedResource) GetId() string              { return m.id }
+func (m *PutUpdatedResource) GetRequiredString() string  { return m.requiredString }
+func (m *PutUpdatedResource) SetRequiredString(v string) { m.requiredString = v }
+func (m *PutUpdatedResource) GetBoolean() bool           { return m.boolean }
+func (m *PutUpdatedResource) SetBoolean(v bool)          { m.boolean = v }
+
+// KeyAddressedDatasource is the flat keyAddressedDatasource model.
+type KeyAddressedDatasource struct {
+	id                         string
+	keyAddressedDatasourceCode string
+	plainString                string
+	integer                    int64
+}
+
+// NewKeyAddressedDatasourceWithDefaults stands in for the generated constructor.
+func NewKeyAddressedDatasourceWithDefaults() *KeyAddressedDatasource {
+	return &KeyAddressedDatasource{}
+}
+
+func (m *KeyAddressedDatasource) GetId() string { return m.id }
+func (m *KeyAddressedDatasource) GetKeyAddressedDatasourceCode() string {
+	return m.keyAddressedDatasourceCode
+}
+func (m *KeyAddressedDatasource) GetPlainString() string { return m.plainString }
+func (m *KeyAddressedDatasource) GetInteger() int64      { return m.integer }
+
+// ListOnlyDatasource is the flat listOnlyDatasource model.
+type ListOnlyDatasource struct {
+	id           string
+	firstString  string
+	secondString string
+}
+
+// NewListOnlyDatasourceWithDefaults stands in for the generated constructor.
+func NewListOnlyDatasourceWithDefaults() *ListOnlyDatasource { return &ListOnlyDatasource{} }
+
+func (m *ListOnlyDatasource) GetId() string           { return m.id }
+func (m *ListOnlyDatasource) GetFirstString() string  { return m.firstString }
+func (m *ListOnlyDatasource) GetSecondString() string { return m.secondString }

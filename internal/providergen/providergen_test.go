@@ -140,8 +140,8 @@ func TestUnit_IR_DumpsTheDerivationWithoutTouchingTheRepo(t *testing.T) {
 	if err := json.Unmarshal(out, &decoded); err != nil {
 		t.Fatalf("the dump is not JSON: %v", err)
 	}
-	if decoded.Provider.Name != "orbital" || len(decoded.Resources) != 3 {
-		t.Errorf("dump = provider %q with %d resources; the fixture derives orbital with 3",
+	if decoded.Provider.Name != "fixture" || len(decoded.Resources) != 3 {
+		t.Errorf("dump = provider %q with %d resources; the fixture derives fixture with 3",
 			decoded.Provider.Name, len(decoded.Resources))
 	}
 	if _, err := os.Stat(filepath.Join(root, "go.mod")); !os.IsNotExist(err) {

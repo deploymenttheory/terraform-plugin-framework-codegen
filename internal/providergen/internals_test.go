@@ -207,54 +207,54 @@ info:
   title: listless
   version: 1.0.0
 paths:
-  /beacons:
+  /replace-only-resources:
     post:
-      operationId: CreateBeacon
+      operationId: CreateReplaceOnlyResource
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Beacon'
+              $ref: '#/components/schemas/ReplaceOnlyResource'
       responses:
         "201":
           description: created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Beacon'
-  /beacons/{beaconId}:
+                $ref: '#/components/schemas/ReplaceOnlyResource'
+  /replace-only-resources/{replaceOnlyResourceId}:
     parameters:
-      - name: beaconId
+      - name: replaceOnlyResourceId
         in: path
         required: true
         schema:
           type: string
     get:
-      operationId: GetBeacon
+      operationId: GetReplaceOnlyResource
       responses:
         "200":
           description: one
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Beacon'
+                $ref: '#/components/schemas/ReplaceOnlyResource'
     delete:
-      operationId: DeleteBeacon
+      operationId: DeleteReplaceOnlyResource
       responses:
         "204":
           description: gone
 components:
   schemas:
-    Beacon:
+    ReplaceOnlyResource:
       type: object
       required:
-        - callsign
+        - requiredString
       properties:
         id:
           type: string
           readOnly: true
-        callsign:
+        requiredString:
           type: string
 `
 	if err := os.WriteFile(filepath.Join(root, "spec", "revised.yaml"), []byte(document), 0o600); err != nil {
@@ -267,7 +267,7 @@ components:
 	}
 	var reason string
 	for _, e := range res.Excluded {
-		if e.Key == "beacon" && strings.Contains(e.Reason, "companion datasource needs a bound list call") {
+		if e.Key == "replace_only_resource" && strings.Contains(e.Reason, "companion datasource needs a bound list call") {
 			reason = e.Reason
 		}
 	}

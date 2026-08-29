@@ -16,7 +16,7 @@ func TestUnit_BindContext_ModuleMismatchIsRefused(t *testing.T) {
 
 	_, err := Run(context.Background(), opts)
 	if err == nil || !strings.Contains(err.Error(), "example.com/somewhere-else") ||
-		!strings.Contains(err.Error(), "github.com/example-org/terraform-provider-orbital") {
+		!strings.Contains(err.Error(), "github.com/example-org/terraform-provider-fixture") {
 		t.Fatalf("err = %v; a go.mod disagreeing with the config names both modules", err)
 	}
 }

@@ -1,86 +1,91 @@
-# The curated document: a fictional orbital-station inventory API, invented
-# for this repository. It is deliberately small and deliberately complete:
-# three resources exercising scalar, enum, nested-object and list attributes,
-# a create-only property, a missing-update entity, a value-conditional
-# requirement, an eventual-consistency window, a put-full update style, a
-# lookup-by-key datasource, a list-only entity, and an action.
+# The curated document: a fictional API invented for this repository, whose
+# every name says which generator behaviour it is here to exercise rather
+# than what it would mean in some domain. An entity is named for its
+# lifecycle and a property for the shape it takes, so a reader can tell what
+# a failure is about without reading the paths.
+#
+# It is deliberately small and deliberately complete: scalar, enum,
+# nested-object, list and map attributes, a create-only property, an entity
+# with no update, a value-conditional requirement, an eventual-consistency
+# window, a put-full update style, a lookup-by-key datasource, a list-only
+# entity, and an action.
 openapi: 3.0.3
 info:
-  title: Orbital Station Inventory API
+  title: Curated Fixture API
   version: 1.0.0
 servers:
-  - url: https://station.example.test/api
+  - url: https://api.example.test/api
 paths:
-  /modules:
+  /patch-updated-resources:
     post:
-      operationId: CreateModule
+      operationId: CreatePatchUpdatedResource
       x-tfpfgen-read-after-write: 45s
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewModule'
+              $ref: '#/components/schemas/NewPatchUpdatedResource'
       responses:
         "201":
-          description: The created module.
+          description: The created patchUpdatedResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Module'
+                $ref: '#/components/schemas/PatchUpdatedResource'
     get:
-      operationId: ListModules
+      operationId: ListPatchUpdatedResources
       responses:
         "200":
-          description: Every module on the station.
+          description: Every patchUpdatedResource.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Module'
-  /modules/{moduleId}:
+                  $ref: '#/components/schemas/PatchUpdatedResource'
+  /patch-updated-resources/{patchUpdatedResourceId}:
     parameters:
-      - name: moduleId
+      - name: patchUpdatedResourceId
         in: path
         required: true
         schema:
           type: string
     get:
-      operationId: GetModule
+      operationId: GetPatchUpdatedResource
       responses:
         "200":
-          description: One module.
+          description: One patchUpdatedResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Module'
+                $ref: '#/components/schemas/PatchUpdatedResource'
     patch:
-      operationId: UpdateModule
+      operationId: UpdatePatchUpdatedResource
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewModule'
+              $ref: '#/components/schemas/NewPatchUpdatedResource'
       responses:
         "200":
-          description: The updated module.
+          description: The updated patchUpdatedResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Module'
+                $ref: '#/components/schemas/PatchUpdatedResource'
     delete:
-      operationId: DeleteModule
+      operationId: DeletePatchUpdatedResource
       x-tfpfgen-delete-not-found-ok: true
       responses:
         "204":
           description: Deleted.
-  /modules/{moduleId}/reboot:
+  /patch-updated-resources/{patchUpdatedResourceId}/custom-action:
     post:
-      operationId: RebootModule
+      operationId: InvokeCustomAction
       parameters:
-        - name: moduleId
+        - name: patchUpdatedResourceId
           in: path
           required: true
           schema:
@@ -90,192 +95,192 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RebootRequest'
+              $ref: '#/components/schemas/CustomActionRequest'
       responses:
         "202":
-          description: Reboot accepted.
-  /beacons:
+          description: CustomAction accepted.
+  /replace-only-resources:
     post:
-      operationId: CreateBeacon
+      operationId: CreateReplaceOnlyResource
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Beacon'
+              $ref: '#/components/schemas/ReplaceOnlyResource'
       responses:
         "201":
-          description: The created beacon.
+          description: The created replaceOnlyResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Beacon'
+                $ref: '#/components/schemas/ReplaceOnlyResource'
     get:
-      operationId: ListBeacons
+      operationId: ListReplaceOnlyResources
       # The document below declares a bare array; the live API wraps its
-      # items under "beacons". The audit's listWrapper observation is
+      # items under "replaceOnlyResources". The audit's listWrapper observation is
       # what this key records, and generation reads it in preference to the
       # schema — the fixture's one deliberately-lying response.
       x-tfpfgen-list-wrapper:
         wrapped: true
-        key: beacons
+        key: replaceOnlyResources
       x-tfpfgen-list-pagination: none
       responses:
         "200":
-          description: Every beacon.
+          description: Every replaceOnlyResource.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Beacon'
-  /beacons/{beaconId}:
+                  $ref: '#/components/schemas/ReplaceOnlyResource'
+  /replace-only-resources/{replaceOnlyResourceId}:
     parameters:
-      - name: beaconId
+      - name: replaceOnlyResourceId
         in: path
         required: true
         schema:
           type: string
     get:
-      operationId: GetBeacon
+      operationId: GetReplaceOnlyResource
       responses:
         "200":
-          description: One beacon.
+          description: One replaceOnlyResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Beacon'
+                $ref: '#/components/schemas/ReplaceOnlyResource'
     delete:
-      operationId: DeleteBeacon
+      operationId: DeleteReplaceOnlyResource
       responses:
         "204":
           description: Deleted.
-  /docks:
+  /put-updated-resources:
     post:
-      operationId: CreateDock
+      operationId: CreatePutUpdatedResource
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Dock'
+              $ref: '#/components/schemas/PutUpdatedResource'
       responses:
         "201":
-          description: The created dock.
+          description: The created putUpdatedResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dock'
+                $ref: '#/components/schemas/PutUpdatedResource'
     get:
-      operationId: ListDocks
+      operationId: ListPutUpdatedResources
       responses:
         "200":
-          description: Every dock.
+          description: Every putUpdatedResource.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Dock'
-  /docks/{dockId}:
+                  $ref: '#/components/schemas/PutUpdatedResource'
+  /put-updated-resources/{putUpdatedResourceId}:
     parameters:
-      - name: dockId
+      - name: putUpdatedResourceId
         in: path
         required: true
         schema:
           type: string
     get:
-      operationId: GetDock
+      operationId: GetPutUpdatedResource
       responses:
         "200":
-          description: One dock.
+          description: One putUpdatedResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dock'
+                $ref: '#/components/schemas/PutUpdatedResource'
     put:
-      operationId: ReplaceDock
+      operationId: ReplacePutUpdatedResource
       x-tfpfgen-update-style: put-full
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Dock'
+              $ref: '#/components/schemas/PutUpdatedResource'
       responses:
         "200":
-          description: The replaced dock.
+          description: The replaced putUpdatedResource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dock'
+                $ref: '#/components/schemas/PutUpdatedResource'
     delete:
-      operationId: DeleteDock
+      operationId: DeletePutUpdatedResource
       responses:
         "204":
           description: Deleted.
-  /permits/{permitCode}:
+  /key-addressed-datasources/{keyAddressedDatasourceCode}:
     get:
-      operationId: GetPermit
+      operationId: GetKeyAddressedDatasource
       parameters:
-        - name: permitCode
+        - name: keyAddressedDatasourceCode
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: The permit the code identifies.
+          description: The keyAddressedDatasource the code identifies.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Permit'
-  /transits:
+                $ref: '#/components/schemas/KeyAddressedDatasource'
+  /list-only-datasources:
     get:
-      operationId: ListTransits
+      operationId: ListListOnlyDatasources
       responses:
         "200":
-          description: Every scheduled transit.
+          description: Every scheduled listOnlyDatasource.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Transit'
+                  $ref: '#/components/schemas/ListOnlyDatasource'
 components:
   schemas:
-    NewModule:
+    NewPatchUpdatedResource:
       type: object
       required:
-        - name
+        - requiredString
       properties:
-        name:
+        requiredString:
           type: string
-          description: The module's display name.
-        kind:
+          description: A required string.
+        enumString:
           type: string
           enum:
-            - habitat
-            - lab
-          description: What the module is for.
-        serial:
+            - optionOne
+            - optionTwo
+          description: A string closed to a declared set of values.
+        immutableString:
           type: string
           x-tfpfgen-immutable: true
-          description: The hull serial, fixed at commissioning.
-        occupied:
+          description: A string a change to which forces re-creation.
+        boolean:
           type: boolean
-          description: Whether anyone is aboard.
-        berthCount:
+          description: A boolean.
+        integer:
           type: integer
-          description: How many berths the module carries.
-        massRatio:
+          description: An integer.
+        number:
           type: number
-          description: Mass relative to the station core.
-        tags:
+          description: A number.
+        listOfStrings:
           type: array
           items:
             type: string
-          description: Free-form mapOfStrings.
+          description: A list whose elements are strings.
         mapOfStrings:
           type: object
           additionalProperties:
@@ -296,134 +301,134 @@ components:
           additionalProperties:
             type: boolean
           description: A map whose values are booleans.
-        berth:
-          type: object
-          x-tfpfgen-required-when:
-            property: kind
-            equals: habitat
-          properties:
-            ring:
-              type: integer
-              description: Which ring the berth sits on.
-            spin:
-              type: boolean
-              description: Whether the ring spins.
-          description: Where the module berths. Required for habitats.
-        hatches:
-          type: array
-          items:
-            type: object
-            required:
-              - label
-            properties:
-              label:
-                type: string
-                description: The hatch label.
-              width:
-                type: integer
-                description: Clear width in centimetres.
-          description: The module's hatches.
-        ports:
+        mapOfNestedObjects:
           type: object
           additionalProperties:
             type: object
             required:
-              - bore
+              - valueInteger
             properties:
-              bore:
+              valueInteger:
                 type: integer
-                description: Clear bore in centimetres.
-              sealed:
+                description: An integer inside a map value.
+              valueBoolean:
                 type: boolean
-                description: Whether the port is sealed.
-          description: The module's docking ports, keyed by the name the crew gives each one.
-    Module:
+                description: A boolean inside a map value.
+          description: A map whose values are objects.
+        nestedObject:
+          type: object
+          x-tfpfgen-required-when:
+            property: enumString
+            equals: optionOne
+          properties:
+            nestedInteger:
+              type: integer
+              description: An integer inside a nested object.
+            nestedBoolean:
+              type: boolean
+              description: A boolean inside a nested object.
+          description: A nested object, required when enumString is optionOne.
+        listOfNestedObjects:
+          type: array
+          items:
+            type: object
+            required:
+              - elementString
+            properties:
+              elementString:
+                type: string
+                description: A string inside a list element.
+              elementInteger:
+                type: integer
+                description: An integer inside a list element.
+          description: A list whose elements are objects.
+    PatchUpdatedResource:
       allOf:
-        - $ref: '#/components/schemas/NewModule'
+        - $ref: '#/components/schemas/NewPatchUpdatedResource'
         - type: object
           required:
             - id
-            - occupied
-            - status
+            - boolean
+            - computedString
           properties:
             id:
               type: string
               readOnly: true
-              description: The module's identifier.
-            status:
+              description: The identifier.
+            computedString:
               type: string
               readOnly: true
-              description: The station computer's current assessment.
-    RebootRequest:
+              description: A string only the API sets.
+    CustomActionRequest:
       type: object
       required:
-        - mode
+        - requiredString
       properties:
-        mode:
+        requiredString:
           type: string
-          description: How hard to reboot.
-        force:
+          description: A required string.
+        boolean:
           type: boolean
-          description: Reboot even with crew aboard.
-    Beacon:
+          description: A boolean.
+    ReplaceOnlyResource:
       type: object
       required:
-        - callsign
+        - requiredString
       properties:
         id:
           type: string
           readOnly: true
-          description: The beacon's identifier.
-        callsign:
+          description: The identifier.
+        requiredString:
           type: string
-          description: The broadcast callsign.
-        rangeKm:
+          description: A required string.
+        integer:
           type: integer
-          description: Nominal range in kilometres.
-        active:
+          description: An integer.
+        boolean:
           type: boolean
-          description: Whether the beacon transmits.
-    Dock:
+          description: A boolean.
+    PutUpdatedResource:
       type: object
       required:
-        - label
+        - requiredString
       properties:
         id:
           type: string
           readOnly: true
-          description: The dock's identifier.
-        label:
+          description: The identifier.
+        requiredString:
           type: string
-          description: The dock's painted label.
-        shielded:
+          description: A required string.
+        boolean:
           type: boolean
-          description: Whether the dock carries debris shielding.
-    Permit:
+          description: A boolean.
+    KeyAddressedDatasource:
       type: object
       properties:
         id:
           type: string
           readOnly: true
-          description: The permit's identifier.
-        permitCode:
+          description: The identifier.
+        keyAddressedDatasourceCode:
           type: string
-          description: The code stamped on the permit.
-        holder:
+          description: The code stamped on the keyAddressedDatasource.
+        plainString:
           type: string
-          description: Who the permit was issued to.
-        seats:
+          description: A string.
+        integer:
           type: integer
-          description: How many seats the permit covers.
-    Transit:
+          description: An integer.
+    ListOnlyDatasource:
       type: object
       properties:
         id:
           type: string
           readOnly: true
-          description: The transit's identifier.
-        window:
+          description: The identifier.
+        firstString:
           type: string
-          description: The launch window, ISO 8601.
-        craft:
+          description: A string.
+        secondString:
           type: string
-          description: The craft making the transit.
+          description: A second string.
