@@ -54,6 +54,10 @@ func newSDKGenerateCommand() *cobra.Command {
 			if res.Files == 1 {
 				noun = "file"
 			}
+			// The rewrites first, because they happened first: the
+			// backend read a pre-normalised copy the run then removed,
+			// and this is the only account of how it differed.
+			fmt.Fprintf(cmd.OutOrStdout(), "prenormalised %s: %s\n", res.RevisedPath, res.Rewrites)
 			fmt.Fprintf(cmd.OutOrStdout(), "generated %d %s into %s with %s %s from %s\n",
 				res.Files, noun, out, res.Backend, res.Version, res.RevisedPath)
 			return nil

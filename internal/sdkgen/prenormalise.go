@@ -51,29 +51,64 @@ import (
 //
 // Every pass accepts zero hits: a document without the shapes needs no
 // rewriting, which is not an error.
-func Prenormalise(revised []byte) (out []byte, stripped, collapsed int, err error) {
+func Prenormalise(revised []byte) (out []byte, rewrites Rewrites, err error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(revised, &root); err != nil {
-		return nil, 0, 0, fmt.Errorf("the revised document is not usable YAML: %w", err)
+		return nil, Rewrites{}, fmt.Errorf("the revised document is not usable YAML: %w", err)
 	}
 	if root.Kind != yaml.DocumentNode || len(root.Content) == 0 {
-		return nil, 0, 0, fmt.Errorf("the revised document is not a single YAML document")
+		return nil, Rewrites{}, fmt.Errorf("the revised document is not a single YAML document")
 	}
 
 	top := root.Content[0]
-	stripped = yamlwalk.StripSchemaDefaults(top)
-	collapsed = collapseAnonymousAllOfs(top)
-	widenByteArrayCollections(top)
-	reduceUnions(top)
-	dropUnacceptableErrorContent(top)
+	rewrites.SchemaDefaultsStripped = yamlwalk.StripSchemaDefaults(top)
+	rewrites.AnonymousAllOfsCollapsed = collapseAnonymousAllOfs(top)
+	rewrites.ByteArrayCollectionsWidened = widenByteArrayCollections(top)
+	rewrites.UnionsReduced = reduceUnions(top)
+	rewrites.ErrorContentDropped = dropUnacceptableErrorContent(top)
 
 	yamlwalk.ForceBlockStyle(&root)
 
 	out, err = yaml.Marshal(&root)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, Rewrites{}, err
 	}
-	return out, stripped, collapsed, nil
+	return out, rewrites, nil
+}
+
+// Rewrites counts what each of the five rewrites changed, one field per
+// rewrite in the order Prenormalise applies them. Every count is reported
+// because a rewrite that found nothing is a different fact from one that was
+// never measured, and the pre-normalised document is never committed — these
+// counts are the only account of what the backend was given.
+type Rewrites struct {
+	// SchemaDefaultsStripped is how many `default` keywords were removed.
+	SchemaDefaultsStripped int
+	// AnonymousAllOfsCollapsed is how many single-member anonymous allOf
+	// compositions were folded into their one member.
+	AnonymousAllOfsCollapsed int
+	// ByteArrayCollectionsWidened is how many array item schemas lost
+	// `format: byte`.
+	ByteArrayCollectionsWidened int
+	// UnionsReduced is how many anyOf or oneOf compositions were folded to
+	// their first branch. Only a union whose branches are all inline is
+	// reduced, so this counts the unions a generator could not model
+	// rather than every union the document declares.
+	UnionsReduced int
+	// ErrorContentDropped is how many error responses were inlined without
+	// their content.
+	ErrorContentDropped int
+}
+
+// String renders every count in the order the rewrites are applied, so the
+// line reads as the sequence the document went through.
+func (r Rewrites) String() string {
+	return fmt.Sprintf(
+		"%d schema defaults stripped, %d anonymous allOf collapsed, "+
+			"%d byte-array collections widened, %d unions reduced, "+
+			"%d error responses stripped of content",
+		r.SchemaDefaultsStripped, r.AnonymousAllOfsCollapsed,
+		r.ByteArrayCollectionsWidened, r.UnionsReduced, r.ErrorContentDropped)
 }
 
 // collapseAnonymousAllOfs hoists every single-member anonymous allOf in the
@@ -151,52 +186,58 @@ func collapseAllOf(schema *yaml.Node) int {
 
 // widenByteArrayCollections drops the byte format from an array's item
 // schema, in both the component schemas and inline under paths.
-func widenByteArrayCollections(top *yaml.Node) {
+func widenByteArrayCollections(top *yaml.Node) int {
+	count := 0
 	if schemas := yamlwalk.ChildValue(yamlwalk.ChildValue(top, "components"), "schemas"); schemas != nil {
 		for i := 1; i < len(schemas.Content); i += 2 {
-			widenByteArrays(schemas.Content[i])
+			count += widenByteArrays(schemas.Content[i])
 		}
 	}
 	if paths := yamlwalk.ChildValue(top, "paths"); paths != nil {
-		widenByteArrays(paths)
+		count += widenByteArrays(paths)
 	}
+	return count
 }
 
 // widenByteArrays walks a node, removing `format: byte` from any schema that
 // is the `items` of an array. A single format: byte string is left alone —
 // that shape generates a writer the runtimes do implement.
-func widenByteArrays(node *yaml.Node) {
+func widenByteArrays(node *yaml.Node) int {
 	if node == nil {
-		return
+		return 0
 	}
 
+	count := 0
 	switch node.Kind {
 	case yaml.MappingNode:
 		for i := 0; i+1 < len(node.Content); i += 2 {
 			key, value := node.Content[i].Value, node.Content[i+1]
-			if key == "items" {
-				dropByteFormat(value)
+			if key == "items" && dropByteFormat(value) {
+				count++
 			}
-			widenByteArrays(value)
+			count += widenByteArrays(value)
 		}
 	case yaml.SequenceNode:
 		for _, member := range node.Content {
-			widenByteArrays(member)
+			count += widenByteArrays(member)
 		}
 	}
+	return count
 }
 
-// dropByteFormat removes `format: byte` from one schema node.
-func dropByteFormat(schema *yaml.Node) {
+// dropByteFormat removes `format: byte` from one schema node, and answers
+// whether it found one to remove.
+func dropByteFormat(schema *yaml.Node) bool {
 	if schema == nil || schema.Kind != yaml.MappingNode {
-		return
+		return false
 	}
 	for i := 0; i+1 < len(schema.Content); i += 2 {
 		if schema.Content[i].Value == "format" && schema.Content[i+1].Value == "byte" {
 			schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
-			return
+			return true
 		}
 	}
+	return false
 }
 
 // reduceUnions rewrites every anyOf and oneOf in the document to its first
