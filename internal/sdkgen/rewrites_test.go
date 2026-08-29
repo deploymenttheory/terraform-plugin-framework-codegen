@@ -75,8 +75,16 @@ func TestUnit_Sdkgen_ADocumentNeedingNoRewritingReportsZero(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rewrites != (Rewrites{}) {
-		t.Errorf("Rewrites = %+v, want every count zero", rewrites)
+	for name, r := range map[string]Rewrite{
+		"schema defaults":        rewrites.SchemaDefaultsStripped,
+		"anonymous allOf":        rewrites.AnonymousAllOfsCollapsed,
+		"byte-array collections": rewrites.ByteArrayCollectionsWidened,
+		"unions":                 rewrites.UnionsReduced,
+		"error content":          rewrites.ErrorContentDropped,
+	} {
+		if r.Count != 0 || len(r.Sites) != 0 {
+			t.Errorf("%s = %+v, want no changes and no sites", name, r)
+		}
 	}
 }
 
@@ -90,8 +98,8 @@ func TestUnit_Sdkgen_AUnionOfNamedSchemasIsNotReduced(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rewrites.UnionsReduced != 0 {
-		t.Errorf("reduced %d unions, want none: every branch names a schema", rewrites.UnionsReduced)
+	if rewrites.UnionsReduced.Count != 0 {
+		t.Errorf("reduced %d unions, want none: every branch names a schema", rewrites.UnionsReduced.Count)
 	}
 	if !strings.Contains(string(out), "oneOf:") {
 		t.Errorf("the union did not survive:\n%s", out)
@@ -105,11 +113,11 @@ func TestUnit_Sdkgen_AUnionOfNamedSchemasIsNotReduced(t *testing.T) {
 func TestUnit_Sdkgen_RewritesReadInTheOrderTheyAreApplied(t *testing.T) {
 	t.Parallel()
 	rendered := Rewrites{
-		SchemaDefaultsStripped:      3,
-		AnonymousAllOfsCollapsed:    0,
-		ByteArrayCollectionsWidened: 1,
-		UnionsReduced:               7,
-		ErrorContentDropped:         2,
+		SchemaDefaultsStripped:      Rewrite{Count: 3},
+		AnonymousAllOfsCollapsed:    Rewrite{Count: 0},
+		ByteArrayCollectionsWidened: Rewrite{Count: 1},
+		UnionsReduced:               Rewrite{Count: 7},
+		ErrorContentDropped:         Rewrite{Count: 2},
 	}.String()
 
 	for _, want := range []string{
@@ -125,5 +133,90 @@ func TestUnit_Sdkgen_RewritesReadInTheOrderTheyAreApplied(t *testing.T) {
 	}
 	if got := strings.Index(rendered, "unions reduced"); got < strings.Index(rendered, "schema defaults") {
 		t.Errorf("the counts do not read in the order the rewrites run: %s", rendered)
+	}
+}
+
+// unionOutsideTheUsualRootsSpec puts a reducible union somewhere neither the
+// component schemas nor the paths reach. Union reduction walks the whole
+// document, and attributing what it changed must not narrow that.
+const unionOutsideTheUsualRootsSpec = `openapi: 3.0.3
+info: {title: O, version: "1.0.0"}
+paths:
+  /widgets:
+    get:
+      responses:
+        "200":
+          $ref: '#/components/responses/Widget'
+components:
+  responses:
+    Widget:
+      description: ok
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - type: object
+                properties:
+                  name: {type: string}
+              - type: object
+                properties:
+                  size: {type: string}
+`
+
+// TestUnit_Sdkgen_AUnionOutsideTheComponentSchemasIsStillReduced holds the
+// walk to the whole document. Naming where a change happened must not become
+// a reason to look in fewer places than the rewrite already looked.
+func TestUnit_Sdkgen_AUnionOutsideTheComponentSchemasIsStillReduced(t *testing.T) {
+	t.Parallel()
+	out, rewrites, err := Prenormalise([]byte(unionOutsideTheUsualRootsSpec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rewrites.UnionsReduced.Count != 1 {
+		t.Fatalf("reduced %d unions, want the one under components.responses", rewrites.UnionsReduced.Count)
+	}
+	if strings.Contains(string(out), "anyOf:") {
+		t.Errorf("the union survived:\n%s", out)
+	}
+	if len(rewrites.UnionsReduced.Sites) != 1 || rewrites.UnionsReduced.Sites[0].Where != "components.responses" {
+		t.Errorf("sites = %+v, want the section the document puts it in", rewrites.UnionsReduced.Sites)
+	}
+}
+
+// TestUnit_Sdkgen_ARewriteNamesWhereItChangedSomething is the point of the
+// sites. A count says a document lost something; only the site says which
+// part of it, which is what a reader needs to go and look.
+func TestUnit_Sdkgen_ARewriteNamesWhereItChangedSomething(t *testing.T) {
+	t.Parallel()
+	_, rewrites, err := Prenormalise([]byte(prenormaliseSample))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for name, r := range map[string]Rewrite{
+		"schema defaults":        rewrites.SchemaDefaultsStripped,
+		"anonymous allOf":        rewrites.AnonymousAllOfsCollapsed,
+		"byte-array collections": rewrites.ByteArrayCollectionsWidened,
+	} {
+		if r.Count == 0 {
+			t.Errorf("%s changed nothing; the fixture no longer exercises it", name)
+			continue
+		}
+		if len(r.Sites) == 0 {
+			t.Errorf("%s changed %d things and named nowhere", name, r.Count)
+		}
+		total := 0
+		for _, site := range r.Sites {
+			if site.Where == "" || site.Count <= 0 {
+				t.Errorf("%s: unnamed or empty site %+v", name, site)
+			}
+			if !strings.HasPrefix(site.Where, "components.") && !strings.HasPrefix(site.Where, "paths.") {
+				t.Errorf("%s: site %q is not named the way the document names it", name, site.Where)
+			}
+			total += site.Count
+		}
+		if total != r.Count {
+			t.Errorf("%s: sites account for %d of %d changes", name, total, r.Count)
+		}
 	}
 }
