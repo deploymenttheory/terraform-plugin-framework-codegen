@@ -90,7 +90,7 @@ func TestUnit_Explain_NoExplanationSpeaksTheToolkitsVocabulary(t *testing.T) {
 		// belongs: the reader wrote that file.
 		text := strings.ReplaceAll(strings.ToLower(e.Title+" "+e.Means+" "+e.Fix), "tfpfgen.yaml", "the config file")
 		for _, word := range strings.FieldsFunc(text,
-			func(r rune) bool { return !('a' <= r && r <= 'z') },
+			func(r rune) bool { return r < 'a' || r > 'z' },
 		) {
 			if ours[word] {
 				t.Errorf("the explanation for %q says %q, which means nothing to the reader", code, word)
