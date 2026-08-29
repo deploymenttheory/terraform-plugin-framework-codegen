@@ -20,8 +20,9 @@ func TestIntegration_Specmodel_LoadsAPinnedVendorDocument(t *testing.T) {
 	}
 
 	const (
-		version   = "7.0.102"
-		pathCount = 208
+		version         = "7.0.102"
+		pathCount       = 208
+		topLevelTagList = 100
 	)
 	if document.Info.Version != version {
 		t.Errorf("info.version = %q, want %q", document.Info.Version, version)
@@ -31,6 +32,28 @@ func TestIntegration_Specmodel_LoadsAPinnedVendorDocument(t *testing.T) {
 	}
 	if got := len(document.Operations()); got == 0 {
 		t.Errorf("loaded no operations")
+	}
+	if got := len(document.Tags); got != topLevelTagList {
+		t.Errorf("loaded %d top-level tags, want %d", got, topLevelTagList)
+	}
+	// A described entry proves the description is read and not merely the
+	// name, which the inline fixtures assert one of.
+	described := 0
+	for _, tag := range document.Tags {
+		if tag.Description != "" {
+			described++
+		}
+	}
+	if described == 0 {
+		t.Errorf("no top-level tag carried a description")
+	}
+	// Every operation in this document is tagged. That is the document's
+	// property rather than the loader's, and it is asserted because a
+	// grouping read off the tag is only as complete as the tagging is.
+	for _, operation := range document.Operations() {
+		if len(operation.Tags) == 0 {
+			t.Errorf("%s %s carries no tag", operation.Method, operation.Path)
+		}
 	}
 
 	cls := Classify(document)

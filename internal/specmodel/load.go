@@ -92,6 +92,23 @@ func (l *loader) loadDocument(top *yaml.Node) error {
 		}
 	}
 
+	// A tag with no name groups nothing, so it is skipped rather than
+	// carried as an entry no operation can refer to.
+	if tags := lookup(top, "tags"); tags != nil {
+		for _, t := range tags.Content {
+			t = deref(t)
+			name := lookup(t, "name")
+			if name == nil || name.Value == "" {
+				continue
+			}
+			tag := Tag{Name: name.Value}
+			if description := lookup(t, "description"); description != nil {
+				tag.Description = description.Value
+			}
+			l.document.Tags = append(l.document.Tags, tag)
+		}
+	}
+
 	// Components before paths, so a path referencing a component parameter
 	// or body finds it already parsed. Schema references need no such
 	// ordering: they resolve in a dedicated pass.
@@ -198,6 +215,14 @@ func (l *loader) operation(method, path string, node *yaml.Node, shared []Parame
 
 	if id := lookup(node, "operationId"); id != nil {
 		operation.OperationID = id.Value
+	}
+
+	if tags := lookup(node, "tags"); tags != nil {
+		for _, t := range tags.Content {
+			if t.Value != "" {
+				operation.Tags = append(operation.Tags, t.Value)
+			}
+		}
 	}
 
 	own, err := l.parameterList(lookup(node, "parameters"), at)

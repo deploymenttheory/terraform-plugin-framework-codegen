@@ -27,6 +27,9 @@ type Document struct {
 	Info Info
 	// Servers lists the declared servers in document order.
 	Servers []Server
+	// Tags is the document's top-level tag list in document order, empty
+	// when it declares none.
+	Tags []Tag
 	// Paths holds every path item, sorted by path so iteration is
 	// deterministic regardless of document order.
 	Paths []Path
@@ -43,6 +46,15 @@ type Info struct {
 // Server is one entry of the servers array.
 type Server struct {
 	URL string
+}
+
+// Tag is one entry of the document's top-level tag list: a group name
+// operations refer to, and the vendor's description of it where one is
+// given. A document may tag its operations without declaring the list, so a
+// tag an operation names is not necessarily described here.
+type Tag struct {
+	Name        string
+	Description string
 }
 
 // Path is one path item and its operations.
@@ -62,6 +74,10 @@ type Operation struct {
 	Path string
 	// OperationID is the declared operationId, possibly empty.
 	OperationID string
+	// Tags names the groups the document places this operation in, in
+	// document order. It is the vendor's own grouping of its API, which
+	// nothing else in the document states.
+	Tags []string
 	// Parameters combines path-item and operation parameters, the
 	// operation's own winning on a (name, in) collision, sorted by
 	// location then name.
