@@ -53,18 +53,32 @@ func (e *unrenderableError) Error() string { return e.reason }
 // The causes emission refuses an entity for. The set is closed, and each
 // names the thing the entity needed and did not have.
 const (
-	CauseNoBoundInvokeCall      = "noBoundInvokeCall"
-	CauseNoBoundReadCall        = "noBoundReadCall"
-	CauseNoBoundListCall        = "noBoundListCall"
-	CauseNoMappablePayload      = "noMappablePayload"
-	CauseNoItemsAttribute       = "noItemsAttribute"
-	CauseNoElementType          = "noElementType"
+	// Named for the Terraform block they concern, then what went wrong, so
+	// a reader meets the thing they are looking at first. One code per
+	// condition: three different failures under one name grouped refusals
+	// that share nothing.
+	CauseDatasourceNoReadCall            = "datasourceNoReadCall"
+	CauseDatasourceNoListCall            = "datasourceNoListCall"
+	CauseDatasourceReadYieldsNoPayload   = "datasourceReadYieldsNoPayload"
+	CauseDatasourceReadAnswersCollection = "datasourceReadAnswersCollection"
+	CauseDatasourceListYieldsNoPayload   = "datasourceListYieldsNoPayload"
+	CauseDatasourceNoItemsAttribute      = "datasourceNoItemsAttribute"
+	CauseDatasourceNoElementType         = "datasourceNoElementType"
+
+	CauseResourceNoLifecycleCall     = "resourceNoLifecycleCall"
+	CauseResourceReadYieldsNoPayload = "resourceReadYieldsNoPayload"
+	CauseResourceNoKeyedReadPath     = "resourceNoKeyedReadPath"
+
+	CauseListResourceListYieldsNoPayload         = "listResourceListYieldsNoPayload"
+	CauseListResourceNoCorrelatingResourceExists = "listResourceNoCorrelatingResourceExists"
+	CauseListResourceListedResourceHasNoIdentity = "listResourceListedResourceHasNoIdentity"
+	CauseListResourceElementHasNoIdentity        = "listResourceElementHasNoIdentity"
+	CauseListResourceIdentityNotConfigurable     = "listResourceIdentityNotConfigurable"
+
+	// These reach any block, so none of them leads with one.
 	CauseUnmatchedPathArgument  = "unmatchedPathArgument"
 	CauseUnconvertiblePathType  = "unconvertiblePathType"
-	CauseNoIdentity             = "noIdentity"
-	CauseNoBoundLifecycleCall   = "noBoundLifecycleCall"
 	CauseUnvalidatableAttribute = "unvalidatableAttribute"
-	CauseNoKeyedReadPath        = "noKeyedReadPath"
 )
 
 // unrenderable builds the error entity emission refuses one entity with.
@@ -173,7 +187,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		// resource with it.
 		if !served[lr.Names.Key] {
 			out.Excluded = append(out.Excluded, excludedEntity(bindingKindListResource, lr.Names,
-				ir.Cause{Code: CauseNoBoundListCall},
+				ir.Cause{Code: CauseListResourceNoCorrelatingResourceExists},
 				"list: the resource it lists is not served, and terraform refuses a provider whose list resource names no resource"))
 			continue
 		}

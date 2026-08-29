@@ -413,8 +413,10 @@ const (
 	CauseAmbiguousListShape = "ambiguousListShape"
 	CauseNoResponsePayload  = "noResponsePayload"
 	CauseUnbuildableEntity  = "unbuildableEntity"
-	CauseNoListCall         = "noListCall"
-	CauseNoInvokeCall       = "noInvokeCall"
+	// Named for the Terraform block they concern, because that is what a
+	// reader is looking at when they meet one.
+	CauseListResourceNoListCall = "listResourceNoListCall"
+	CauseActionNoInvokeCall     = "actionNoInvokeCall"
 )
 
 type Removal struct {

@@ -11,12 +11,12 @@ import (
 // The report is read by somebody who knows Terraform and their own API and
 // has never seen this toolkit, so it says what happened in their words, not
 // in the vocabulary the code uses among itself. That is `docs/naming-
-// standard.md` R7 — emitted artefacts speak the reader's language — applied
-// to a page rather than to generated Go.
+// standard.md` R7, which says emitted artefacts speak the reader's
+// language, applied to a page rather than to generated Go.
 //
 // It follows the same shape `internal/spec/revise` uses to narrate a
 // correction to a reviewer, and for the same reason: a code and a subject
-// are the mechanism, and a reader needs what it cost them.
+// are the mechanism; a reader needs what it cost them.
 type Explanation struct {
 	// Title says what happened, as a heading a reader can scan.
 	Title string
@@ -41,8 +41,8 @@ type Step struct {
 // Workflow is the whole generation, in the order it happens.
 var Workflow = []Step{
 	{1, "Read the API description", "The vendor's OpenAPI description is fetched and recorded by checksum, so every later step works from exactly those bytes."},
-	{2, "Apply recorded adjustments", "Corrections committed against the description are applied to it — each one a recorded change with a reason, usually something the live API does that the description does not say."},
-	{3, "Prepare the description for the client generator", "A working copy is adjusted to what the client generator can model. The copy is discarded afterwards; this report is the only account of how it differed."},
+	{2, "Apply recorded adjustments", "Corrections committed against the description are applied to it. Each one is a recorded change with a reason, usually something the live API does that the description does not say."},
+	{3, "Prepare the description for the client generator", "A working copy is adjusted to what the client generator can model. The copy is discarded afterwards, so this report is the only account of how it differed."},
 	{4, "Generate the API client", "The client library the provider calls the API through is generated from that copy."},
 	{5, "Decide what each API path can become", "Paths are grouped into things, and each is judged against what Terraform can manage: a resource, a data source, a list, an action, or nothing."},
 	{6, "Turn each schema into Terraform attributes", "Every field the API describes becomes a Terraform attribute, or is set aside where Terraform has no equivalent."},
@@ -83,12 +83,12 @@ var explanations = map[string]Explanation{
 	// Deciding what an API path can become.
 	specmodel.CauseUnwritableFixedPath: {
 		Title: "Read-only endpoint, so there is nothing to manage",
-		Means: "The API offers one object at a fixed address and no operation that changes it. Terraform would own nothing, so no resource was generated.",
+		Means: "The API offers one object at a fixed address and no operation that changes it. Terraform would not be able to manage it, so no resource was generated.",
 		Fix:   "Nothing here can change this. The API would have to offer a way to write it.",
 	},
 	specmodel.CauseSchemalessLifecycle: {
 		Title: "The operations are described but the data is not",
-		Means: "The API can create, read and delete this, but the description does not say what the request or the response looks like — so there is no shape to build a resource from.",
+		Means: "The API can create, read and delete this, but the description does not say what the request or the response looks like, so there is no shape to build a resource from.",
 		Fix:   "A correction can supply the missing schema, or the vendor can describe it.",
 	},
 	specmodel.CauseSchemalessDatasource: {
@@ -113,7 +113,7 @@ var explanations = map[string]Explanation{
 	},
 	specmodel.CausePartialLifecycle: {
 		Title: "Only part of a lifecycle is offered",
-		Means: "The API offers some of create, read, update and delete but not the combination any Terraform shape needs — most often something that can be created but never read back.",
+		Means: "The API offers some of create, read, update and delete but not the combination any Terraform shape needs. Most often it is something that can be created but never read back.",
 		Fix:   "Nothing here can change this. The API would have to offer the missing operation.",
 	},
 
@@ -250,77 +250,110 @@ var explanations = map[string]Explanation{
 		Means: "Every field was set aside for its own reason, so there was nothing left to generate.",
 		Fix:   "Look at the fields' own reasons above; this is the consequence of them.",
 	},
-	sdkbind.CauseNoListCall: {
+	sdkbind.CauseListResourceNoListCall: {
 		Title: "There is no list call to build this from",
 		Means: "A list needs a call that returns the collection, and none was bound.",
 		Fix:   "This follows from the described paths and what the client generator made of them.",
 	},
-	sdkbind.CauseNoInvokeCall: {
+	sdkbind.CauseActionNoInvokeCall: {
 		Title: "There is no call to invoke",
 		Means: "An action is one call, and none was bound.",
 		Fix:   "This follows from the described paths and what the client generator made of them.",
 	},
 
 	// Writing the provider code.
-	CauseNoBoundInvokeCall: {
-		Title: "The action has no call behind it",
-		Means: "There was nothing for the generated action to invoke, so it was not written.",
-		Fix:   "Look at the client-matching step above for why the call went.",
+	CauseDatasourceNoReadCall: {
+		Title: "The data source has no way to fetch one object",
+		Means: "A data source addressed by key fetches a single object by that key. No such call survived the earlier steps, so there was nothing for the generated data source to call and it was not written.",
+		Fix:   "The call was set aside earlier for its own reason; that reason is the one to act on.",
 	},
-	CauseNoBoundReadCall: {
-		Title: "The data source has no read call behind it",
-		Means: "A data source addressed by key needs a call that fetches one object, and none survived.",
-		Fix:   "Look at the client-matching step above for why the call went.",
+	CauseDatasourceNoListCall: {
+		Title: "The data source has no way to list objects",
+		Means: "A data source that returns a collection needs a call that lists it. No such call survived the earlier steps, so the data source was not written.",
+		Fix:   "The call was set aside earlier for its own reason; that reason is the one to act on.",
 	},
-	CauseNoBoundListCall: {
-		Title: "The list has no call behind it",
-		Means: "Terraform refuses to load a provider whose list names no resource, so this was left out rather than break the whole provider.",
-		Fix:   "Look at the reason the resource it lists was set aside.",
-	},
-	CauseNoBoundLifecycleCall: {
-		Title: "The resource is missing one of its lifecycle calls",
-		Means: "A resource needs create, read and delete — or read and update where the API offers one fixed object — and at least one did not survive.",
-		Fix:   "Look at the client-matching step above for why the call went.",
-	},
-	CauseNoMappablePayload: {
-		Title: "The call returns nothing to read into state",
-		Means: "The call the provider would read from answers with no body, or with a collection where one object was needed.",
+	CauseDatasourceReadYieldsNoPayload: {
+		Title: "The data source's read returns nothing to read",
+		Means: "Terraform fills a data source from what the API answers with. This one's read call returns no body, so there would be nothing to put in it.",
 		Fix:   "Nothing here can change this. The API would have to return the object.",
 	},
-	CauseNoItemsAttribute: {
-		Title: "The data source has nothing to return",
-		Means: "A data source that lists needs an attribute to put the results in, and the schema carries none.",
-		Fix:   "Look at the schema step above for why the fields went.",
+	CauseDatasourceReadAnswersCollection: {
+		Title: "The data source's read returns a collection, not one object",
+		Means: "This data source is addressed by a single key, so it must answer with a single object. The API answers with a collection instead, which cannot be mapped into one object's state without choosing between the items.",
+		Fix:   "A correction can describe the response as a single object where the API returns one; otherwise the API would have to.",
 	},
-	CauseNoElementType: {
-		Title: "The list's item type is not known",
-		Means: "The provider could not tell what one item of this list looks like, so the list was not written.",
-		Fix:   "This follows from what the client generator produced.",
+	CauseDatasourceListYieldsNoPayload: {
+		Title: "The data source's list returns nothing to read",
+		Means: "The call that lists these returns no body, so there would be nothing to fill the results with.",
+		Fix:   "Nothing here can change this. The API would have to return the collection.",
 	},
+	CauseDatasourceNoItemsAttribute: {
+		Title: "The data source has nowhere to put its results",
+		Means: "A data source that lists puts the results in an attribute. Every field of this one was set aside at an earlier step, leaving no attribute to hold them.",
+		Fix:   "The fields were set aside for their own reasons; those are the ones to act on.",
+	},
+	CauseDatasourceNoElementType: {
+		Title: "It is not known what one result looks like",
+		Means: "The generated client does not say what type the items of this collection are, so the results attribute could not be given a shape.",
+		Fix:   "This follows from what the client generator made of the description.",
+	},
+
+	CauseResourceNoLifecycleCall: {
+		Title: "The resource is missing one of the calls it needs",
+		Means: "Terraform manages a resource by creating, reading and deleting it, or by reading and updating one fixed object. At least one of those calls did not survive the earlier steps, so the resource could not be written; a resource missing one of them would fail on the first apply.",
+		Fix:   "The call was set aside earlier for its own reason; that reason is the one to act on.",
+	},
+	CauseResourceReadYieldsNoPayload: {
+		Title: "The resource's read returns nothing to read",
+		Means: "Terraform keeps a resource in step with the API by reading it back. This read returns no body, so there would be no way to tell what the API holds.",
+		Fix:   "Nothing here can change this. The API would have to return the object.",
+	},
+	CauseResourceNoKeyedReadPath: {
+		Title: "The generated tests have nothing to key a response on",
+		Means: "The generated tests answer a read by matching on a value in the URL, and this read's URL carries none. This affects the tests that ship with the provider, not the provider itself.",
+		Fix:   "Nothing here can change this, and nothing in the provider is missing because of it.",
+	},
+
+	CauseListResourceListYieldsNoPayload: {
+		Title: "The list returns nothing to read",
+		Means: "A list is filled from what the API answers with, and this call returns no body.",
+		Fix:   "Nothing here can change this. The API would have to return the collection.",
+	},
+	CauseListResourceNoCorrelatingResourceExists: {
+		Title: "There is no resource for this list to list",
+		Means: "Terraform refuses to load a provider that offers a list for a resource the provider does not also offer, and it refuses the whole provider rather than that one list. The resource was set aside at an earlier step, so this list was left out to keep the rest of the provider loadable.",
+		Fix:   "The resource was set aside for its own reason; that reason is the one to act on.",
+	},
+	CauseListResourceListedResourceHasNoIdentity: {
+		Title: "The resource this lists has nothing that identifies it",
+		Means: "Every result a list returns has to name the object it stands for, so the resource it lists must have a stable identifier. That resource has none, so there is nothing for a result to carry.",
+		Fix:   "Recording which property carries the identifier resolves this; that is one of the things an API audit records.",
+	},
+	CauseListResourceElementHasNoIdentity: {
+		Title: "The listed objects carry nothing that identifies them",
+		Means: "Terraform needs a stable identifier for each object in a list, and nothing the API returns for these is recognisable as one.",
+		Fix:   "Recording which property carries the identifier resolves this; that is one of the things an API audit records.",
+	},
+	CauseListResourceIdentityNotConfigurable: {
+		Title: "A value that identifies the object cannot be supplied",
+		Means: "Part of what identifies one of these objects is not something the list block can be given, so a result could not be assembled that names the object it stands for.",
+		Fix:   "A correction that makes the value part of the object, rather than something supplied alongside it, resolves this.",
+	},
+
 	CauseUnmatchedPathArgument: {
-		Title: "A value in the URL matches nothing the caller supplies",
-		Means: "The API path contains a placeholder, and there is no attribute and no identifier the provider could fill it from.",
-		Fix:   "A correction naming which property fills it lets this generate.",
+		Title: "A value in the API URL cannot be filled in",
+		Means: "The API address contains a placeholder, and there is no attribute and no identifier the provider could take its value from, so the call could not be built.",
+		Fix:   "A correction naming which property fills the placeholder lets this generate.",
 	},
 	CauseUnconvertiblePathType: {
-		Title: "A value in the URL is described as one type and generated as another",
-		Means: "The placeholder in the API path is one type in the description and another in the generated client, and no conversion between them is safe.",
-		Fix:   "A correction aligning the described type with what the API takes resolves this.",
-	},
-	CauseNoIdentity: {
-		Title: "Nothing identifies one of these",
-		Means: "Terraform needs a stable identifier to import and to track an object. Nothing the API returns is recognisable as one.",
-		Fix:   "Recording which property carries the identifier resolves this; that is what an API audit records.",
+		Title: "A value in the API URL is described as one type and generated as another",
+		Means: "The placeholder in the API address is one type in the description and a different one in the generated client, and no conversion between them is safe enough to do silently.",
+		Fix:   "A correction aligning the described type with what the API actually takes resolves this.",
 	},
 	CauseUnvalidatableAttribute: {
-		Title: "A rule names something that is not an attribute",
-		Means: "A rule recorded about this object refers to a field the generated schema does not have, so the rule could not be written.",
-		Fix:   "The recorded rule and the schema disagree; re-running the API audit usually settles it.",
-	},
-	CauseNoKeyedReadPath: {
-		Title: "The read path has nothing to key a test on",
-		Means: "The generated tests key their responses on a value in the URL, and this path has none.",
-		Fix:   "Nothing here can change this; it affects the generated tests, not the provider.",
+		Title: "A rule refers to a field that is not there",
+		Means: "A rule recorded about this object refers to a field the generated schema does not have, so the rule could not be written and is not enforced.",
+		Fix:   "The recorded rule and the schema disagree; re-running an API audit usually settles which is right.",
 	},
 }
 

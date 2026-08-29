@@ -48,7 +48,7 @@ type actionData struct {
 // action renders one action's file set.
 func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]File, error) {
 	if ab.Invoke == nil {
-		return nil, unrenderable(CauseNoBoundInvokeCall, "an action needs a bound invoke call")
+		return nil, unrenderable(sdkbind.CauseActionNoInvokeCall, "an action needs a bound invoke call")
 	}
 
 	d := &actionData{
