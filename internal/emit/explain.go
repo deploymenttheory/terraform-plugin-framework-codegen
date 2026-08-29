@@ -40,10 +40,10 @@ type Step struct {
 
 // Workflow is the whole generation, in the order it happens.
 var Workflow = []Step{
-	{1, "Read the API description", "The vendor's OpenAPI description is fetched and recorded by checksum, so every later step works from exactly those bytes."},
-	{2, "Apply recorded adjustments", "Corrections committed against the description are applied to it. Each one is a recorded change with a reason, usually something the live API does that the description does not say."},
-	{3, "Prepare the description for the client generator", "A working copy is adjusted to what the client generator can model. The copy is discarded afterwards, so this report is the only account of how it differed."},
-	{4, "Generate the API client", "The client library the provider calls the API through is generated from that copy."},
+	{1, "Read the OpenAPI 3 specification", "The specification the API vendor publishes is fetched and recorded by its SHA-256 checksum, so every later step works from exactly those bytes and a changed specification is a visible change."},
+	{2, "Apply recorded adjustments", "Corrections committed against the OpenAPI 3 specification are applied to it. Each one is a recorded change with a reason, usually something the live API does that the specification does not say."},
+	{3, "Prepare a copy for the API client generator", "A few things an OpenAPI 3 specification can express, the API client generator cannot. It is given an adjusted copy; the specification itself is never changed, and the copy is discarded once the client is built."},
+	{4, "Generate the API client", "The Go client library the provider calls the API through is generated from that copy."},
 	{5, "Decide what each API path can become", "Paths are grouped into things, and each is judged against what Terraform can manage: a resource, a data source, a list, an action, or nothing."},
 	{6, "Turn each schema into Terraform attributes", "Every field the API describes becomes a Terraform attribute, or is set aside where Terraform has no equivalent."},
 	{7, "Match every attribute to the generated client", "Each attribute is checked against the client that was actually generated. Anything the client cannot carry is set aside here."},
@@ -88,23 +88,23 @@ var explanations = map[string]Explanation{
 	},
 	specmodel.CauseSchemalessLifecycle: {
 		Title: "The operations are described but the data is not",
-		Means: "The API can create, read and delete this, but the description does not say what the request or the response looks like, so there is no shape to build a resource from.",
-		Fix:   "A correction can supply the missing schema, or the vendor can describe it.",
+		Means: "The API can create, read and delete this, but the OpenAPI 3 specification does not say what the request or the response looks like, so there is no shape to build a resource from.",
+		Fix:   "A correction can supply the missing schema, or the API vendor can add it to the specification.",
 	},
 	specmodel.CauseSchemalessDatasource: {
 		Title: "The operations are described but the data is not",
-		Means: "The API can list and read this, but the description declares no schema for the response, so there is nothing to read into Terraform state.",
-		Fix:   "A correction can supply the missing schema, or the vendor can describe it.",
+		Means: "The API can list and read this, but the OpenAPI 3 specification declares no schema for the response, so there is nothing to read into Terraform state.",
+		Fix:   "A correction can supply the missing schema, or the API vendor can add it to the specification.",
 	},
 	specmodel.CauseSchemalessList: {
 		Title: "The list operation describes no response",
-		Means: "The API can list these, but the description does not say what comes back, so no data source could be generated.",
-		Fix:   "A correction can supply the missing schema, or the vendor can describe it.",
+		Means: "The API can list these, but the OpenAPI 3 specification does not say what comes back, so no data source could be generated.",
+		Fix:   "A correction can supply the missing schema, or the API vendor can add it to the specification.",
 	},
 	specmodel.CauseSchemalessRead: {
 		Title: "The read operation describes no response",
-		Means: "The API can return one of these by its identifier, but the description does not say what comes back.",
-		Fix:   "A correction can supply the missing schema, or the vendor can describe it.",
+		Means: "The API can return one of these by its identifier, but the OpenAPI 3 specification does not say what comes back.",
+		Fix:   "A correction can supply the missing schema, or the API vendor can add it to the specification.",
 	},
 	specmodel.CauseNoClassifiableOperation: {
 		Title: "The API paths form nothing Terraform can manage",
@@ -119,9 +119,9 @@ var explanations = map[string]Explanation{
 
 	// Turning a described schema into Terraform attributes.
 	ir.CauseUndeclaredType: {
-		Title: "The description does not say what type this is",
+		Title: "The OpenAPI 3 specification does not say what type this is",
 		Means: "The field is described with no type at all, so there is no Terraform attribute it could become.",
-		Fix:   "A correction can declare the type, or the vendor can describe it.",
+		Fix:   "A correction can declare the type, or the API vendor can add it to the specification.",
 	},
 	ir.CauseUnsupportedType: {
 		Title: "A type Terraform has no equivalent for",
@@ -130,28 +130,28 @@ var explanations = map[string]Explanation{
 	},
 	ir.CauseWritableUnion: {
 		Title: "A choice between shapes that Terraform would have to write",
-		Means: "The description offers several alternative shapes for something the practitioner sets. Terraform cannot express that only one may be given, so the field was set aside rather than generated wrongly.",
-		Fix:   "Nothing here can change this yet. A description that separates the alternatives into distinct fields would generate.",
+		Means: "The OpenAPI 3 specification offers several alternative shapes for something the practitioner sets. Terraform cannot express that only one may be given, so the field was set aside rather than generated wrongly.",
+		Fix:   "Nothing here can change this yet. An OpenAPI 3 specification that separates the alternatives into distinct fields would generate.",
 	},
 	ir.CauseUnnamedUnionBranch: {
 		Title: "A choice between shapes, one of which is unnamed",
-		Means: "The description offers alternatives, and at least one is written inline rather than named. An unnamed alternative has nothing to become, and half a choice would be worse than none.",
+		Means: "The OpenAPI 3 specification offers alternatives, and at least one is written inline rather than named. An unnamed alternative has nothing to become, and half a choice would be worse than none.",
 		Fix:   "A correction naming each alternative as its own schema would let this generate.",
 	},
 	ir.CauseEmptyUnion: {
 		Title: "A choice between no alternatives",
-		Means: "The description declares a choice and then lists nothing to choose between.",
-		Fix:   "A correction can remove the empty choice, or the vendor can.",
+		Means: "The OpenAPI 3 specification declares a choice and then lists nothing to choose between.",
+		Fix:   "A correction can remove the empty choice, or the API vendor can.",
 	},
 	ir.CauseUntypedAdditionalProperties: {
 		Title: "An open map with no value type",
-		Means: "The description says this object may carry any properties, without saying what their values look like. There is nothing to give the Terraform attribute a type.",
-		Fix:   "A correction can declare the value type, or the vendor can describe it.",
+		Means: "The OpenAPI 3 specification says this object may carry any properties, without saying what their values look like. There is nothing to give the Terraform attribute a type.",
+		Fix:   "A correction can declare the value type, or the API vendor can add it to the specification.",
 	},
 	ir.CauseShapelessObject: {
 		Title: "An object with no fields described",
-		Means: "The description says this is an object and then describes nothing inside it, so there is no attribute to generate.",
-		Fix:   "A correction can describe the object's fields, or the vendor can.",
+		Means: "The OpenAPI 3 specification says this is an object and then describes nothing inside it, so there is no attribute to generate.",
+		Fix:   "A correction can describe the object's fields, or the API vendor can add them to the specification.",
 	},
 	ir.CauseMapOfObjects: {
 		Title: "A map whose values are objects",
@@ -165,13 +165,13 @@ var explanations = map[string]Explanation{
 	},
 	ir.CauseItemlessArray: {
 		Title: "A list with no item type",
-		Means: "The description says this is a list and never says what it is a list of.",
-		Fix:   "A correction can declare the item type, or the vendor can describe it.",
+		Means: "The OpenAPI 3 specification says this is a list and never says what it is a list of.",
+		Fix:   "A correction can declare the item type, or the API vendor can add it to the specification.",
 	},
 	ir.CauseFreeFormArrayElement: {
 		Title: "A list of free-form objects",
 		Means: "The list's items are described as objects with no fixed shape, so there is no attribute type for them.",
-		Fix:   "A correction can describe the item's fields, or the vendor can.",
+		Fix:   "A correction can describe the item's fields, or the API vendor can add them to the specification.",
 	},
 	ir.CauseUnsupportedArrayElement: {
 		Title: "A list of values Terraform has no equivalent for",
@@ -188,37 +188,37 @@ var explanations = map[string]Explanation{
 	sdkbind.CauseNoAccessor: {
 		Title: "The generated API client cannot read these fields",
 		Means: "The client was generated without any way to read these values, so the provider could not put them into Terraform state.",
-		Fix:   "This follows from what the client generator made of the description. A different generator version may differ; the description itself is usually where it starts.",
+		Fix:   "This follows from what the API client generator made of the OpenAPI 3 specification. A different generator version may produce a different client; the specification itself is usually where it starts.",
 	},
 	sdkbind.CauseNoSetter: {
 		Title: "The generated API client cannot write these fields",
 		Means: "The client was generated without any way to set these values, so the provider could not send them to the API.",
-		Fix:   "This follows from what the client generator made of the description. A different generator version may differ.",
+		Fix:   "This follows from what the API client generator made of the OpenAPI 3 specification. A different generator version may differ.",
 	},
 	sdkbind.CauseNotAnAccessor: {
 		Title: "The client's method does not read a value",
 		Means: "The client has a method by the expected name, but it does not answer a single value, so it cannot be used to read the field.",
-		Fix:   "This follows from what the client generator produced.",
+		Fix:   "This follows from what the API client generator produced.",
 	},
 	sdkbind.CauseNotASetter: {
 		Title: "The client's method does not set a value",
 		Means: "The client has a method by the expected name, but it does not take a single value, so it cannot be used to write the field.",
-		Fix:   "This follows from what the client generator produced.",
+		Fix:   "This follows from what the API client generator produced.",
 	},
 	sdkbind.CauseUnbridgeableType: {
 		Title: "The client carries this as a type that will not convert",
 		Means: "The client holds the value as something no safe conversion turns into the Terraform attribute it would have to be.",
-		Fix:   "This follows from what the client generator made of the described type.",
+		Fix:   "This follows from what the API client generator made of the type the specification declares.",
 	},
 	sdkbind.CauseNoNestedModel: {
 		Title: "The client does not model this nested object",
 		Means: "The client returns something with no fields to map, so the nested object could not be built.",
-		Fix:   "This follows from what the client generator produced.",
+		Fix:   "This follows from what the API client generator produced.",
 	},
 	sdkbind.CauseNoConstructor: {
 		Title: "The client offers no way to build this object",
 		Means: "The provider has to construct this object to send it, and the client declares nothing that constructs one.",
-		Fix:   "This follows from what the client generator produced.",
+		Fix:   "This follows from what the API client generator produced.",
 	},
 	sdkbind.CauseEmptyNestedObject: {
 		Title: "Nothing inside this object survived",
@@ -228,12 +228,12 @@ var explanations = map[string]Explanation{
 	sdkbind.CauseUnresolvableCall: {
 		Title: "The generated client has no such call",
 		Means: "The call the provider would make does not exist on the client that was generated, so the whole thing was set aside rather than emit code that cannot compile.",
-		Fix:   "This follows from what the client generator made of the described paths.",
+		Fix:   "This follows from what the API client generator made of the paths the specification declares.",
 	},
 	sdkbind.CauseNoRequestBodyType: {
 		Title: "The client has no type for this request body",
 		Means: "The API takes a body the client declares no type for, so there is nothing for the provider to fill in and send.",
-		Fix:   "This follows from what the client generator made of the described request.",
+		Fix:   "This follows from what the API client generator made of the request the specification declares.",
 	},
 	sdkbind.CauseAmbiguousListShape: {
 		Title: "No single way to reach the list's items",
@@ -280,7 +280,7 @@ var explanations = map[string]Explanation{
 	CauseDatasourceReadAnswersCollection: {
 		Title: "The data source's read returns a collection, not one object",
 		Means: "This data source is addressed by a single key, so it must answer with a single object. The API answers with a collection instead, which cannot be mapped into one object's state without choosing between the items.",
-		Fix:   "A correction can describe the response as a single object where the API returns one; otherwise the API would have to.",
+		Fix:   "A correction can describe the response as a single object where the API returns one; otherwise the API itself would have to change.",
 	},
 	CauseDatasourceListYieldsNoPayload: {
 		Title: "The data source's list returns nothing to read",
@@ -295,7 +295,7 @@ var explanations = map[string]Explanation{
 	CauseDatasourceNoElementType: {
 		Title: "It is not known what one result looks like",
 		Means: "The generated client does not say what type the items of this collection are, so the results attribute could not be given a shape.",
-		Fix:   "This follows from what the client generator made of the description.",
+		Fix:   "This follows from what the API client generator made of the OpenAPI 3 specification.",
 	},
 
 	CauseResourceNoLifecycleCall: {
@@ -347,7 +347,7 @@ var explanations = map[string]Explanation{
 	},
 	CauseUnconvertiblePathType: {
 		Title: "A value in the API URL is described as one type and generated as another",
-		Means: "The placeholder in the API address is one type in the description and a different one in the generated client, and no conversion between them is safe enough to do silently.",
+		Means: "The placeholder in the API address is one type in the OpenAPI 3 specification and a different one in the generated API client, and no conversion between them is safe enough to do silently.",
 		Fix:   "A correction aligning the described type with what the API actually takes resolves this.",
 	},
 	CauseUnvalidatableAttribute: {

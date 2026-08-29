@@ -59,14 +59,34 @@ func emittanceReport(opts Options, model *ir.Model, refusals []emit.Unsupported,
 // does, in the order they are applied.
 func rewriteLines(r sdkgen.Rewrites) []emit.EmittanceRewrite {
 	named := []struct {
-		name string
-		from sdkgen.Rewrite
+		name, why string
+		from      sdkgen.Rewrite
 	}{
-		{"schema defaults stripped", r.SchemaDefaultsStripped},
-		{"anonymous allOf collapsed", r.AnonymousAllOfsCollapsed},
-		{"byte-array collections widened", r.ByteArrayCollectionsWidened},
-		{"unions reduced", r.UnionsReduced},
-		{"error responses stripped of content", r.ErrorContentDropped},
+		{
+			"Default values removed from schemas",
+			"A generated API client stamps every declared default onto the object it builds. A field nobody set would then be sent on every request, and on the way back the default would hide the fact that the API said nothing at all.",
+			r.SchemaDefaultsStripped,
+		},
+		{
+			"Single-member allOf compositions flattened",
+			"API client generators invent names for unnamed schemas and merge identical ones with no fixed winner, so the name chosen would change from one generation to the next.",
+			r.AnonymousAllOfsCollapsed,
+		},
+		{
+			"format: byte removed from list items",
+			"kiota generates a writer for lists of byte strings that its own runtime does not implement, so the API client would not compile. The wire carries the same base64 text either way.",
+			r.ByteArrayCollectionsWidened,
+		},
+		{
+			"oneOf and anyOf reduced to their first option",
+			"Go has no type that is either of two shapes. Asked to merge alternatives it cannot reconcile, kiota emits a model with no fields at all. This costs the provider nothing: a field described as a choice between shapes is already left out of the generated schema.",
+			r.UnionsReduced,
+		},
+		{
+			"Content removed from error responses",
+			"kiota builds a request's Accept header from the media types the responses declare, and falls through to the error responses when no success response names one. That asks the server for the format it produces only when refusing.",
+			r.ErrorContentDropped,
+		},
 	}
 	out := make([]emit.EmittanceRewrite, 0, len(named))
 	for _, n := range named {
@@ -74,7 +94,7 @@ func rewriteLines(r sdkgen.Rewrites) []emit.EmittanceRewrite {
 		for _, s := range n.from.Sites {
 			sites = append(sites, emit.EmittanceSite{Where: s.Where, Count: s.Count})
 		}
-		out = append(out, emit.EmittanceRewrite{Name: n.name, Count: n.from.Count, Sites: sites})
+		out = append(out, emit.EmittanceRewrite{Name: n.name, Why: n.why, Count: n.from.Count, Sites: sites})
 	}
 	return out
 }
