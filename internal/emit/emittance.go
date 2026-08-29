@@ -38,9 +38,12 @@ type Emittance struct {
 	// placed there. A reader follows one entity's journey; the tag is how
 	// they find it.
 	Tags []EmittanceTag
-	// Unplaced are refusals that name no entity the run derived, which
-	// nothing can file under a tag.
+	// Unplaced are exclusions that name nothing the run derived, which
+	// cannot be filed under a group.
 	Unplaced []EmittanceCause
+	// Workflow is the run, in the order it happened, so a reader has the
+	// shape of it before anything refers to a step.
+	Workflow []Step
 }
 
 // EmittanceDocument identifies what the run was a fact about.
@@ -104,8 +107,17 @@ type EmittanceEntity struct {
 	Whole bool
 }
 
-// EmittanceCause is one fact and everything it cost.
+// EmittanceCause is one fact and everything it cost, in the words the
+// reader needs. Title, Means and Fix are the prose; Code, Stage, Subject and
+// Reason are the machinery, shown only where a reader asks for it.
 type EmittanceCause struct {
+	Explanation
+	// Step is the numbered point in the workflow this happened at, and
+	// Where the plain phrase for it. Zero where it was the operator's own
+	// configuration rather than a step.
+	Step  int
+	Where string
+
 	Stage, Code, Subject, Reason string
 	// Entity is set only where the cause is filed outside a tag.
 	Entity string
@@ -120,6 +132,7 @@ type EmittanceCause struct {
 // here, because the template may not.
 func RenderEmittance(e Emittance, m *ir.Model, refusals []Unsupported) (File, error) {
 	e.Tags, e.Unplaced = groupByTag(m, refusals)
+	e.Workflow = Workflow
 
 	body, err := renderEmittance(e)
 	if err != nil {
@@ -183,16 +196,17 @@ func groupByTag(m *ir.Model, refusals []Unsupported) ([]EmittanceTag, []Emittanc
 
 	for _, r := range refusals {
 		if _, known := facts[r.Entity]; !known {
-			unplaced = append(unplaced, EmittanceCause{
+			unplaced = append(unplaced, explained(EmittanceCause{
 				Stage: r.Stage, Code: codeOf(r), Subject: subjectOf(r),
 				Reason: r.Reason, Entity: r.Entity,
-			})
+			}))
 			continue
 		}
 		k := causeKey{r.Entity, r.Stage, codeOf(r), subjectOf(r)}
 		c, ok := gathered[k]
 		if !ok {
-			c = &EmittanceCause{Stage: r.Stage, Code: k.code, Subject: k.subject, Reason: r.Reason}
+			settled := explained(EmittanceCause{Stage: r.Stage, Code: k.code, Subject: k.subject, Reason: r.Reason})
+			c = &settled
 			gathered[k] = c
 			order = append(order, k)
 		}
@@ -255,6 +269,20 @@ func groupByTag(m *ir.Model, refusals []Unsupported) ([]EmittanceTag, []Emittanc
 		return unplaced[i].Reason < unplaced[j].Reason
 	})
 	return tags, unplaced
+}
+
+// explained fills in what the reader is told, and the step it happened at.
+// A cause with no explanation keeps its code as the title, so a reader meets
+// something rather than nothing — and the missing prose is visible in the
+// page instead of silently absent.
+func explained(c EmittanceCause) EmittanceCause {
+	c.Step, c.Where = stepOf(c.Stage)
+	if e, ok := Explain(c.Code); ok {
+		c.Explanation = e
+		return c
+	}
+	c.Explanation = Explanation{Title: c.Code}
+	return c
 }
 
 // untagged names the group for an entity the document places in none. It is

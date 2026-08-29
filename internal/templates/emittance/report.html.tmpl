@@ -3,43 +3,52 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Provider}} — how the document became a provider</title>
+<title>Terraform provider {{.Provider}} — generation report</title>
 <style>
-:root{--fg:#1a1a1a;--dim:#5c5c5c;--bg:#fff;--panel:#f6f6f4;--rule:#e0ddd8;--lost:#8a3324;--kept:#2f5d3a}
-@media(prefers-color-scheme:dark){:root{--fg:#e8e6e3;--dim:#a09c96;--bg:#16171a;--panel:#1e2024;--rule:#33363c;--lost:#e8927c;--kept:#8fc7a1}}
+:root{--fg:#1a1a1a;--dim:#5c5c5c;--bg:#fff;--panel:#f6f6f4;--rule:#e0ddd8;--lost:#8a3324;--ok:#2f5d3a;--accent:#31527a}
+@media(prefers-color-scheme:dark){:root{--fg:#e8e6e3;--dim:#a09c96;--bg:#16171a;--panel:#1e2024;--rule:#33363c;--lost:#e8927c;--ok:#8fc7a1;--accent:#8fb3e0}}
 *{box-sizing:border-box}
-body{margin:0;padding:2rem 1.25rem 5rem;background:var(--bg);color:var(--fg);
- font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-main{max-width:60rem;margin:0 auto}
-h1{font-size:1.5rem;margin:0 0 .25rem;font-weight:650}
-h2{font-size:1.05rem;margin:2.5rem 0 .75rem;font-weight:650}
-.sub{color:var(--dim);margin:0 0 2rem}
-code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
-dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1rem;margin:0;
- background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.25rem}
+body{margin:0;padding:2.5rem 1.25rem 6rem;background:var(--bg);color:var(--fg);
+ font:15.5px/1.65 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:62rem;margin:0 auto}
+h1{font-size:1.7rem;margin:0 0 .5rem;font-weight:660;letter-spacing:-.01em}
+h2{font-size:1.15rem;margin:3rem 0 .5rem;font-weight:660;letter-spacing:-.005em}
+h2:first-of-type{margin-top:2rem}
+p{margin:.6rem 0}
+.lede{font-size:1.05rem;max-width:46rem}
+.note{color:var(--dim);max-width:46rem}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em}
+dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:.45rem 1.5rem;margin:1rem 0 0;
+ background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:1.1rem 1.35rem}
 dl.facts dt{color:var(--dim)}
-dl.facts dd{margin:0;word-break:break-all}
-ul.counts{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0 0 1rem}
-ul.counts li{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.35rem .7rem}
-ul.counts b{font-weight:650}
-details{border:1px solid var(--rule);border-radius:8px;margin:.5rem 0;background:var(--panel)}
-details>summary{cursor:pointer;padding:.6rem .9rem;font-weight:600;list-style:none;display:flex;
+dl.facts dd{margin:0;overflow-wrap:anywhere}
+ol.workflow{max-width:46rem;padding-left:1.3rem;margin:.8rem 0 0}
+ol.workflow li{margin:.45rem 0}
+ol.workflow b{font-weight:640}
+ol.workflow span{color:var(--dim)}
+ul.counts{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:1rem 0 .5rem}
+ul.counts li{background:var(--panel);border:1px solid var(--rule);border-radius:7px;padding:.4rem .8rem}
+ul.counts b{font-weight:660;font-size:1.05em}
+details{border:1px solid var(--rule);border-radius:9px;margin:.5rem 0;background:var(--panel)}
+details>summary{cursor:pointer;padding:.65rem .95rem;font-weight:620;list-style:none;display:flex;
  gap:.6rem;align-items:baseline;flex-wrap:wrap}
 details>summary::-webkit-details-marker{display:none}
 details>summary::before{content:"▸";color:var(--dim);font-weight:400}
 details[open]>summary::before{content:"▾"}
-details .body{padding:0 .9rem .9rem 1.9rem}
-details details{background:var(--bg)}
-.tally{color:var(--dim);font-weight:400;font-size:.9em}
+details .body{padding:.2rem .95rem 1rem 2rem}
+details details{background:var(--bg);margin:.6rem 0}
+details details>summary{font-weight:500;font-size:.9em;color:var(--dim);padding:.4rem .7rem}
+.tally{color:var(--dim);font-weight:420;font-size:.92em}
 .lost{color:var(--lost)}
-.kept{color:var(--kept)}
-.cause{border-left:3px solid var(--rule);padding:.1rem 0 .1rem .8rem;margin:.8rem 0}
-.cause .what{font-weight:600}
-.cause .why{color:var(--dim);margin:.15rem 0}
-.cause .who{margin:.3rem 0 0;font-size:.9em;word-break:break-word}
+.ok{color:var(--ok)}
+.finding{border-left:3px solid var(--rule);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+.finding h4{margin:0 0 .2rem;font-size:1rem;font-weight:640}
+.finding p{margin:.25rem 0}
+.finding .cost{font-size:.93em}
+.finding .fix{color:var(--dim);font-size:.93em}
 table{border-collapse:collapse;width:100%;font-size:.92em}
-th,td{text-align:left;padding:.35rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
-th{color:var(--dim);font-weight:600}
+th,td{text-align:left;padding:.38rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{color:var(--dim);font-weight:620}
 td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 p.none{color:var(--dim);font-style:italic}
 </style>
@@ -47,67 +56,87 @@ p.none{color:var(--dim);font-style:italic}
 <body>
 <main>
 
-<h1>{{.Provider}}</h1>
-<p class="sub">How the pinned document became this provider — every decision, and what each one cost.</p>
+<h1>Terraform provider: {{.Provider}}</h1>
+<p class="lede">This provider was generated from the {{.Provider}} API description{{if .Document.Version}}, version {{.Document.Version}}{{end}}. Every file in this repository was produced from that description — none of it was written by hand.</p>
+<p class="lede">This report explains how it was generated: the steps taken, the decisions made along the way, and what each decision means for the provider you now have.</p>
 
-<h2>What this is a fact about</h2>
+<h2>What this provider was built from</h2>
 <dl class="facts">
-  <dt>document</dt><dd class="mono">{{.Document.Source}}</dd>
-  <dt>version</dt><dd class="mono">{{.Document.Version}}{{if .Document.OpenAPI}} · OpenAPI {{.Document.OpenAPI}}{{end}}</dd>
-  <dt>sha256</dt><dd class="mono">{{.Document.SHA256}}</dd>
-  <dt>corrections</dt><dd>{{.Document.Corrections}} accepted and applied</dd>
-  <dt>SDK</dt><dd>{{.SDK.Backend}} {{.SDK.Version}}</dd>
+  <dt>API description</dt><dd class="mono">{{.Document.Source}}</dd>
+  <dt>Version</dt><dd>{{.Document.Version}}{{if .Document.OpenAPI}} · OpenAPI {{.Document.OpenAPI}}{{end}}</dd>
+  <dt>Checksum</dt><dd class="mono">sha256 {{.Document.SHA256}}</dd>
+  <dd class="note" style="grid-column:2">The exact bytes this provider was built from. Regenerating from a different version of the description will produce a different provider.</dd>
+  <dt>Adjustments</dt><dd>{{.Document.Corrections}} applied to the description before generating</dd>
+  <dd class="note" style="grid-column:2">Recorded changes to the description, each with a reason — usually something the live API does that the description does not say.</dd>
+  <dt>API client</dt><dd>generated by {{.SDK.Backend}} {{.SDK.Version}}</dd>
 </dl>
 
-<h2>What came out</h2>
+<h2>How it was generated</h2>
+<p class="note">Each step below can set something aside. Where that happened, this report says which step, what it cost, and whether anything can be done about it.</p>
+<ol class="workflow">
+{{range .Workflow}}<li><b>{{.Name}}.</b> <span>{{.Detail}}</span></li>
+{{end}}</ol>
+
+<h2>What was produced</h2>
 <ul class="counts">
   <li><b>{{.Produced.Resources}}</b> resources</li>
   <li><b>{{.Produced.Datasources}}</b> data sources</li>
   <li><b>{{.Produced.ListResources}}</b> list resources</li>
   <li><b>{{.Produced.Actions}}</b> actions</li>
-  <li class="lost"><b>{{.Produced.Refused}}</b> refused</li>
-  <li class="kept"><b>{{.Produced.Kept}}</b> kept unbound</li>
+  <li class="lost"><b>{{.Produced.Refused}}</b> set aside</li>
 </ul>
-<p class="sub">{{if .SDK.Reconciled}}The SDK settled <b>{{.SDK.Reconciled}}</b> drafted names the binder could not predict; that is the number the refusals below should be read against.{{end}}</p>
+<p class="note">{{if .Produced.Kept}}{{.Produced.Kept}} attributes are in the schema with nothing behind them in the generated client; they are how Terraform identifies and imports an object, so they were kept rather than dropped. {{end}}{{if .SDK.Reconciled}}In {{.SDK.Reconciled}} places the generated client named something differently from what was expected, and the generated code was matched to what the client actually has. That is routine, and it is the scale the findings below should be read against.{{end}}</p>
 
-<h2>What was done to the document before the SDK saw it</h2>
 {{if .Rewrites}}
-<p class="sub">The backend reads a pre-normalised copy, which the run then removes. These are the only account of how it differed.</p>
+<h2>What was changed in the description before the client was generated</h2>
+<p class="note">The client generator reads a working copy of the description, adjusted to what it can model. That copy is not kept, so this is the only account of how it differed from the description above.</p>
 {{range .Rewrites}}
 <details>
   <summary>{{.Name}} <span class="tally">{{.Count}} in {{len .Sites}} {{if eq (len .Sites) 1}}place{{else}}places{{end}}</span></summary>
   <div class="body">
     {{if .Sites}}
-    <table><thead><tr><th>where</th><th class="num">changes</th></tr></thead><tbody>
+    <table><thead><tr><th>Where in the description</th><th class="num">Changes</th></tr></thead><tbody>
     {{range .Sites}}<tr><td class="mono">{{.Where}}</td><td class="num">{{.Count}}</td></tr>{{end}}
     </tbody></table>
-    {{else}}<p class="none">Nothing.</p>{{end}}
+    {{else}}<p class="none">Nothing was changed.</p>{{end}}
   </div>
 </details>
 {{end}}
-{{else}}<p class="none">The document needed no rewriting.</p>{{end}}
+{{end}}
 
-<h2>What became of each thing</h2>
-<p class="sub">Grouped by the document's own tags. Every loss is shown once as the fact behind it, with everything that fact cost.</p>
+<h2>What became of each part of the API</h2>
+<p class="note">Grouped the way the API description groups itself. Each thing shows what it became and, where something was set aside, one entry per reason with everything that reason cost.</p>
 {{range .Tags}}
 <details>
   <summary>{{.Name}}
-    <span class="tally">{{len .Entities}} {{if eq (len .Entities) 1}}entity{{else}}entities{{end}}{{if .Refused}} · <span class="lost">{{.Refused}} produced nothing</span>{{end}}{{if .Lost}} · <span class="lost">{{.Lost}} {{if eq .Lost 1}}attribute{{else}}attributes{{end}} lost</span>{{end}}</span>
+    <span class="tally">{{len .Entities}} {{if eq (len .Entities) 1}}item{{else}}items{{end}}{{if .Refused}} · <span class="lost">{{.Refused}} produced nothing</span>{{end}}{{if .Lost}} · <span class="lost">{{.Lost}} {{if eq .Lost 1}}attribute{{else}}attributes{{end}} set aside</span>{{end}}</span>
   </summary>
   <div class="body">
   {{range .Entities}}
     <details>
       <summary><span class="mono">{{.Key}}</span>
-        <span class="tally">{{if .Produced}}{{join .Produced}}{{else}}<span class="lost">produced nothing</span>{{end}}{{if .Causes}} · {{len .Causes}} {{if eq (len .Causes) 1}}cause{{else}}causes{{end}}{{end}}</span>
+        <span class="tally">{{if .Produced}}generated as {{join .Produced}}{{else}}<span class="lost">produced nothing</span>{{end}}{{if .Causes}} · {{len .Causes}} {{if eq (len .Causes) 1}}finding{{else}}findings{{end}}{{end}}</span>
       </summary>
       <div class="body">
-        {{if .CollectionPath}}<p class="sub mono">{{.CollectionPath}}</p>{{end}}
-        {{if .Whole}}<p class="none">Nothing was refused.</p>{{end}}
+        {{if .CollectionPath}}<p class="note mono">{{.CollectionPath}}</p>{{end}}
+        {{if .Whole}}<p class="none">Everything the description offers for this was generated.</p>{{end}}
         {{range .Causes}}
-        <div class="cause">
-          <p class="what">{{.Code}}{{if .Subject}} <span class="mono">{{.Subject}}</span>{{end}} <span class="tally">at {{.Stage}}</span></p>
-          <p class="why">{{.Reason}}</p>
-          {{if .Attributes}}<p class="who"><span class="tally">cost {{len .Attributes}}:</span> <span class="mono">{{join .Attributes}}</span></p>{{end}}
+        <div class="finding">
+          <h4>{{.Title}}</h4>
+          <p>{{.Means}}</p>
+          {{if .Attributes}}<p class="cost"><b>{{len .Attributes}} {{if eq (len .Attributes) 1}}attribute{{else}}attributes{{end}}:</b> <span class="mono">{{join .Attributes}}</span></p>{{end}}
+          <p class="fix"><b>Can this be changed?</b> {{.Fix}}</p>
+          <details>
+            <summary>Technical detail</summary>
+            <div class="body">
+              <table><tbody>
+                <tr><th>Identifier</th><td class="mono">{{.Code}}</td></tr>
+                <tr><th>Step</th><td>{{if .Step}}{{.Step}} — {{end}}{{.Where}}</td></tr>
+                {{if .Subject}}<tr><th>Subject</th><td class="mono">{{.Subject}}</td></tr>{{end}}
+                <tr><th>Verbatim</th><td class="mono">{{.Reason}}</td></tr>
+              </tbody></table>
+            </div>
+          </details>
         </div>
         {{end}}
       </div>
@@ -115,15 +144,27 @@ p.none{color:var(--dim);font-style:italic}
   {{end}}
   </div>
 </details>
-{{else}}<p class="none">The document yielded no entities.</p>{{end}}
+{{else}}<p class="none">The description yielded nothing Terraform can manage.</p>{{end}}
 
 {{if .Unplaced}}
-<h2>Refusals that name no derived entity</h2>
-<p class="sub">Nothing can file these under a tag, because the entity they name was never derived.</p>
+<h2>Set aside before they belonged anywhere</h2>
+<p class="note">These were set aside before it was decided what part of the API they belong to, so they are listed on their own.</p>
 {{range .Unplaced}}
-<div class="cause">
-  <p class="what"><span class="mono">{{.Entity}}</span> — {{.Code}}{{if .Subject}} <span class="mono">{{.Subject}}</span>{{end}} <span class="tally">at {{.Stage}}</span></p>
-  <p class="why">{{.Reason}}</p>
+<div class="finding">
+  <h4>{{.Title}} <span class="tally mono">{{.Entity}}</span></h4>
+  <p>{{.Means}}</p>
+  <p class="fix"><b>Can this be changed?</b> {{.Fix}}</p>
+  <details>
+    <summary>Technical detail</summary>
+    <div class="body">
+      <table><tbody>
+        <tr><th>Identifier</th><td class="mono">{{.Code}}</td></tr>
+        <tr><th>Step</th><td>{{if .Step}}{{.Step}} — {{end}}{{.Where}}</td></tr>
+        {{if .Subject}}<tr><th>Subject</th><td class="mono">{{.Subject}}</td></tr>{{end}}
+        <tr><th>Verbatim</th><td class="mono">{{.Reason}}</td></tr>
+      </tbody></table>
+    </div>
+  </details>
 </div>
 {{end}}
 {{end}}

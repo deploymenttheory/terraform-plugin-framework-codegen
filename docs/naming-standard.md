@@ -154,7 +154,7 @@ nothing else.
 currently writes `x-tfpfgen-read-after-write`, which R6 forbids: one fact
 must not have two names because it crossed a serialisation boundary.
 
-## R7 — Emitted provider code speaks HashiCorp, and the toolkit follows it
+## R7 — What is emitted speaks the reader's language, not the toolkit's
 
 `internal/templates/**` is read by provider maintainers who know
 terraform-plugin-framework and have never seen this toolkit. So:
@@ -170,6 +170,21 @@ terraform-plugin-framework and have never seen this toolkit. So:
 
 R7 outranks R2: an approved glossary term gives way to a HashiCorp one in
 emitted code, and then the glossary entry changes.
+
+**The same rule governs anything else generation emits for a person to
+read**, and prose has no compiler to keep it honest. A generated report is
+opened by somebody who knows Terraform and their own API, so it says what
+happened in those terms: what the provider was built from, which step set
+something aside, what that cost them, and whether anything can be done. The
+glossary governs the code, the JSON and the paths on disk; it does not
+govern the page. A stage name, a cause code or an internal noun reaching a
+reader is this rule broken, not a wording preference — and where the
+machinery is genuinely wanted it goes behind a disclosure, under the prose
+rather than instead of it.
+
+The mapping from an internal term to the sentence a reader gets is itself
+prose the owner approves, held to its vocabulary by a test the way
+`internal/spec/revise` holds its correction narration.
 
 ## R8 — British English
 
