@@ -157,7 +157,7 @@ Every attribute the generator emits lands in exactly one of five outcomes, and
 nothing else exists. A correction is only worth compiling if it moves an
 attribute between them, or changes a plan modifier or a validator.
 
-`docs/mapping.md` is the wider specification these five outcomes serve: twelve
+`docs/mapping.md` is the wider specification these outcomes serve: thirteen
 API behaviours and the terraform-plugin-framework shape each demands, and above
 them the operation sets an entity can carry. The table below decides presence;
 mapping.md also fixes which plan modifier, validator, custom type or collection
@@ -168,7 +168,7 @@ makes.
 |---|---|---|
 | Omitted entirely | The type cannot be represented | `deriveType` marks it unsupported |
 | `Required` | Writable and required on create | the create body's `required` |
-| `Optional` + `Computed` | Writable, and the response carries a value whether or not the request supplied one | `x-tfpfgen-server-default`, the response schema's `required`, or a `default` on the request property |
+| `Optional` + `Computed` | Writable, and the response carries a value whether or not the request supplied one | `x-tfpfgen-server-default`, the response schema's `required`, a `default` on the request property, or the response schema declaring the property at all |
 | `Computed` | The practitioner cannot set it | absent from the create body, `readOnly`, `x-tfpfgen-server-forced`, `x-tfpfgen-volatile` |
 | the configured spelling, kept | The API stores the value in a spelling of its own and state keeps what was configured when the answer is that spelling | `x-tfpfgen-normalisation` naming the kind |
 | `Optional` | Writable, and the server leaves it absent when omitted | none of the above |
@@ -178,7 +178,7 @@ they accept, so a writable attribute usually belongs in `Optional` + `Computed`;
 emitting it as `Optional` alone gives the practitioner a perpetual diff, because
 Terraform holds null in config against a value in state.
 
-Three declarations reach `Optional` + `Computed`, of decreasing authority.
+Four routes reach `Optional` + `Computed`, of decreasing authority.
 
 `x-tfpfgen-server-default` is the audit's own measurement, taken by omitting the
 attribute and reading what comes back. It is the only one that does not depend
@@ -201,6 +201,18 @@ correction is the remedy where it is wrong. The alternative was leaving thousand
 of attributes on plain `Optional`, which gives the practitioner a perpetual diff
 on every one of them the server fills — a defect in every plan, against a risk
 in some.
+
+The response schema describing the property at all is the fourth route and the
+weakest, and it is the one that catches the documents the other three miss. A
+property the response describes is a property the response can carry, and so an
+attribute terraform must let the server fill. Where the server does leave it
+absent the cost is the one row 3 of `docs/mapping.md` records — it plans as
+unknown until the create fills it, and removal from configuration is sticky —
+which is a diff to explain rather than an apply that cannot succeed. Without it
+a document declaring nothing required in its responses sends every writable
+optional attribute to plain `Optional`, and terraform refuses an apply whose
+result differs from its plan, so each attribute the server fills fails the apply
+outright.
 
 ## Calling the workflows
 
