@@ -26,7 +26,7 @@ func emittanceReport(opts Options, model *ir.Model, refusals []emit.Unsupported,
 	report := emit.Emittance{
 		Provider: opts.Config.Provider.Name,
 		SDK: emit.EmittanceSDK{
-			Backend:    string(opts.Config.SDK.Backend),
+			Backend:    opts.Config.SDK.Backend,
 			Version:    opts.Config.SDK.BackendVersion,
 			Reconciled: len(reconciled),
 		},
