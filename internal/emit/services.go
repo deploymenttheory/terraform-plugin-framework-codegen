@@ -109,7 +109,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.resource(r, rb)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: r.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindResource, r.Names, reason))
 				continue
 			}
 			return nil, fmt.Errorf("resource %s: %w", r.Names.Key, err)
@@ -128,7 +128,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.datasource(ds, db)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: ds.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindDatasource, ds.Names, reason))
 				continue
 			}
 			return nil, fmt.Errorf("datasource %s: %w", ds.Names.Key, err)
@@ -149,16 +149,14 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		// bindings or emission already refused therefore takes its list
 		// resource with it.
 		if !served[lr.Names.Key] {
-			out.Excluded = append(out.Excluded, ir.UnsupportedEntity{
-				Key:    lr.Names.Key,
-				Reason: "list: the resource it lists is not served, and terraform refuses a provider whose list resource names no resource",
-			})
+			out.Excluded = append(out.Excluded, excludedEntity(bindingKindListResource, lr.Names,
+				"list: the resource it lists is not served, and terraform refuses a provider whose list resource names no resource"))
 			continue
 		}
 		files, err := e.listResource(lr, lb)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: lr.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindListResource, lr.Names, reason))
 				continue
 			}
 			return nil, fmt.Errorf("list resource %s: %w", lr.Names.Key, err)
@@ -176,7 +174,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.action(a, ab)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: a.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, excludedEntity(bindingKindAction, a.Names, reason))
 				continue
 			}
 			return nil, fmt.Errorf("action %s: %w", a.Names.Key, err)
@@ -234,6 +232,19 @@ const (
 	bindingKindListResource = string(specmodel.KindListResource)
 	bindingKindAction       = "action"
 )
+
+// excludedEntity records an entity emission refused, keeping the kind it
+// was refused as. The emitter knows which kind failed, and a refusal that
+// does not say reads as an entity that became nothing at all.
+func excludedEntity(kind string, names ir.Names, reason string) ir.UnsupportedEntity {
+	return ir.UnsupportedEntity{
+		Key:     names.Key,
+		Kind:    kind,
+		Service: names.Service,
+		Tag:     names.Tag,
+		Reason:  reason,
+	}
+}
 
 // keptUnboundKey addresses one attribute of one entity. The NUL separator
 // cannot occur in a kind, a key or an attribute name, so no two different

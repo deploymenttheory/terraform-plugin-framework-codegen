@@ -2,6 +2,7 @@ package emit
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -51,7 +52,7 @@ func TestUnit_RenderUnsupported_FindsEveryRefusalAtEveryDepth(t *testing.T) {
 
 	got := make(map[string]string, len(entries))
 	for _, e := range entries {
-		got[e.Path] = e.Stage
+		got[subject(e)] = e.Stage
 	}
 
 	for _, want := range []string{
@@ -85,8 +86,8 @@ func TestUnit_RenderUnsupported_SupportedAttributesAreAbsent(t *testing.T) {
 	}
 	for _, e := range entries {
 		for _, supported := range []string{`attribute "id"`, `attribute "settings.retries"`} {
-			if strings.Contains(e.Path, supported) {
-				t.Errorf("the report records %s, which generated fine", e.Path)
+			if strings.Contains(subject(e), supported) {
+				t.Errorf("the report records %s, which generated fine", subject(e))
 			}
 		}
 	}
@@ -111,7 +112,7 @@ func TestUnit_RenderUnsupported_EveryStageIsRepresented(t *testing.T) {
 
 	byPath := make(map[string]Unsupported, len(entries))
 	for _, e := range entries {
-		byPath[e.Path] = e
+		byPath[subject(e)] = e
 	}
 
 	for path, wantStage := range map[string]string{
@@ -167,9 +168,9 @@ func TestUnit_RenderUnsupported_IsAStableDiff(t *testing.T) {
 		t.Errorf("format_version = %d, want %d", report.FormatVersion, unsupportedFormatVersion)
 	}
 	for i := 1; i < len(report.Unsupported); i++ {
-		if report.Unsupported[i-1].Path > report.Unsupported[i].Path {
+		if report.Unsupported[i-1].Entity > report.Unsupported[i].Entity {
 			t.Fatalf("entries are not sorted by path: %q before %q",
-				report.Unsupported[i-1].Path, report.Unsupported[i].Path)
+				report.Unsupported[i-1].Entity, report.Unsupported[i].Entity)
 		}
 	}
 }
@@ -207,9 +208,9 @@ func TestUnit_UnsupportedSummary_CountsByStageAndStaysSilentWhenClean(t *testing
 	}
 
 	got := UnsupportedSummary([]Unsupported{
-		{Path: `resource "a"`, Stage: StageBinding},
-		{Path: `resource "b"`, Stage: StageBinding},
-		{Path: `entity "c"`, Stage: StageDerivation},
+		{Kind: "resource", Entity: "a", Stage: StageBinding},
+		{Kind: "resource", Entity: "b", Stage: StageBinding},
+		{Entity: "c", Stage: StageDerivation},
 	})
 	for _, want := range []string{UnsupportedName, "3 refusals", "2 in binding", "1 in derivation"} {
 		if !strings.Contains(got, want) {
@@ -217,7 +218,7 @@ func TestUnit_UnsupportedSummary_CountsByStageAndStaysSilentWhenClean(t *testing
 		}
 	}
 
-	if one := UnsupportedSummary([]Unsupported{{Path: `resource "a"`, Stage: StageBinding}}); !strings.Contains(one, "1 refusal (") {
+	if one := UnsupportedSummary([]Unsupported{{Kind: "resource", Entity: "a", Stage: StageBinding}}); !strings.Contains(one, "1 refusal (") {
 		t.Errorf("a single refusal summarised as %q, want the singular noun", one)
 	}
 }
@@ -246,7 +247,7 @@ func TestUnit_RenderUnsupported_KeptAttributesAreNotLosses(t *testing.T) {
 
 	paths := make(map[string]bool, len(entries))
 	for _, e := range entries {
-		paths[e.Path] = true
+		paths[subject(e)] = true
 	}
 	for _, gone := range []string{`resource "tag" attribute "id"`, `resource "tag" attribute "owner"`} {
 		if paths[gone] {
@@ -278,7 +279,7 @@ func TestUnit_RenderUnsupported_KeptIsMatchedPerEntity(t *testing.T) {
 	}
 	got := make([]string, 0, len(entries))
 	for _, e := range entries {
-		got = append(got, e.Path)
+		got = append(got, subject(e))
 	}
 	if len(entries) != 2 {
 		t.Fatalf("the report carries %v, want the lost resource and the datasource only", got)
@@ -338,4 +339,113 @@ func TestUnit_JoinTreeKeeping_ReportsOnlyWhatItKeptUnbound(t *testing.T) {
 	if len(kept) != 2 {
 		t.Errorf("the join reports %v kept unbound, want exactly id and org", kept)
 	}
+}
+
+// subject renders a refusal's subject the way these expectations read it.
+// The record carries fields; a test asserting on one entity's refusal still
+// reads better as a sentence than as five comparisons.
+func subject(e Unsupported) string {
+	kind := e.Kind
+	if kind == "" {
+		kind = "entity"
+	}
+	if e.Attribute == "" {
+		return fmt.Sprintf("%s %q", kind, e.Entity)
+	}
+	return fmt.Sprintf("%s %q attribute %q", kind, e.Entity, e.Attribute)
+}
+
+// TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields holds the
+// subject to fields rather than to a rendered sentence. A reader grouping
+// refusals by entity or by kind should not have to parse prose to do it.
+func TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields(t *testing.T) {
+	model := unsupportedModel()
+	model.Resources[0].Names = ir.Names{Key: "tag", Service: "tags", Tag: "Tags"}
+
+	_, entries, err := RenderUnsupported(model, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+
+	var found bool
+	for _, e := range entries {
+		if e.Entity != "tag" || e.Attribute != "settings.extra" {
+			continue
+		}
+		found = true
+		if e.Kind != bindingKindResource {
+			t.Errorf("Kind = %q, want %q", e.Kind, bindingKindResource)
+		}
+		if e.Service != "tags" || e.Tag != "Tags" {
+			t.Errorf("Service/Tag = %q/%q, want tags/Tags", e.Service, e.Tag)
+		}
+		if e.Stage != StageDerivation {
+			t.Errorf("Stage = %q, want %q", e.Stage, StageDerivation)
+		}
+	}
+	if !found {
+		t.Fatalf("the nested refusal is not addressed by entity and attribute")
+	}
+}
+
+// TestUnit_RenderUnsupported_AnEntityRefusedBeforeItBecameAnythingIsStillPlaced
+// is the case the fields exist for. An entity refused at classification has
+// no kind, and until it carried its own location there was nothing to group
+// it by — which is most of what a large document refuses.
+func TestUnit_RenderUnsupported_AnEntityRefusedBeforeItBecameAnythingIsStillPlaced(t *testing.T) {
+	model := unsupportedModel()
+	model.Excluded[0] = ir.UnsupportedEntity{
+		Key:            "orphan",
+		CollectionPath: "/v1/orphans",
+		Service:        "orphans",
+		Tag:            "Orphans",
+		Reason:         "partial lifecycle (create, update) fits no kind",
+	}
+
+	_, entries, err := RenderUnsupported(model, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+
+	for _, e := range entries {
+		if e.Entity != "orphan" {
+			continue
+		}
+		if e.Kind != "" {
+			t.Errorf("Kind = %q, want empty: it became no kind, which is why it was refused", e.Kind)
+		}
+		if e.Service != "orphans" || e.Tag != "Orphans" {
+			t.Errorf("Service/Tag = %q/%q, want orphans/Orphans", e.Service, e.Tag)
+		}
+		return
+	}
+	t.Fatal("the excluded entity is not in the report")
+}
+
+// TestUnit_RenderUnsupported_ADroppedEntityKeepsItsKind holds the merge that
+// used to flatten sdkbind's answer to a key and a reason. The SDK said which
+// kind it could not carry, and a report that drops that reads as an entity
+// which became nothing at all.
+func TestUnit_RenderUnsupported_ADroppedEntityKeepsItsKind(t *testing.T) {
+	model := unsupportedModel()
+	model.Resources[0].Names = ir.Names{Key: "tag", Service: "tags", Tag: "Tags"}
+	dropped := []sdkbind.Dropped{{Key: "tag", Kind: bindingKindResource, Reason: "the generated SDK does not carry this resource's binding"}}
+
+	_, entries, err := RenderUnsupported(model, nil, dropped, nil, nil)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+	for _, e := range entries {
+		if e.Stage != StageBinding || e.Entity != "tag" || e.Attribute != "" {
+			continue
+		}
+		if e.Kind != bindingKindResource {
+			t.Errorf("Kind = %q, want %q", e.Kind, bindingKindResource)
+		}
+		if e.Service != "tags" {
+			t.Errorf("Service = %q, want the location read back from the model", e.Service)
+		}
+		return
+	}
+	t.Fatal("the dropped entity is not in the report")
 }

@@ -45,7 +45,20 @@ type Provider struct {
 // for people: a surprising omission traces to the document or the config,
 // never to a hunch.
 type UnsupportedEntity struct {
-	Key    string `json:"key"`
+	// Key is the entity key it would have had.
+	Key string `json:"key"`
+	// Kind is what it would have become, empty for an entity that became
+	// nothing at all — which is the honest answer for one refused before a
+	// kind was decided.
+	Kind string `json:"kind,omitempty"`
+	// CollectionPath is the path it was derived from, and Service and Tag
+	// are where that path and the document place it. An entity refused
+	// before it became anything still belongs somewhere, and a refusal
+	// carrying no location is one nothing can group or act on.
+	CollectionPath string `json:"collection_path,omitempty"`
+	Service        string `json:"service,omitempty"`
+	Tag            string `json:"tag,omitempty"`
+	// Reason is why it was refused, verbatim from the stage that refused.
 	Reason string `json:"reason"`
 }
 
@@ -415,5 +428,18 @@ func defaultTimeouts() Timeouts {
 		Read:   5 * time.Minute,
 		Update: 30 * time.Minute,
 		Delete: 30 * time.Minute,
+	}
+}
+
+// unsupportedEntity records one refusal with everywhere it belongs, so a
+// refusal can be grouped by the same keys a generated entity is.
+func unsupportedEntity(names Names, collectionPath, kind, reason string) UnsupportedEntity {
+	return UnsupportedEntity{
+		Key:            names.Key,
+		Kind:           kind,
+		CollectionPath: collectionPath,
+		Service:        names.Service,
+		Tag:            names.Tag,
+		Reason:         reason,
 	}
 }

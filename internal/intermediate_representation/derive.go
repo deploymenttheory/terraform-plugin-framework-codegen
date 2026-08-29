@@ -55,7 +55,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 	family := map[string][]int{}   // pre-disambiguation key -> indices into keep
 	parentKey := map[string]string{}
 	for _, classification := range classifications.Entities {
-		names := deriveNames(configuration.Provider.Name, classification.Key, classification.CollectionPath)
+		names := deriveNames(configuration.Provider.Name, classification.Key, classification.CollectionPath, classification.Tag)
 		original := names.Key
 		// Two collection paths can derive one key: sibling API versions
 		// once the version prefix factors out, or paths that differ only
@@ -69,7 +69,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		}
 		claimed[names.Key] = classification.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
-			model.Excluded = append(model.Excluded, UnsupportedEntity{Key: names.Key, Reason: configExcludedReason})
+			model.Excluded = append(model.Excluded, unsupportedEntity(names, classification.CollectionPath, "", configExcludedReason))
 			continue
 		}
 		parentKey[classification.CollectionPath] = names.Key
@@ -77,8 +77,8 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		keep = append(keep, kept{classification: classification, names: names})
 	}
 	for _, excluded := range classifications.Excluded {
-		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath)
-		model.Excluded = append(model.Excluded, UnsupportedEntity{Key: names.Key, Reason: excluded.Reason})
+		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath, excluded.Tag)
+		model.Excluded = append(model.Excluded, unsupportedEntity(names, excluded.CollectionPath, "", excluded.Reason))
 	}
 
 	// A collision family that generates more than one entity co-manages
