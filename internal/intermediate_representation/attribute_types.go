@@ -137,11 +137,13 @@ func deriveMapType(attribute *Attribute, flatPrimary flat, create, read, update 
 		if len(flatValue.properties) == 0 {
 			// A value that is itself a map has no properties and is not
 			// shapeless: its own additionalProperties says what it holds.
-			// An attribute cannot yet carry an element that is a collection,
-			// so it is refused for what it is rather than as free-form.
+			// terraform-plugin-framework carries this as a MapAttribute
+			// whose ElementType is a types.MapType; the derivation cannot
+			// yet describe an element that is itself a collection, so the
+			// refusal names that rather than blaming the document.
 			if flatValue.additionalProperties != nil {
 				refuse(attribute, Cause{Code: CauseMapOfMaps},
-					"map whose values are themselves maps: an attribute carries one element type, not a nested collection")
+					"map whose values are themselves maps: the derivation carries one element kind and cannot yet nest one")
 				return
 			}
 			refuse(attribute, Cause{Code: CauseMapOfObjects},

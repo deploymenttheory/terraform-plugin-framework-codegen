@@ -160,8 +160,8 @@ var explanations = map[string]Explanation{
 	},
 	ir.CauseMapOfMaps: {
 		Title: "A map whose values are themselves maps",
-		Means: "The specification describes this fully: a map whose every value is another map, such as headers keyed first by domain and then by header name. A Terraform attribute carries one element type, and a map of maps needs two, so this one is not generated yet.",
-		Fix:   "Nothing you can change. This is a gap in the generator, not anything missing from the specification.",
+		Means: "The specification says exactly what this holds: a map whose every value is another map, such as headers keyed first by domain and then by header name. Terraform can hold that, and this generator cannot build it yet, so the attribute is not there.",
+		Fix:   "Nothing you can change, and nothing is missing from the specification. It is a gap in this generator.",
 	},
 	ir.CauseUnsupportedMapValue: {
 		Title: "A map of values Terraform has no equivalent for",
