@@ -69,9 +69,14 @@ type EmittanceCounts struct {
 	Refused, Kept                                  int
 }
 
-// EmittanceRewrite is one prenormalise rewrite as the report shows it.
+// EmittanceRewrite is one change made to a working copy of the OpenAPI 3
+// specification before the API client was generated from it.
 type EmittanceRewrite struct {
-	Name  string
+	Name string
+	// Why is the reason the change is necessary. It is what stops the list
+	// reading as damage: each of these answers something the API client
+	// generator does, not something wrong with the specification.
+	Why   string
 	Count int
 	Sites []EmittanceSite
 }
