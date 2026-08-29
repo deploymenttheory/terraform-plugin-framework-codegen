@@ -330,7 +330,7 @@ func generate(opts Options) (*generation, error) {
 			ListResources: len(entities.Registrations.ListResources.Registrations),
 			Actions:       len(entities.Registrations.Actions.Registrations),
 			Removals:      removals,
-			Excluded:      allExclusions(model, model.Excluded, excluded, entities.Excluded),
+			Excluded:      allExclusions(model, excluded, entities.Excluded),
 			Unsupported:   refusals,
 		},
 		files: append(append(core, entities.Files...), unsupported),
@@ -469,8 +469,9 @@ func removeUnproducedFiles(root string, paths []string) {
 // A derived exclusion already carries where it belongs. A dropped or refused
 // one was derived first, so the model still knows: the location is read back
 // from it rather than threaded through two packages that have no use for it.
-func allExclusions(m *ir.Model, derived []ir.UnsupportedEntity, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
+func allExclusions(m *ir.Model, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
 	located := locationsByKey(m)
+	derived := append(append([]ir.UnsupportedEntity{}, m.ExcludedByConfiguration...), m.ExcludedByClassification...)
 	out := make([]ir.UnsupportedEntity, 0, len(derived)+len(dropped)+len(refused))
 	out = append(out, derived...)
 	for _, d := range dropped {
