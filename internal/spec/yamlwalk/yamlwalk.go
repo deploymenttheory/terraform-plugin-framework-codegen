@@ -40,13 +40,34 @@ func StripSchemaDefaults(top *yaml.Node) int {
 
 	if schemas := ChildValue(ChildValue(top, "components"), "schemas"); schemas != nil {
 		for i := 1; i < len(schemas.Content); i += 2 {
-			stripFromSchema(schemas.Content[i], &stripped)
+			stripped += StripDefaultsFromSchema(schemas.Content[i])
 		}
 	}
 	if paths := ChildValue(top, "paths"); paths != nil {
-		stripUnderPaths(paths, &stripped)
+		for i := 1; i < len(paths.Content); i += 2 {
+			stripped += StripDefaultsUnderPathItem(paths.Content[i])
+		}
 	}
 
+	return stripped
+}
+
+// StripDefaultsFromSchema strips one component schema, and StripDefaultsUnderPathItem
+// one path item. StripSchemaDefaults is these two over the document's roots;
+// a caller that needs to know which schema or which path a default came from
+// walks the roots itself and calls these, so there is one implementation of
+// the stripping and not two.
+func StripDefaultsFromSchema(schema *yaml.Node) int {
+	stripped := 0
+	stripFromSchema(schema, &stripped)
+	return stripped
+}
+
+// StripDefaultsUnderPathItem strips every schema reachable under one path
+// item.
+func StripDefaultsUnderPathItem(item *yaml.Node) int {
+	stripped := 0
+	stripUnderPaths(item, &stripped)
 	return stripped
 }
 

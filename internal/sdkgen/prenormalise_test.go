@@ -77,15 +77,15 @@ func TestUnit_Prenormalize_StripsDefaultsCollapsesAllOfsWidensByteArrays(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rewrites.SchemaDefaultsStripped != 2 {
-		t.Errorf("stripped %d defaults, want 2", rewrites.SchemaDefaultsStripped)
+	if rewrites.SchemaDefaultsStripped.Count != 2 {
+		t.Errorf("stripped %d defaults, want 2", rewrites.SchemaDefaultsStripped.Count)
 	}
-	if rewrites.AnonymousAllOfsCollapsed != 1 {
-		t.Errorf("collapsed %d allOfs, want 1", rewrites.AnonymousAllOfsCollapsed)
+	if rewrites.AnonymousAllOfsCollapsed.Count != 1 {
+		t.Errorf("collapsed %d allOfs, want 1", rewrites.AnonymousAllOfsCollapsed.Count)
 	}
 	// The array of byte strings is the one widening this document calls for.
-	if rewrites.ByteArrayCollectionsWidened != 1 {
-		t.Errorf("widened %d byte-array collections, want 1", rewrites.ByteArrayCollectionsWidened)
+	if rewrites.ByteArrayCollectionsWidened.Count != 1 {
+		t.Errorf("widened %d byte-array collections, want 1", rewrites.ByteArrayCollectionsWidened.Count)
 	}
 
 	text := string(out)

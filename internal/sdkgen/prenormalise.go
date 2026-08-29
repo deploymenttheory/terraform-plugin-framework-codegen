@@ -61,11 +61,11 @@ func Prenormalise(revised []byte) (out []byte, rewrites Rewrites, err error) {
 	}
 
 	top := root.Content[0]
-	rewrites.SchemaDefaultsStripped = yamlwalk.StripSchemaDefaults(top)
-	rewrites.AnonymousAllOfsCollapsed = collapseAnonymousAllOfs(top)
-	rewrites.ByteArrayCollectionsWidened = widenByteArrayCollections(top)
-	rewrites.UnionsReduced = reduceUnions(top)
-	rewrites.ErrorContentDropped = dropUnacceptableErrorContent(top)
+	stripSchemaDefaults(top, &rewrites.SchemaDefaultsStripped)
+	collapseAnonymousAllOfs(top, &rewrites.AnonymousAllOfsCollapsed)
+	widenByteArrayCollections(top, &rewrites.ByteArrayCollectionsWidened)
+	reduceUnions(top, &rewrites.UnionsReduced)
+	dropUnacceptableErrorContent(top, &rewrites.ErrorContentDropped)
 
 	yamlwalk.ForceBlockStyle(&root)
 
@@ -82,22 +82,52 @@ func Prenormalise(revised []byte) (out []byte, rewrites Rewrites, err error) {
 // never measured, and the pre-normalised document is never committed — these
 // counts are the only account of what the backend was given.
 type Rewrites struct {
-	// SchemaDefaultsStripped is how many `default` keywords were removed.
-	SchemaDefaultsStripped int
-	// AnonymousAllOfsCollapsed is how many single-member anonymous allOf
-	// compositions were folded into their one member.
-	AnonymousAllOfsCollapsed int
-	// ByteArrayCollectionsWidened is how many array item schemas lost
+	// SchemaDefaultsStripped is the `default` keywords removed.
+	SchemaDefaultsStripped Rewrite
+	// AnonymousAllOfsCollapsed is the single-member anonymous allOf
+	// compositions folded into their one member.
+	AnonymousAllOfsCollapsed Rewrite
+	// ByteArrayCollectionsWidened is the array item schemas that lost
 	// `format: byte`.
-	ByteArrayCollectionsWidened int
-	// UnionsReduced is how many anyOf or oneOf compositions were folded to
-	// their first branch. Only a union whose branches are all inline is
-	// reduced, so this counts the unions a generator could not model
-	// rather than every union the document declares.
-	UnionsReduced int
-	// ErrorContentDropped is how many error responses were inlined without
-	// their content.
-	ErrorContentDropped int
+	ByteArrayCollectionsWidened Rewrite
+	// UnionsReduced is the anyOf and oneOf compositions folded to their
+	// first branch. Only a union whose branches are all inline is reduced,
+	// so this counts the unions a generator could not model rather than
+	// every union the document declares.
+	UnionsReduced Rewrite
+	// ErrorContentDropped is the error responses inlined without their
+	// content.
+	ErrorContentDropped Rewrite
+}
+
+// Rewrite is one rewrite's tally: how many changes it made, and where.
+//
+// A site is the document's own name for the place — a component schema, a
+// path, or a top-level section — rather than a pointer to the exact node. A
+// pointer through anonymous subschemas addresses the change precisely and
+// tells a reader nothing they can look up; the name is what they search the
+// document for.
+type Rewrite struct {
+	Count int
+	Sites []Site
+}
+
+// Site is one place a rewrite changed something, and how much it changed
+// there. Sites are in document order, which is stable and puts the change
+// where a reader reading the document would meet it.
+type Site struct {
+	Where string
+	Count int
+}
+
+// record attributes one root's changes. A root the rewrite left alone is not
+// a site: the report says where something happened, not where it did not.
+func (r *Rewrite) record(where string, count int) {
+	if count <= 0 {
+		return
+	}
+	r.Count += count
+	r.Sites = append(r.Sites, Site{Where: where, Count: count})
 }
 
 // String renders every count in the order the rewrites are applied, so the
@@ -107,20 +137,78 @@ func (r Rewrites) String() string {
 		"%d schema defaults stripped, %d anonymous allOf collapsed, "+
 			"%d byte-array collections widened, %d unions reduced, "+
 			"%d error responses stripped of content",
-		r.SchemaDefaultsStripped, r.AnonymousAllOfsCollapsed,
-		r.ByteArrayCollectionsWidened, r.UnionsReduced, r.ErrorContentDropped)
+		r.SchemaDefaultsStripped.Count, r.AnonymousAllOfsCollapsed.Count,
+		r.ByteArrayCollectionsWidened.Count, r.UnionsReduced.Count, r.ErrorContentDropped.Count)
+}
+
+// eachComponentSchema calls fn for every component schema, named the way the
+// document names it.
+func eachComponentSchema(top *yaml.Node, fn func(site string, node *yaml.Node)) {
+	schemas := yamlwalk.ChildValue(yamlwalk.ChildValue(top, "components"), "schemas")
+	if schemas == nil || schemas.Kind != yaml.MappingNode {
+		return
+	}
+	for i := 0; i+1 < len(schemas.Content); i += 2 {
+		fn("components.schemas."+schemas.Content[i].Value, schemas.Content[i+1])
+	}
+}
+
+// eachPathItem calls fn for every path item, named by its template.
+func eachPathItem(top *yaml.Node, fn func(site string, node *yaml.Node)) {
+	paths := yamlwalk.ChildValue(top, "paths")
+	if paths == nil || paths.Kind != yaml.MappingNode {
+		return
+	}
+	for i := 0; i+1 < len(paths.Content); i += 2 {
+		fn("paths."+paths.Content[i].Value, paths.Content[i+1])
+	}
+}
+
+// eachDocumentSection calls fn for every part of the document exactly once,
+// naming each by the document's own name for it. Union reduction walks the
+// whole document rather than the two roots the other rewrites visit, so
+// attributing what it changed needs a name for every part.
+func eachDocumentSection(top *yaml.Node, fn func(site string, node *yaml.Node)) {
+	if top.Kind != yaml.MappingNode {
+		return
+	}
+	for i := 0; i+1 < len(top.Content); i += 2 {
+		key, value := top.Content[i].Value, top.Content[i+1]
+		switch {
+		case key == "paths":
+			eachPathItem(top, fn)
+		case key == "components" && value.Kind == yaml.MappingNode:
+			for j := 0; j+1 < len(value.Content); j += 2 {
+				section, members := value.Content[j].Value, value.Content[j+1]
+				if section == "schemas" {
+					eachComponentSchema(top, fn)
+					continue
+				}
+				fn("components."+section, members)
+			}
+		default:
+			fn(key, value)
+		}
+	}
+}
+
+// stripSchemaDefaults strips every schema's declared defaults, recording
+// which schema and which path each came from.
+func stripSchemaDefaults(top *yaml.Node, into *Rewrite) {
+	eachComponentSchema(top, func(site string, node *yaml.Node) {
+		into.record(site, yamlwalk.StripDefaultsFromSchema(node))
+	})
+	eachPathItem(top, func(site string, node *yaml.Node) {
+		into.record(site, yamlwalk.StripDefaultsUnderPathItem(node))
+	})
 }
 
 // collapseAnonymousAllOfs hoists every single-member anonymous allOf in the
 // document's component schemas.
-func collapseAnonymousAllOfs(top *yaml.Node) int {
-	collapsed := 0
-	if schemas := yamlwalk.ChildValue(yamlwalk.ChildValue(top, "components"), "schemas"); schemas != nil {
-		for i := 1; i < len(schemas.Content); i += 2 {
-			collapsed += collapseAllOf(schemas.Content[i])
-		}
-	}
-	return collapsed
+func collapseAnonymousAllOfs(top *yaml.Node, into *Rewrite) {
+	eachComponentSchema(top, func(site string, node *yaml.Node) {
+		into.record(site, collapseAllOf(node))
+	})
 }
 
 // collapseAllOf merges a schema's allOf into the schema itself when the list
@@ -186,17 +274,13 @@ func collapseAllOf(schema *yaml.Node) int {
 
 // widenByteArrayCollections drops the byte format from an array's item
 // schema, in both the component schemas and inline under paths.
-func widenByteArrayCollections(top *yaml.Node) int {
-	count := 0
-	if schemas := yamlwalk.ChildValue(yamlwalk.ChildValue(top, "components"), "schemas"); schemas != nil {
-		for i := 1; i < len(schemas.Content); i += 2 {
-			count += widenByteArrays(schemas.Content[i])
-		}
-	}
-	if paths := yamlwalk.ChildValue(top, "paths"); paths != nil {
-		count += widenByteArrays(paths)
-	}
-	return count
+func widenByteArrayCollections(top *yaml.Node, into *Rewrite) {
+	eachComponentSchema(top, func(site string, node *yaml.Node) {
+		into.record(site, widenByteArrays(node))
+	})
+	eachPathItem(top, func(site string, node *yaml.Node) {
+		into.record(site, widenByteArrays(node))
+	})
 }
 
 // widenByteArrays walks a node, removing `format: byte` from any schema that
@@ -240,12 +324,20 @@ func dropByteFormat(schema *yaml.Node) bool {
 	return false
 }
 
-// reduceUnions rewrites every anyOf and oneOf in the document to its first
+// reduceUnions folds every reducible union in the document, recording the
+// part of the document each fold happened in.
+func reduceUnions(top *yaml.Node, into *Rewrite) {
+	eachDocumentSection(top, func(site string, node *yaml.Node) {
+		into.record(site, reduceUnionsIn(node))
+	})
+}
+
+// reduceUnionsIn rewrites every anyOf and oneOf beneath one node to its first
 // branch, wherever one appears: a component schema, an inline property, a
 // request body, a response. The whole document is walked rather than the
 // component schemas alone, because a union declared inline on a response is
 // as unbuildable as one in components.
-func reduceUnions(node *yaml.Node) int {
+func reduceUnionsIn(node *yaml.Node) int {
 	if node == nil {
 		return 0
 	}
@@ -265,11 +357,11 @@ func reduceUnions(node *yaml.Node) int {
 			}
 		}
 		for i := 0; i+1 < len(node.Content); i += 2 {
-			count += reduceUnions(node.Content[i+1])
+			count += reduceUnionsIn(node.Content[i+1])
 		}
 	case yaml.SequenceNode:
 		for _, member := range node.Content {
-			count += reduceUnions(member)
+			count += reduceUnionsIn(member)
 		}
 	}
 	return count
@@ -355,17 +447,12 @@ var httpMethods = []string{"get", "put", "post", "delete", "patch", "head", "opt
 // The error mappings the content also generates go with it, and cost the
 // provider nothing: the generated error handling reads a status code and a
 // message, which kiota's untyped error carries as well as a typed one.
-func dropUnacceptableErrorContent(top *yaml.Node) int {
-	paths := yamlwalk.ChildValue(top, "paths")
-	if paths == nil || paths.Kind != yaml.MappingNode {
-		return 0
-	}
-	rewritten := 0
-	for i := 1; i < len(paths.Content); i += 2 {
-		item := paths.Content[i]
+func dropUnacceptableErrorContent(top *yaml.Node, into *Rewrite) {
+	eachPathItem(top, func(site string, item *yaml.Node) {
 		if item.Kind != yaml.MappingNode {
-			continue
+			return
 		}
+		rewritten := 0
 		for _, method := range httpMethods {
 			operation := yamlwalk.ChildValue(item, method)
 			if operation == nil || operation.Kind != yaml.MappingNode {
@@ -373,8 +460,8 @@ func dropUnacceptableErrorContent(top *yaml.Node) int {
 			}
 			rewritten += dropErrorContent(top, operation)
 		}
-	}
-	return rewritten
+		into.record(site, rewritten)
+	})
 }
 
 // dropErrorContent rewrites one operation's responses, and answers how many
