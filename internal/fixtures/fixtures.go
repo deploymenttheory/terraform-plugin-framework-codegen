@@ -394,7 +394,10 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			nested, nestedSkips := deriveTree(a.Nested, at)
 			v.Nested = nested
 			skips = append(skips, nestedSkips...)
-		case a.Kind == ir.TypeList:
+		case a.Kind == ir.TypeList, a.Kind == ir.TypeMap:
+			// A collection's fixture value is one member's, so the member
+			// kind decides it. Taking the collection's own kind lands every
+			// member in the string arm, whatever the document declared.
 			v.Scalar, v.synthesised = scalarFor(a.ElementType, a, at)
 		default:
 			v.Scalar, v.synthesised = scalarFor(a.Kind, a, at)
