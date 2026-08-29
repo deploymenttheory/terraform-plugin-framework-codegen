@@ -73,10 +73,14 @@ type EmittanceCounts struct {
 // specification before the API client was generated from it.
 type EmittanceRewrite struct {
 	Name string
-	// Why is the reason the change is necessary. It is what stops the list
-	// reading as damage: each of these answers something the API client
-	// generator does, not something wrong with the specification.
-	Why   string
+	// Why is the reason the change is necessary, in terms of what the
+	// specification says and what the API client generator would otherwise
+	// do with it.
+	Why string
+	// Cost answers the question a reader actually arrives with on seeing
+	// that something was changed in their specification: what did this cost
+	// me? Without it the list reads as damage.
+	Cost  string
 	Count int
 	Sites []EmittanceSite
 }

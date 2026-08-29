@@ -90,16 +90,22 @@ p.none{color:var(--dim);font-style:italic}
 
 {{if .Rewrites}}
 <h2>Changes made to the specification before the API client was generated</h2>
-<p class="note">A few things an OpenAPI specification can express, {{.SDK.Backend}} cannot. It was given an adjusted copy rather than the specification itself. The specification committed in this repository is unchanged, and the adjusted copy is discarded once the API client is built, so the list below is the only record of how the two differed. Each entry says why the change was necessary.</p>
+<p class="note">A few things an OpenAPI specification can express, {{.SDK.Backend}} cannot. It was given an adjusted copy rather than the specification itself. The specification committed in this repository is unchanged, and the adjusted copy is discarded once the API client is built, so the list below is the only record of how the two differed. Each entry says why the change was necessary and what it cost.</p>
 {{range .Rewrites}}
 <details>
   <summary>{{.Name}} <span class="tally">{{.Count}} in {{len .Sites}} {{if eq (len .Sites) 1}}place{{else}}places{{end}}</span></summary>
   <div class="body">
     <p>{{.Why}}</p>
+    <p class="fix"><b>What this cost you:</b> {{.Cost}}</p>
     {{if .Sites}}
-    <table><thead><tr><th>Where in the specification</th><th class="num">Changes</th></tr></thead><tbody>
-    {{range .Sites}}<tr><td class="mono">{{.Where}}</td><td class="num">{{.Count}}</td></tr>{{end}}
-    </tbody></table>
+    <details>
+      <summary>Where in the specification ({{len .Sites}} {{if eq (len .Sites) 1}}place{{else}}places{{end}})</summary>
+      <div class="body">
+        <table><thead><tr><th>Schema or path</th><th class="num">Changes</th></tr></thead><tbody>
+        {{range .Sites}}<tr><td class="mono">{{.Where}}</td><td class="num">{{.Count}}</td></tr>{{end}}
+        </tbody></table>
+      </div>
+    </details>
     {{else}}<p class="none">Nothing was changed.</p>{{end}}
   </div>
 </details>

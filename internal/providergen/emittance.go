@@ -59,32 +59,37 @@ func emittanceReport(opts Options, model *ir.Model, refusals []emit.Unsupported,
 // does, in the order they are applied.
 func rewriteLines(r sdkgen.Rewrites) []emit.EmittanceRewrite {
 	named := []struct {
-		name, why string
-		from      sdkgen.Rewrite
+		name, why, cost string
+		from            sdkgen.Rewrite
 	}{
 		{
 			"Default values removed from schemas",
-			"A generated API client stamps every declared default onto the object it builds. A field nobody set would then be sent on every request, and on the way back the default would hide the fact that the API said nothing at all.",
+			"The specification gives some fields a default value, for example an interval declared with a default of 60. That is a statement about what the API does when you send nothing. kiota reads it as a value to build in, so every object the provider created would arrive with the interval already set to 60 whether or not you asked for it, and a response that said nothing about the interval would still read back as 60. The provider could not tell a field the API never mentioned from one it really returned.",
+			"Nothing. The field is still there and you can still set it. If you do not, the API applies its own default, which is what the specification was describing in the first place.",
 			r.SchemaDefaultsStripped,
 		},
 		{
 			"Single-member allOf compositions flattened",
-			"API client generators invent names for unnamed schemas and merge identical ones with no fixed winner, so the name chosen would change from one generation to the next.",
+			"Where the specification wraps one unnamed schema in an allOf with nothing else in it, the wrapper adds nothing the inner schema did not already say. kiota has to invent a name for the unnamed schema, and it picks a different one depending on what else it has seen, so generated type names would change between runs even though the specification had not.",
+			"Nothing. The wrapper described exactly what it wrapped.",
 			r.AnonymousAllOfsCollapsed,
 		},
 		{
 			"format: byte removed from list items",
-			"kiota generates a writer for lists of byte strings that its own runtime does not implement, so the API client would not compile. The wire carries the same base64 text either way.",
+			"Where the specification describes a list whose items are strings carrying the byte format, kiota generates code its own runtime does not implement, and the API client does not compile at all.",
+			"Nothing on the wire. Base64 text is sent and received either way; only the Go type the client uses to hold it differs.",
 			r.ByteArrayCollectionsWidened,
 		},
 		{
 			"oneOf and anyOf reduced to their first option",
-			"Go has no type that is either of two shapes. Asked to merge alternatives it cannot reconcile, kiota emits a model with no fields at all. This costs the provider nothing: a field described as a choice between shapes is already left out of the generated schema.",
+			"Where the specification says a field is one of several different shapes, Go has no type that is either of two shapes. Asked to merge alternatives it cannot reconcile, kiota produces a model with no fields at all, which breaks the whole client.",
+			"Nothing for this provider. A field described as a choice between shapes is already left out of the Terraform schema for the same reason, so the copy and the specification produce the same provider.",
 			r.UnionsReduced,
 		},
 		{
 			"Content removed from error responses",
-			"kiota builds a request's Accept header from the media types the responses declare, and falls through to the error responses when no success response names one. That asks the server for the format it produces only when refusing.",
+			"kiota decides what to put in a request's Accept header from the response formats an operation declares. Where an operation declares no format for its success response, kiota falls through to the error responses and asks the server for the format it produces only when refusing a request. Servers answer that with a 406.",
+			"Nothing. Only the error responses lose their declared content, and the provider reads a status code and a message from a refusal either way.",
 			r.ErrorContentDropped,
 		},
 	}
@@ -94,7 +99,7 @@ func rewriteLines(r sdkgen.Rewrites) []emit.EmittanceRewrite {
 		for _, s := range n.from.Sites {
 			sites = append(sites, emit.EmittanceSite{Where: s.Where, Count: s.Count})
 		}
-		out = append(out, emit.EmittanceRewrite{Name: n.name, Why: n.why, Count: n.from.Count, Sites: sites})
+		out = append(out, emit.EmittanceRewrite{Name: n.name, Why: n.why, Cost: n.cost, Count: n.from.Count, Sites: sites})
 	}
 	return out
 }
