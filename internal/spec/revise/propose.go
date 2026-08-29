@@ -334,41 +334,28 @@ func highestOrdinal(dirs ...string) (int, error) {
 	return highest, nil
 }
 
-// compilableKinds is the closed observation-kind vocabulary, for validating
-// the configured auto-accept list before anything is written. Two of its
-// entries — normalisation and derivedDefault — have no correction form yet
-// and compile to a NoForm note; naming them is a no-op rather than an error,
-// because the auto-accept list says which kinds skip review, not which kinds
-// exist.
-var compilableKinds = []string{
-	string(observe.KindWritable), string(observe.KindImmutable),
-	string(observe.KindRequiredByAPI), string(observe.KindRequiredWhen),
-	string(observe.KindServerDefault), string(observe.KindDerivedDefault),
-	string(observe.KindNormalisation), string(observe.KindIgnoredOnUpdate),
-	string(observe.KindServerForced), string(observe.KindVolatile),
-	string(observe.KindValues), string(observe.KindUpdateStyle),
-	string(observe.KindDeleteNotFoundOK), string(observe.KindReadAfterWrite),
-	string(observe.KindUndocumentedFieldInSpec),
-	string(observe.KindValidWhen), string(observe.KindDependsOn),
-	string(observe.KindMutuallyExclusive), string(observe.KindValidConfiguration),
-	string(observe.KindListWrapper),
-	string(observe.KindListPagination),
-}
-
-// CompilableKinds is the sorted vocabulary an audit.auto_accept entry must
-// name, as a fresh slice no caller can mutate. Config validation consumes
-// exactly this, so the check a human meets at `tfpfgen config validate` and
-// the one `tfpfgen spec revise` enforces cannot drift apart.
+// CompilableKinds is the sorted vocabulary an audit.auto_accept entry may
+// name: the observation kinds compileRules has a rule for, as a fresh slice
+// no caller can mutate. It reads those rules rather than a list beside them,
+// so the check a human meets at `tfpfgen config validate` and the one
+// `tfpfgen spec revise` enforces cannot drift apart.
+//
+// Naming a kind whose rule compiles to a NoForm note is a no-op rather than
+// an error: the auto-accept list says which kinds skip review, not which
+// kinds produce operations.
 func CompilableKinds() []string {
-	out := slices.Clone(compilableKinds)
+	out := make([]string, 0, len(compileRules))
+	for kind := range compileRules {
+		out = append(out, string(kind))
+	}
 	slices.Sort(out)
 	return out
 }
 
 func checkAutoAccept(kinds []string) error {
 	for _, k := range kinds {
-		if !slices.Contains(compilableKinds, k) {
-			return fmt.Errorf("audit.auto_accept: %q is not an observation kind (one of %s)",
+		if _, ok := compileRules[observe.Kind(k)]; !ok {
+			return fmt.Errorf("audit.auto_accept: %q names no compilation rule (one of %s)",
 				k, strings.Join(CompilableKinds(), ", "))
 		}
 	}

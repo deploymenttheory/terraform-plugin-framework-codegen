@@ -63,7 +63,7 @@ The schema is owned by `internal/config`; this page is generated from it, so eve
 | `audit.rate_limit_rps` | integer | `2` | Requests per second the audit may send to the live API. |
 | `audit.auto_accept` | list of string | — | Observation kinds whose compiled corrections `tfpfgen spec revise` accepts without waiting for a human. |
 
-Each `audit.auto_accept` entry is one of: `deleteNotFoundOK`, `dependsOn`, `derivedDefault`, `ignoredOnUpdate`, `immutable`, `listPagination`, `listWrapper`, `mutuallyExclusive`, `normalisation`, `readAfterWrite`, `requiredByAPI`, `requiredWhen`, `serverDefault`, `serverForced`, `undocumentedFieldInSpec`, `updateStyle`, `validConfiguration`, `validWhen`, `values`, `volatile`, `writable`.
+Each `audit.auto_accept` entry is one of: `deleteNotFoundOK`, `dependsOn`, `derivedDefault`, `identifierProperty`, `ignoredOnUpdate`, `immutable`, `listPagination`, `listWrapper`, `mutuallyExclusive`, `normalisation`, `readAfterWrite`, `requiredByAPI`, `requiredWhen`, `serverDefault`, `serverForced`, `undocumentedFieldInSpec`, `updateStyle`, `validConfiguration`, `validWhen`, `values`, `volatile`, `writable`.
 
 ## `services`
 

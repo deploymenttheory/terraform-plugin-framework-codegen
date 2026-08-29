@@ -245,7 +245,7 @@ func TestUnit_Propose_RefusesAnUnknownAutoAcceptKind(t *testing.T) {
 	t.Parallel()
 	_, specDir, _ := pinnedTree(t)
 	_, err := ProposeWith(specDir, Options{AutoAccept: []string{"deleteNotFound"}})
-	if err == nil || !strings.Contains(err.Error(), `"deleteNotFound" is not an observation kind`) {
+	if err == nil || !strings.Contains(err.Error(), `"deleteNotFound" names no compilation rule`) {
 		t.Fatalf("an unknown auto_accept kind must refuse before anything is written: %v", err)
 	}
 }
