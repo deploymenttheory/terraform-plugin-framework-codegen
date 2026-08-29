@@ -68,6 +68,20 @@ func Prune(b *Bindings, sdkDir string) ([]Removal, error) {
 		}
 		return a.Attribute < z.Attribute
 	})
+	sort.Slice(p.reconciled, func(i, j int) bool {
+		a, z := p.reconciled[i], p.reconciled[j]
+		switch {
+		case a.Kind != z.Kind:
+			return a.Kind < z.Kind
+		case a.Key != z.Key:
+			return a.Key < z.Key
+		case a.Attribute != z.Attribute:
+			return a.Attribute < z.Attribute
+		default:
+			return a.Drafted < z.Drafted
+		}
+	})
+	b.Reconciled = p.reconciled
 	b.Removed = p.removed
 	return p.removed, nil
 }
@@ -78,6 +92,33 @@ type pruner struct {
 	client   types.Type
 	bindings *Bindings
 	removed  []Removal
+	// subject is the entity being resolved. A reconciliation deep in a
+	// call chain has no argument naming the entity it belongs to, and the
+	// pruner walks one entity at a time, so it is held here rather than
+	// threaded through every resolver that cannot use it.
+	subject    struct{ kind, key string }
+	reconciled []Reconciliation
+}
+
+// resolving names the entity every reconciliation recorded until the next
+// call belongs to.
+func (p *pruner) resolving(kind, key string) {
+	p.subject.kind, p.subject.key = kind, key
+}
+
+// reconcile records one draft the SDK settled. A no-op change is not a
+// reconciliation: nothing disagreed.
+func (p *pruner) reconcile(attribute, drafted, settled string) {
+	if drafted == settled {
+		return
+	}
+	p.reconciled = append(p.reconciled, Reconciliation{
+		Kind:      p.subject.kind,
+		Key:       p.subject.key,
+		Attribute: attribute,
+		Drafted:   drafted,
+		Settled:   settled,
+	})
 }
 
 // resolveType resolves a type expression and records the package it was
@@ -100,6 +141,7 @@ func (p *pruner) remove(kind, key, attribute, reason string) {
 // resource resolves one resource's calls and fields; false removes it.
 func (p *pruner) resource(rb *ResourceBinding) bool {
 	const kind = string(specmodel.KindResource)
+	p.resolving(kind, rb.Key)
 	calls := []struct {
 		name string
 		call *Call
@@ -272,6 +314,7 @@ func copyFieldBindings(fbs []FieldBinding) []FieldBinding {
 // removes it.
 func (p *pruner) datasource(db *DatasourceBinding) bool {
 	const kind = string(specmodel.KindDatasource)
+	p.resolving(kind, db.Key)
 	if db.Read != nil {
 		if why := p.resolveCall(db.Read); why != "" {
 			p.remove(kind, db.Key, "", fmt.Sprintf("its read call cannot be made: %s", why))
@@ -310,6 +353,7 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 
 func (p *pruner) listResource(lb *ListResourceBinding) bool {
 	const kind = string(specmodel.KindListResource)
+	p.resolving(kind, lb.Key)
 	if lb.List == nil {
 		p.remove(kind, lb.Key, "", "it has no list call")
 		return false
@@ -329,6 +373,7 @@ func (p *pruner) listResource(lb *ListResourceBinding) bool {
 
 func (p *pruner) action(ab *ActionBinding) bool {
 	const kind = string(specmodel.KindAction)
+	p.resolving(kind, ab.Key)
 	if ab.Invoke == nil {
 		p.remove(kind, ab.Key, "", "it has no invoke call")
 		return false
