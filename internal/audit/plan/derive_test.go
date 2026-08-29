@@ -607,7 +607,7 @@ paths:
 		t.Fatalf("Derive: %v", err)
 	}
 	for _, s := range p.Skipped {
-		if strings.Contains(s.Reason, "no create operation") {
+		if strings.Contains(s.Reason, "singleton") {
 			return
 		}
 	}

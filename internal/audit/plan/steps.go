@@ -37,14 +37,30 @@ func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Ski
 		return EntityPlan{}, &Skipped{Entity: c.Key, Reason: reason}
 	}
 
-	// A singleton is a resource with no create operation: it is written
-	// through its update call, and the classification leaves the create slot
-	// empty. Auditing that shape is not derived yet, so the entity is
-	// refused rather than the run.
-	if createOp == nil {
+	// A singleton is written through its update call and has no delete to
+	// clean up with. Auditing that shape is not derived yet, so the entity
+	// is refused rather than the run.
+	//
+	// The classification is asked directly rather than inferred from an
+	// empty create slot. A singleton's collection path can answer POST as
+	// well as GET and PUT, and the classification leaves that POST in the
+	// create slot — so a singleton with a create reaches here, and the
+	// steps below would address an item path and a delete it does not have.
+	if c.Singleton {
 		return EntityPlan{}, &Skipped{
 			Entity: c.Key,
-			Reason: "the entity has no create operation to exercise: a singleton is written through its update call, which the audit does not derive",
+			Reason: "the entity is a singleton: it is written through its update call and has no delete to clean up with, which the audit does not derive",
+		}
+	}
+
+	// Classification gives every other resource a create, a read and a
+	// delete. Refusing here rather than trusting that keeps one entity the
+	// classification let through in an unexpected shape from taking the
+	// whole run down with it.
+	if createOp == nil || c.Read == nil || c.Delete == nil {
+		return EntityPlan{}, &Skipped{
+			Entity: c.Key,
+			Reason: "the entity is classified a resource without the create, read and delete an audit exercises",
 		}
 	}
 
