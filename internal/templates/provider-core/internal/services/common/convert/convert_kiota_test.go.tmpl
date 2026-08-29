@@ -1,0 +1,98 @@
+{{ template "header" . }}
+
+package convert
+
+import "testing"
+
+// bag stands in for a kiota model whose only content is its additionalData
+// map, which is what a map-shaped object generates as.
+type bag struct{ data map[string]any }
+
+func (b *bag) GetAdditionalData() map[string]any { return b.data }
+
+// TestUnit_MapAdditionalData_EveryFormOneValueArrivesIn reads one entry
+// through each map bridge in each Go type the value can reach it as.
+//
+// The bag is map[string]any, so nothing in the type says what a value
+// holds. A parsed response carries pointers, because the deserialiser
+// stores what its raw-value reader returned and that reader returns an
+// address. A model assembled in process carries values, because the write
+// side put them there. JSON has one number type, so a number arrives as an
+// integer or a float depending on the text it was spelled with, and the
+// same property differs between two responses.
+func TestUnit_MapAdditionalData_EveryFormOneValueArrivesIn(t *testing.T) {
+	str, flag := "a", true
+	whole, fraction := int64(7), 1.5
+	narrow, single := int32(7), float32(1.5)
+
+	for _, c := range []struct {
+		name  string
+		value any
+		count func(additionalDataCarrier) int
+	}{
+		{"string", "a", countString},
+		{"string pointer", &str, countString},
+		{"bool", true, countBool},
+		{"bool pointer", &flag, countBool},
+		{"int64", int64(7), countInt64},
+		{"int64 pointer", &whole, countInt64},
+		{"int32", int32(7), countInt64},
+		{"int32 pointer", &narrow, countInt64},
+		{"whole number typed as a float", float64(7), countInt64},
+		{"float64", 1.5, countFloat64},
+		{"float64 pointer", &fraction, countFloat64},
+		{"float32", float32(1.5), countFloat64},
+		{"float32 pointer", &single, countFloat64},
+		{"float-typed property whose value was whole", int64(1), countFloat64},
+	} {
+		if got := c.count(&bag{data: map[string]any{"key": c.value}}); got != 1 {
+			t.Errorf("%s: dropped, the map read back with %d entries", c.name, got)
+		}
+	}
+}
+
+// TestUnit_MapAdditionalData_AValueOfTheWrongShapeIsSkippedAlone holds the
+// bridges to skipping one stray value rather than losing the whole map, and
+// to refusing a float that is not a whole number for an integer map rather
+// than truncating it.
+func TestUnit_MapAdditionalData_AValueOfTheWrongShapeIsSkippedAlone(t *testing.T) {
+	mixed := &bag{data: map[string]any{"good": int64(7), "stray": "not a number"}}
+	if got := countInt64(mixed); got != 1 {
+		t.Errorf("a stray value alongside a good one left %d entries, want 1", got)
+	}
+
+	truncating := &bag{data: map[string]any{"key": 1.5}}
+	if got := countInt64(truncating); got != 0 {
+		t.Errorf("1.5 is not an int64 and must be skipped rather than truncated, got %d entries", got)
+	}
+}
+
+// TestUnit_MapAdditionalData_AnAbsentBagIsNullNotEmpty separates a property
+// the API did not answer with from one it answered with no entries.
+func TestUnit_MapAdditionalData_AnAbsentBagIsNullNotEmpty(t *testing.T) {
+	if got := APIToFrameworkStringMapAdditionalData(nil); !got.IsNull() {
+		t.Error("an absent carrier must read as null")
+	}
+	if got := APIToFrameworkStringMapAdditionalData(&bag{}); !got.IsNull() {
+		t.Error("a carrier with no bag must read as null")
+	}
+	if got := APIToFrameworkStringMapAdditionalData(&bag{data: map[string]any{}}); got.IsNull() {
+		t.Error("an empty bag is an empty map, not an absent one")
+	}
+}
+
+func countString(c additionalDataCarrier) int {
+	return len(APIToFrameworkStringMapAdditionalData(c).Elements())
+}
+
+func countBool(c additionalDataCarrier) int {
+	return len(APIToFrameworkBoolMapAdditionalData(c).Elements())
+}
+
+func countInt64(c additionalDataCarrier) int {
+	return len(APIToFrameworkInt64MapAdditionalData(c).Elements())
+}
+
+func countFloat64(c additionalDataCarrier) int {
+	return len(APIToFrameworkFloat64MapAdditionalData(c).Elements())
+}

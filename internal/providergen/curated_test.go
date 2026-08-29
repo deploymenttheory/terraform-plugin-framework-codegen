@@ -251,6 +251,10 @@ func TestUnit_Run_CuratedTreeCompiles(t *testing.T) {
 			runGo(t, root, "mod", "tidy")
 			runGo(t, root, "build", "./...")
 			runGo(t, root, "vet", "./...")
+			// The provider core ships its own tests, and the conversion
+			// bridges are the part of it no repo test can reach: they are a
+			// template here and only Go once emitted.
+			runGo(t, root, "test", "./internal/services/common/...")
 		})
 	}
 }

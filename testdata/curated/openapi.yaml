@@ -275,7 +275,27 @@ components:
           type: array
           items:
             type: string
-          description: Free-form labels.
+          description: Free-form mapOfStrings.
+        mapOfStrings:
+          type: object
+          additionalProperties:
+            type: string
+          description: A map whose values are strings.
+        mapOfIntegers:
+          type: object
+          additionalProperties:
+            type: integer
+          description: A map whose values are integers.
+        mapOfNumbers:
+          type: object
+          additionalProperties:
+            type: number
+          description: A map whose values are numbers.
+        mapOfBooleans:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: A map whose values are booleans.
         berth:
           type: object
           x-tfpfgen-required-when:
