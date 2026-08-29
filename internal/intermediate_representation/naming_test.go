@@ -54,7 +54,7 @@ func TestDeriveNames(t *testing.T) {
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			got := deriveNames("acme", testCase.key, testCase.collectionPath)
+			got := deriveNames("acme", testCase.key, testCase.collectionPath, "")
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("deriveNames(%q, %q):\n got %+v\nwant %+v", testCase.key, testCase.collectionPath, got, testCase.want)
 			}

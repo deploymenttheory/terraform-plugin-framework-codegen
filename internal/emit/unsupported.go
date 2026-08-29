@@ -3,7 +3,6 @@ package emit
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 	"sort"
 	"strings"
 
@@ -16,7 +15,7 @@ const UnsupportedName = "unsupported.json"
 
 // unsupportedFormatVersion is the report's own schema version, bumped when
 // the shape changes so a reader can tell.
-const unsupportedFormatVersion = 1
+const unsupportedFormatVersion = 2
 
 // The stages that can refuse something. Each names one place in the
 // pipeline, so a reader can tell a document the toolkit could not model
@@ -35,12 +34,28 @@ const (
 )
 
 // Unsupported is one thing generation refused, and why.
+//
+// The subject is fields rather than one rendered sentence. A reader
+// grouping refusals — by entity, by kind, by where they belong — would
+// otherwise have to parse prose to do it, and prose that must be parsed is
+// a format with no version.
 type Unsupported struct {
-	// Path addresses what was refused, in the spelling
-	// terraform-plugin-codegen-spec uses for a validation finding:
-	// `resource "tag" attribute "metadata"`. An entity that became nothing
-	// has no kind to name, so it is addressed as `entity "tag"`.
-	Path string `json:"path"`
+	// Kind is what was refused: "resource", "datasource", "list_resource"
+	// or "action". Empty for an entity refused before it became any of
+	// them, which is the honest answer rather than a default.
+	Kind string `json:"kind,omitempty"`
+	// Entity is the entity key.
+	Entity string `json:"entity"`
+	// Attribute is the dotted attribute path, empty when the whole entity
+	// was refused. Nested attributes carry their path, so two attributes of
+	// one name at different depths address differently.
+	Attribute string `json:"attribute,omitempty"`
+	// Service and Tag are where the refusal belongs: the service area
+	// derived from the entity's path, and the group the document places it
+	// in. Carried so a refusal can be grouped the same way a generated
+	// entity is, including one refused before it became anything.
+	Service string `json:"service,omitempty"`
+	Tag     string `json:"tag,omitempty"`
 	// Stage is which part of the pipeline refused it.
 	Stage string `json:"stage"`
 	// Reason is the account that stage gave, verbatim.
@@ -53,21 +68,36 @@ type UnsupportedReport struct {
 	Unsupported   []Unsupported `json:"unsupported"`
 }
 
-// entityPath spells one entity's address. A kind the caller does not know
-// is spelled "entity", which is the honest answer for something that fits
-// no kind — that is why it was refused.
-func entityPath(kind, key string) string {
-	if kind == "" {
-		kind = "entity"
+// located fills a refusal's service and tag from the derived entity of the
+// same key. sdkbind answers with a kind and a key and has no use for where
+// the entity belongs, so the location is read back here rather than carried
+// through it.
+func located(m *ir.Model, u Unsupported) Unsupported {
+	if m == nil {
+		return u
 	}
-	return fmt.Sprintf("%s %q", kind, key)
+	if names, ok := namesByKey(m)[u.Entity]; ok {
+		u.Service, u.Tag = names.Service, names.Tag
+	}
+	return u
 }
 
-// attributePath spells one attribute's address beneath its entity. Nested
-// attributes carry their dotted path, so two attributes of one name at
-// different depths address differently.
-func attributePath(kind, key, attribute string) string {
-	return fmt.Sprintf("%s attribute %q", entityPath(kind, key), attribute)
+// namesByKey indexes every derived entity's naming block by key.
+func namesByKey(m *ir.Model) map[string]ir.Names {
+	out := map[string]ir.Names{}
+	for i := range m.Resources {
+		out[m.Resources[i].Names.Key] = m.Resources[i].Names
+	}
+	for i := range m.Datasources {
+		out[m.Datasources[i].Names.Key] = m.Datasources[i].Names
+	}
+	for i := range m.ListResources {
+		out[m.ListResources[i].Names.Key] = m.ListResources[i].Names
+	}
+	for i := range m.Actions {
+		out[m.Actions[i].Names.Key] = m.Actions[i].Names
+	}
+	return out
 }
 
 // RenderUnsupported builds the refusal report from every stage that can
@@ -92,9 +122,12 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 	if m != nil {
 		for _, exclusion := range m.Excluded {
 			report.Unsupported = append(report.Unsupported, Unsupported{
-				Path:   entityPath("", exclusion.Key),
-				Stage:  StageDerivation,
-				Reason: exclusion.Reason,
+				Kind:    exclusion.Kind,
+				Entity:  exclusion.Key,
+				Service: exclusion.Service,
+				Tag:     exclusion.Tag,
+				Stage:   StageDerivation,
+				Reason:  exclusion.Reason,
 			})
 		}
 		report.Unsupported = append(report.Unsupported, refusedAttributes(m)...)
@@ -108,28 +141,32 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 		if keptUnbound[keptUnboundKey(removal.Kind, removal.Key, removal.Attribute)] {
 			continue
 		}
-		entry := Unsupported{Stage: StageBinding, Reason: removal.Reason}
-		if removal.Attribute == "" {
-			entry.Path = entityPath(removal.Kind, removal.Key)
-		} else {
-			entry.Path = attributePath(removal.Kind, removal.Key, removal.Attribute)
-		}
-		report.Unsupported = append(report.Unsupported, entry)
+		report.Unsupported = append(report.Unsupported, located(m, Unsupported{
+			Kind:      removal.Kind,
+			Entity:    removal.Key,
+			Attribute: removal.Attribute,
+			Stage:     StageBinding,
+			Reason:    removal.Reason,
+		}))
 	}
 
 	for _, drop := range dropped {
-		report.Unsupported = append(report.Unsupported, Unsupported{
-			Path:   entityPath(drop.Kind, drop.Key),
+		report.Unsupported = append(report.Unsupported, located(m, Unsupported{
+			Kind:   drop.Kind,
+			Entity: drop.Key,
 			Stage:  StageBinding,
 			Reason: drop.Reason,
-		})
+		}))
 	}
 
 	for _, refusal := range emissionRefusals {
 		report.Unsupported = append(report.Unsupported, Unsupported{
-			Path:   entityPath("", refusal.Key),
-			Stage:  StageEmission,
-			Reason: refusal.Reason,
+			Kind:    refusal.Kind,
+			Entity:  refusal.Key,
+			Service: refusal.Service,
+			Tag:     refusal.Tag,
+			Stage:   StageEmission,
+			Reason:  refusal.Reason,
 		})
 	}
 
@@ -143,18 +180,29 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 	return file, report.Unsupported, nil
 }
 
-// sortUnsupported fixes the order so the report is a stable diff: by path,
-// then stage, then reason. Nothing here may depend on map iteration or on
-// the order entities happened to be walked in.
+// sortUnsupported fixes the order so the report is a stable diff: by
+// entity, then kind, then attribute, then stage, then reason. Nothing here
+// may depend on map iteration or on the order entities happened to be
+// walked in.
+//
+// Entity leads so one entity's refusals sit together whatever kind each was
+// refused as, which is the grouping a reader asking "what happened to this
+// entity" wants.
 func sortUnsupported(entries []Unsupported) {
 	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Path != entries[j].Path {
-			return entries[i].Path < entries[j].Path
+		a, z := entries[i], entries[j]
+		switch {
+		case a.Entity != z.Entity:
+			return a.Entity < z.Entity
+		case a.Kind != z.Kind:
+			return a.Kind < z.Kind
+		case a.Attribute != z.Attribute:
+			return a.Attribute < z.Attribute
+		case a.Stage != z.Stage:
+			return a.Stage < z.Stage
+		default:
+			return a.Reason < z.Reason
 		}
-		if entries[i].Stage != entries[j].Stage {
-			return entries[i].Stage < entries[j].Stage
-		}
-		return entries[i].Reason < entries[j].Reason
 	})
 }
 
@@ -163,7 +211,8 @@ func sortUnsupported(entries []Unsupported) {
 func refusedAttributes(m *ir.Model) []Unsupported {
 	var out []Unsupported
 
-	walk := func(kind, key string, tree *ir.AttributeTree) {
+	walk := func(kind string, names ir.Names, tree *ir.AttributeTree) {
+		key, service, tag := names.Key, names.Service, names.Tag
 		var descend func(prefix string, tree *ir.AttributeTree)
 		descend = func(prefix string, tree *ir.AttributeTree) {
 			if tree == nil {
@@ -176,9 +225,13 @@ func refusedAttributes(m *ir.Model) []Unsupported {
 				}
 				if attribute.Unsupported {
 					out = append(out, Unsupported{
-						Path:   attributePath(kind, key, name),
-						Stage:  StageDerivation,
-						Reason: attribute.UnsupportedReason,
+						Kind:      kind,
+						Entity:    key,
+						Attribute: name,
+						Service:   service,
+						Tag:       tag,
+						Stage:     StageDerivation,
+						Reason:    attribute.UnsupportedReason,
 					})
 					continue
 				}
@@ -189,16 +242,16 @@ func refusedAttributes(m *ir.Model) []Unsupported {
 	}
 
 	for i := range m.Resources {
-		walk("resource", m.Resources[i].Names.Key, m.Resources[i].Schema)
+		walk(bindingKindResource, m.Resources[i].Names, m.Resources[i].Schema)
 	}
 	for i := range m.Datasources {
-		walk("datasource", m.Datasources[i].Names.Key, m.Datasources[i].Schema)
+		walk(bindingKindDatasource, m.Datasources[i].Names, m.Datasources[i].Schema)
 	}
 	for i := range m.ListResources {
-		walk(string(specmodel.KindListResource), m.ListResources[i].Names.Key, m.ListResources[i].Schema)
+		walk(bindingKindListResource, m.ListResources[i].Names, m.ListResources[i].Schema)
 	}
 	for i := range m.Actions {
-		walk("action", m.Actions[i].Names.Key, m.Actions[i].RequestSchema)
+		walk(bindingKindAction, m.Actions[i].Names, m.Actions[i].RequestSchema)
 	}
 	return out
 }

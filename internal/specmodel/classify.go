@@ -50,6 +50,10 @@ type Classification struct {
 	// ItemPath is the identifier-carrying sibling, e.g. "/tags/{tagId}",
 	// empty when the document declares none.
 	ItemPath string
+	// Tag is the group the document places the entity in, empty when it
+	// declares none. It is the vendor's own grouping of its API, and the
+	// only grouping the document states.
+	Tag string
 	// Kinds lists what the entity yields, in the fixed order resource,
 	// datasource, list_resource, action.
 	Kinds []Kind
@@ -87,7 +91,12 @@ type UnclassifiedEntity struct {
 	Key            string
 	CollectionPath string
 	ItemPath       string
-	Reason         string
+	// Tag is the group the document places the entity in, empty when it
+	// declares none. Carried on an exclusion as well as a classification
+	// because an entity that became nothing still belongs somewhere, and a
+	// refusal nobody can place is a refusal nobody acts on.
+	Tag    string
+	Reason string
 }
 
 // Classifications is every entity in a document, decided and sorted.
@@ -150,6 +159,21 @@ type entity struct {
 	// to carry one.
 	collectionWrite *Operation
 	extra           []*Operation
+}
+
+// tag answers the group the document places this entity in: the first tag
+// its operations declare, taken in a fixed order so the answer does not
+// depend on which operations a document happens to carry. An entity's
+// operations normally agree on their tag, so the order settles a
+// disagreement rather than choosing between rivals.
+func (e *entity) tag() string {
+	ordered := []*Operation{e.create, e.read, e.update, e.del, e.list, e.collectionWrite}
+	for _, operation := range append(ordered, e.extra...) {
+		if operation != nil && len(operation.Tags) > 0 {
+			return operation.Tags[0]
+		}
+	}
+	return ""
 }
 
 // assign files an operation into the role its HTTP position means: POST on
@@ -264,6 +288,7 @@ func (e *entity) decide() (Classification, *UnclassifiedEntity) {
 			Key:            e.key,
 			CollectionPath: e.collection,
 			ItemPath:       e.item,
+			Tag:            e.tag(),
 			Reason:         e.exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations),
 		}
 	}
@@ -288,6 +313,7 @@ func (e *entity) decide() (Classification, *UnclassifiedEntity) {
 		Key:            e.key,
 		CollectionPath: e.collection,
 		ItemPath:       e.item,
+		Tag:            e.tag(),
 		Kinds:          kinds,
 		Create:         operationReferenceOf(create),
 		Read:           operationReferenceOf(read),

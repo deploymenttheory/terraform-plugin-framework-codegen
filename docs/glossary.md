@@ -303,14 +303,19 @@ single recorded exception.
   `internal/intermediate_representation/naming.go`; additions go through the
   repository owner.
 - **unsupported.json** — the committed record of everything generation
-  refused, at the provider repo root: `{format_version, unsupported: [{path,
-  stage, reason}]}`. `path` addresses what was refused in the
-  terraform-plugin-codegen-spec idiom — `resource "tag" attribute
-  "metadata"`, an attribute's dotted path beneath its entity, and `entity
-  "x"` for something that fits no kind and so has no kind to name. `stage`
-  is the closed set `derivation | binding | emission`, naming which part of
-  the pipeline refused it. Derived content like any other: manifest-covered
-  and byte-compared by `provider verify`. Generation never fails on it —
-  one entity must not take the whole provider with it — the point is that a
-  refusal appearing or disappearing is a line in a generation pull request
-  rather than a line in a CI log nobody reads.
+  refused, at the provider repo root: `{format_version, unsupported: [{kind,
+  entity, attribute, service, tag, stage, reason}]}`. The subject is fields
+  rather than one rendered sentence, so a reader grouping refusals never
+  parses prose to do it. `entity` is the entity key and `attribute` its
+  dotted path beneath it, empty when the whole entity was refused. `kind` is
+  `resource | datasource | list_resource | action`, empty for an entity
+  refused before it became any of them. `service` and `tag` are where it
+  belongs — the service area derived from its path, and the group the
+  document places it in — carried so an entity that became nothing can still
+  be grouped with the ones that did. `stage` is the closed set `derivation |
+  binding | emission`, naming which part of the pipeline refused it. Derived
+  content like any other: manifest-covered and byte-compared by `provider
+  verify`. Generation never fails on it — one entity must not take the whole
+  provider with it — the point is that a refusal appearing or disappearing
+  is a line in a generation pull request rather than a line in a CI log
+  nobody reads.

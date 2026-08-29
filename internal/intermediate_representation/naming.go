@@ -28,6 +28,11 @@ type Names struct {
 	// APIVersionDirectory is the stripped version segment, "v1" when the path
 	// declares none.
 	APIVersionDirectory string `json:"api_version_directory"`
+	// Tag is the group the document places the entity in, empty when it
+	// declares none. Unlike Service, which this package derives from the
+	// path, it is the vendor's own grouping and is carried rather than
+	// computed.
+	Tag string `json:"tag,omitempty"`
 }
 
 // acronyms is the closed set of initialisms Go spellings uppercase whole,
@@ -79,7 +84,7 @@ var versionSegment = regexp.MustCompile(`^v\d+$`)
 
 // deriveNames computes the naming block from the classification key and
 // the collection path the key was derived from.
-func deriveNames(provider, key, collectionPath string) Names {
+func deriveNames(provider, key, collectionPath, tag string) Names {
 	version, service := "", ""
 	first := true
 	for _, segment := range strings.Split(strings.Trim(collectionPath, "/"), "/") {
@@ -108,7 +113,7 @@ func deriveNames(provider, key, collectionPath string) Names {
 		version = "v1"
 	}
 
-	names := Names{Service: service, APIVersionDirectory: version}
+	names := Names{Service: service, APIVersionDirectory: version, Tag: tag}
 	return names.withKey(provider, lowered)
 }
 
