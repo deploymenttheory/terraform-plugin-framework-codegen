@@ -163,12 +163,12 @@ components:
                 deep:
                   type: string
 `
-	out, _, collapsed, err := Prenormalise([]byte(document))
+	out, rewrites, err := Prenormalise([]byte(document))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if collapsed != 1 {
-		t.Errorf("collapsed %d, want only the nested anonymous single-member allOf", collapsed)
+	if rewrites.AnonymousAllOfsCollapsed != 1 {
+		t.Errorf("collapsed %d, want only the nested anonymous single-member allOf", rewrites.AnonymousAllOfsCollapsed)
 	}
 	text := string(out)
 	// The two-member, overlapping-key, and non-mapping allOfs all survive.

@@ -38,6 +38,11 @@ type Result struct {
 	Files int
 	// OutDir is where the tree landed.
 	OutDir string
+	// Rewrites is what prenormalising the document changed before the
+	// backend read it. The pre-normalised copy is a temporary the run
+	// removes, so without this the only account of what the backend was
+	// given would be gone with it.
+	Rewrites Rewrites
 }
 
 // Run generates the SDK tree: gate the pinned tool, pre-normalise the
@@ -142,10 +147,11 @@ func regenerate(ctx context.Context, opts Options, targetParent, targetPrefix st
 		return Result{}, "", err
 	}
 
-	prenormalised, _, _, err := Prenormalise(revised)
+	prenormalised, rewrites, err := Prenormalise(revised)
 	if err != nil {
 		return Result{}, "", err
 	}
+	res.Rewrites = rewrites
 
 	// The pre-normalised copy is an intermediate, not an output: it lives in
 	// a temp directory the run removes, and only its durable source
