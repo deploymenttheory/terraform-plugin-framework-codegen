@@ -134,11 +134,18 @@ func deriveMapType(attribute *Attribute, flatPrimary flat, create, read, update 
 	case flatValue.declaredType == "number":
 		attribute.Kind, attribute.ElementType = TypeMap, TypeFloat64
 	case flatValue.declaredType == "object" || (flatValue.declaredType == "" && len(flatValue.properties) > 0):
-		// A value schema with no properties of its own describes an object
-		// of any shape, which no attribute can hold; the same answer a list
-		// of free-form objects gets.
 		if len(flatValue.properties) == 0 {
-			refuse(attribute, Cause{Code: CauseMapOfObjects}, "map of free-form objects: the value schema declares no properties to map")
+			// A value that is itself a map has no properties and is not
+			// shapeless: its own additionalProperties says what it holds.
+			// An attribute cannot yet carry an element that is a collection,
+			// so it is refused for what it is rather than as free-form.
+			if flatValue.additionalProperties != nil {
+				refuse(attribute, Cause{Code: CauseMapOfMaps},
+					"map whose values are themselves maps: an attribute carries one element type, not a nested collection")
+				return
+			}
+			refuse(attribute, Cause{Code: CauseMapOfObjects},
+				"map of objects the specification gives no properties: there are no attributes to map")
 			return
 		}
 		attribute.Kind, attribute.ElementType = TypeMap, TypeObject

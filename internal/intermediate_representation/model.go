@@ -74,6 +74,7 @@ const (
 	CauseUntypedAdditionalProperties = "untypedAdditionalProperties"
 	CauseShapelessObject             = "shapelessObject"
 	CauseMapOfObjects                = "mapOfObjects"
+	CauseMapOfMaps                   = "mapOfMaps"
 	CauseUnsupportedMapValue         = "unsupportedMapValue"
 	CauseItemlessArray               = "itemlessArray"
 	CauseFreeFormArrayElement        = "freeFormArrayElement"

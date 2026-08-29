@@ -154,9 +154,14 @@ var explanations = map[string]Explanation{
 		Fix:   "A correction can describe the object's fields, or the API vendor can add them to the specification.",
 	},
 	ir.CauseMapOfObjects: {
-		Title: "A map whose values have no described shape",
-		Means: "A map keyed by a name you choose is generated where the specification describes what one value looks like. This one says the values are objects and then describes nothing inside them, so there are no attributes to give the map.",
-		Fix:   "A correction can describe the value's fields, or the API vendor can add them to the specification.",
+		Title: "A map whose values have no fields",
+		Means: "A map keyed by a name you choose generates where the specification says what fields one value carries. This one says the values are objects and then lists no fields, so there is nothing to build the map's attributes from.",
+		Fix:   "A correction can add the value's fields, or the API vendor can add them to the specification.",
+	},
+	ir.CauseMapOfMaps: {
+		Title: "A map whose values are themselves maps",
+		Means: "The specification describes this fully: a map whose every value is another map, such as headers keyed first by domain and then by header name. A Terraform attribute carries one element type, and a map of maps needs two, so this one is not generated yet.",
+		Fix:   "Nothing you can change. This is a gap in the generator, not anything missing from the specification.",
 	},
 	ir.CauseUnsupportedMapValue: {
 		Title: "A map of values Terraform has no equivalent for",
