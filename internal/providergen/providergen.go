@@ -328,6 +328,19 @@ func generate(opts Options) (*generation, error) {
 		return nil, err
 	}
 
+	produced := emit.EmittanceCounts{
+		Resources:     len(entities.Registrations.Resources.Registrations),
+		Datasources:   len(entities.Registrations.Datasources.Registrations),
+		ListResources: len(entities.Registrations.ListResources.Registrations),
+		Actions:       len(entities.Registrations.Actions.Registrations),
+		Refused:       len(refusals),
+		Kept:          len(keptRemovals),
+	}
+	report, err := emittanceReport(opts, model, refusals, produced, bindings.Reconciled)
+	if err != nil {
+		return nil, err
+	}
+
 	g := &generation{
 		res: Result{
 			RevisedPath: filepath.Join(opts.SpecDir, revise.OutputName),
@@ -346,7 +359,7 @@ func generate(opts Options) (*generation, error) {
 			Excluded:      allExclusions(model, excluded, entities.Excluded),
 			Unsupported:   refusals,
 		},
-		files: append(append(core, entities.Files...), unsupported),
+		files: append(append(core, entities.Files...), unsupported, report),
 	}
 	sort.Slice(g.files, func(i, j int) bool { return g.files[i].Path < g.files[j].Path })
 	return g, nil
