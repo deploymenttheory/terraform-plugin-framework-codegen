@@ -146,3 +146,22 @@ func TestUnit_Explain_NoEmDashesReachTheReader(t *testing.T) {
 		t.Error("the report template uses an em dash")
 	}
 }
+
+// TestUnit_Explain_NoMarkdownReachesThePage keeps the prose to what renders.
+// The report is HTML; a backtick or an asterisk meant as markup arrives on
+// the page as itself, which reads as a typo rather than as emphasis.
+func TestUnit_Explain_NoMarkdownReachesThePage(t *testing.T) {
+	t.Parallel()
+	for code, e := range explanations {
+		for label, text := range map[string]string{"title": e.Title, "means": e.Means, "fix": e.Fix} {
+			if strings.ContainsAny(text, "`*_") {
+				t.Errorf("the %s of %q carries markdown that HTML will show as itself: %s", label, code, text)
+			}
+		}
+	}
+	for _, step := range Workflow {
+		if strings.ContainsAny(step.Name+step.Detail, "`*_") {
+			t.Errorf("workflow step %d carries markdown: %s", step.Number, step.Detail)
+		}
+	}
+}
