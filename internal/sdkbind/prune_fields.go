@@ -36,10 +36,14 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 	var result, parameter types.Type
 
 	if fb.Access.Get != "" && read != nil {
+		draftedGet := fb.Access.Get
 		sig, ok := methodOn(read, fb.Access.Get)
 		if !ok {
 			flipEscaped(&fb.Access)
 			sig, ok = methodOn(read, fb.Access.Get)
+			if ok {
+				p.reconcile(at, draftedGet, fb.Access.Get)
+			}
 		}
 		if !ok && fb.Access.Set != "" && write != nil {
 			// The request carries the field and no response answers it: a
@@ -48,8 +52,10 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 			// state keeps the planned value, settled against the write side
 			// in the spelling the draft gave it — the flip above changed the
 			// setter's spelling along with the getter's.
+			draftedSet := fb.Access.Set
 			flipEscaped(&fb.Access)
 			if _, settable := methodOn(write, fb.Access.Set); settable {
+				p.reconcile(at, draftedSet, fb.Access.Set)
 				keepFromPlan(fb)
 				return p.resolveField(fb, nil, write, kind, key, at)
 			}
@@ -66,12 +72,16 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 	}
 
 	if fb.Access.Set != "" && write != nil {
+		draftedSet := fb.Access.Set
 		sig, ok := methodOn(write, fb.Access.Set)
 		if !ok && result == nil {
 			// The read side may already have settled the Escaped spelling;
 			// with no read side, the setter gets its own chance to flip.
 			flipEscaped(&fb.Access)
 			sig, ok = methodOn(write, fb.Access.Set)
+			if ok {
+				p.reconcile(at, draftedSet, fb.Access.Set)
+			}
 		}
 		if !ok {
 			return fmt.Sprintf("%s carries no settable %s to write %q to%s",

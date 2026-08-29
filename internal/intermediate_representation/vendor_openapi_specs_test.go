@@ -49,7 +49,7 @@ func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *
 			t.Errorf("resource %s lacks lifecycle ops", r.Names.Key)
 		}
 	}
-	for _, e := range m.Excluded {
+	for _, e := range append(append([]UnsupportedEntity{}, m.ExcludedByConfiguration...), m.ExcludedByClassification...) {
 		if e.Key == "" || e.Reason == "" {
 			t.Errorf("anonymous exclusion: %+v", e)
 		}

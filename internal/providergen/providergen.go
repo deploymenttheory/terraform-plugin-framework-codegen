@@ -68,6 +68,11 @@ type Result struct {
 	// separate from Removals because the two cost the operator different
 	// things — nothing, and a missing attribute.
 	Kept []sdkbind.Removal
+	// Reconciled is everywhere a drafted binding disagreed with the SDK and
+	// the SDK's answer was unambiguous, so the draft was moved onto it. It
+	// is what Removals has to be read against: the same deletion means one
+	// thing beside forty reconciliations and another beside none.
+	Reconciled []sdkbind.Reconciliation
 	// Excluded is every entity that yielded nothing, with the reason: the
 	// classification and configuration exclusions the model already carried,
 	// plus the shapes emission itself refused.
@@ -337,7 +342,8 @@ func generate(opts Options) (*generation, error) {
 			Actions:       len(entities.Registrations.Actions.Registrations),
 			Removals:      refusedRemovals,
 			Kept:          keptRemovals,
-			Excluded:      allExclusions(model, model.Excluded, excluded, entities.Excluded),
+			Reconciled:    bindings.Reconciled,
+			Excluded:      allExclusions(model, excluded, entities.Excluded),
 			Unsupported:   refusals,
 		},
 		files: append(append(core, entities.Files...), unsupported),
@@ -476,8 +482,9 @@ func removeUnproducedFiles(root string, paths []string) {
 // A derived exclusion already carries where it belongs. A dropped or refused
 // one was derived first, so the model still knows: the location is read back
 // from it rather than threaded through two packages that have no use for it.
-func allExclusions(m *ir.Model, derived []ir.UnsupportedEntity, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
+func allExclusions(m *ir.Model, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
 	located := locationsByKey(m)
+	derived := append(append([]ir.UnsupportedEntity{}, m.ExcludedByConfiguration...), m.ExcludedByClassification...)
 	out := make([]ir.UnsupportedEntity, 0, len(derived)+len(dropped)+len(refused))
 	out = append(out, derived...)
 	for _, d := range dropped {
