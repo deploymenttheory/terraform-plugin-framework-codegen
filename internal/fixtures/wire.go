@@ -115,7 +115,7 @@ func jsonScalar(value any) string {
 // leaf wrapped once per level, innermost first, a list as a one-member
 // slice and a map as one entry keyed by the attribute's own name.
 func collectionValue(v Entry) any {
-	var value any = v.Scalar
+	value := v.Scalar
 	levels := v.CollectionLevels()
 	for index := len(levels) - 1; index >= 0; index-- {
 		if levels[index] == ir.TypeMap {
