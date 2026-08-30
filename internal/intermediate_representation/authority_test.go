@@ -97,13 +97,13 @@ components:
 // the risk docs/contract.md accepts on requestDefault unmeasurable.
 func TestUnit_IntermediateRepresentation_AnAttributeRecordsTheAuthorityBehindItsPresence(t *testing.T) {
 	t.Parallel()
-	tree := resourceByKey(t, mustDerive(t, authoritySpec, testConfig()), "widget").Schema
+	tree := resourceByKey(t, mustDerive(t, authoritySpec, testConfig()), "widget").Attributes
 
-	for name, want := range map[string]Authority{
-		"measured":  AuthorityServerDefault,
-		"asserted":  AuthorityResponseRequired,
-		"implied":   AuthorityRequestDefault,
-		"described": AuthorityResponseProperty,
+	for name, want := range map[string]SchemaAttributeTypeDetermination{
+		"measured":  SchemaAttributeTypeDeterminationServerDefault,
+		"asserted":  SchemaAttributeTypeDeterminationResponseRequired,
+		"implied":   SchemaAttributeTypeDeterminationRequestDefault,
+		"described": SchemaAttributeTypeDeterminationResponseProperty,
 	} {
 		got := attribute(t, tree, name)
 		if got.ComputedOptionalRequired != ComputedOptional {
@@ -111,8 +111,8 @@ func TestUnit_IntermediateRepresentation_AnAttributeRecordsTheAuthorityBehindIts
 				name, got.ComputedOptionalRequired, ComputedOptional)
 			continue
 		}
-		if got.Authority != want {
-			t.Errorf("%s: authority = %q, want %q", name, got.Authority, want)
+		if got.SchemaAttributeTypeDetermination != want {
+			t.Errorf("%s: authority = %q, want %q", name, got.SchemaAttributeTypeDetermination, want)
 		}
 	}
 }
@@ -123,12 +123,12 @@ func TestUnit_IntermediateRepresentation_AnAttributeRecordsTheAuthorityBehindIts
 // them would name a choice that was never made.
 func TestUnit_IntermediateRepresentation_OnlyAComputedOptionalCarriesAnAuthority(t *testing.T) {
 	t.Parallel()
-	tree := resourceByKey(t, mustDerive(t, authoritySpec, testConfig()), "widget").Schema
+	tree := resourceByKey(t, mustDerive(t, authoritySpec, testConfig()), "widget").Attributes
 
 	if id := attribute(t, tree, "id"); id.ComputedOptionalRequired == ComputedOptional {
 		t.Fatalf("id = %+v, want a presence no declaration competes for", id)
-	} else if id.Authority != "" {
-		t.Errorf("id carries authority %q, want none for a %q attribute", id.Authority, id.ComputedOptionalRequired)
+	} else if id.SchemaAttributeTypeDetermination != "" {
+		t.Errorf("id carries authority %q, want none for a %q attribute", id.SchemaAttributeTypeDetermination, id.ComputedOptionalRequired)
 	}
 }
 
@@ -139,17 +139,17 @@ func TestUnit_IntermediateRepresentation_OnlyAComputedOptionalCarriesAnAuthority
 // member that was never made.
 func TestUnit_IntermediateRepresentation_AMemberPromotedByItsParentCarriesNoAuthority(t *testing.T) {
 	t.Parallel()
-	tree := resourceByKey(t, mustDerive(t, authoritySpec, testConfig()), "widget").Schema
+	tree := resourceByKey(t, mustDerive(t, authoritySpec, testConfig()), "widget").Attributes
 
 	parent := attribute(t, tree, "nested")
-	if parent.ComputedOptionalRequired != ComputedOptional || parent.Nested == nil {
+	if parent.ComputedOptionalRequired != ComputedOptional || parent.NestedAttributes == nil {
 		t.Fatalf("nested = %+v, want a server-filled object", parent)
 	}
-	member := attribute(t, parent.Nested, "inner")
+	member := attribute(t, parent.NestedAttributes, "inner")
 	if member.ComputedOptionalRequired != ComputedOptional {
 		t.Fatalf("inner = %+v, want promoted by its parent", member)
 	}
-	if member.Authority != "" {
-		t.Errorf("inner carries authority %q; its presence came from its parent, not a declaration about it", member.Authority)
+	if member.SchemaAttributeTypeDetermination != "" {
+		t.Errorf("inner carries authority %q; its presence came from its parent, not a declaration about it", member.SchemaAttributeTypeDetermination)
 	}
 }

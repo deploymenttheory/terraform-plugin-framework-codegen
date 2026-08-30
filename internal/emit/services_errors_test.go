@@ -131,54 +131,54 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 
 	// A conditional requirement naming a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
-		{Property: "ghost", Equals: "x", Required: []string{"name"}}}
+	m.Resources[0].Attributes.ConditionalRequirements = []ir.ConditionalRequirement{
+		{Property: "ghost", WhenPropertyEquals: "x", Required: []string{"name"}}}
 	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A conditional requirement on a non-string attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
-		{Property: "enabled", Equals: "true", Required: []string{"name"}}}
+	m.Resources[0].Attributes.ConditionalRequirements = []ir.ConditionalRequirement{
+		{Property: "enabled", WhenPropertyEquals: "true", Required: []string{"name"}}}
 	expectRenderExclusion(t, pc, m, b, "http_server", "enabled")
 
 	// A conditional requirement requiring a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ConditionalRequirements = []ir.ConditionalRequirement{
-		{Property: "kind", Equals: "advanced", Required: []string{"ghost"}}}
+	m.Resources[0].Attributes.ConditionalRequirements = []ir.ConditionalRequirement{
+		{Property: "kind", WhenPropertyEquals: "advanced", Required: []string{"ghost"}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
 	// A valid-when gated on a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ConditionalValidities = []ir.ConditionalValidity{
-		{Property: "ghost", Equals: "x", Valid: []string{"name"}}}
+	m.Resources[0].Attributes.ConditionalValidities = []ir.ConditionalValidity{
+		{Property: "ghost", WhenPropertyEquals: "x", AttributesValidWhenEqual: []string{"name"}}}
 	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A valid-when allowing a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ConditionalValidities = []ir.ConditionalValidity{
-		{Property: "kind", Equals: "advanced", Valid: []string{"ghost"}}}
+	m.Resources[0].Attributes.ConditionalValidities = []ir.ConditionalValidity{
+		{Property: "kind", WhenPropertyEquals: "advanced", AttributesValidWhenEqual: []string{"ghost"}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
 	// A dependency whose subject is a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.Dependencies = []ir.Dependency{{Attribute: "ghost", Requires: []string{"name"}}}
+	m.Resources[0].Attributes.Dependencies = []ir.Dependency{{Attribute: "ghost", Requires: []string{"name"}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
 	// A dependency requiring a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.Dependencies = []ir.Dependency{{Attribute: "ratio", Requires: []string{"ghost"}}}
+	m.Resources[0].Attributes.Dependencies = []ir.Dependency{{Attribute: "ratio", Requires: []string{"ghost"}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
 	// A valid configuration on a missing discriminator.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
-		{Discriminator: "ghost", Variants: []ir.ConfigVariant{{Value: "x", Valid: []string{"name"}}}}}
+	m.Resources[0].Attributes.ValidConfigurations = []ir.ValidConfiguration{
+		{Discriminator: "ghost", Variants: []ir.ValidConfigurationVariant{{Value: "x", AttributesValidWhenEqual: []string{"name"}}}}}
 	expectRenderExclusion(t, pc, m, b, "http_server", "ghost")
 
 	// A valid configuration admitting a missing attribute.
 	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
-		{Discriminator: "kind", Variants: []ir.ConfigVariant{{Value: "basic", Valid: []string{"ghost"}}}}}
+	m.Resources[0].Attributes.ValidConfigurations = []ir.ValidConfiguration{
+		{Discriminator: "kind", Variants: []ir.ValidConfigurationVariant{{Value: "basic", AttributesValidWhenEqual: []string{"ghost"}}}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
 	// A path parameter no attribute can feed.
@@ -190,30 +190,30 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	// Two nested objects claiming one model struct name.
 	m, b = fictionalModel(), fictionalBindings()
 	inner := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "inner", WireName: "inner", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-			Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "x", WireName: "x", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional}}}},
+		{Name: "inner", WireName: "inner", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+			NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "x", WireName: "x", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional}}}},
 	}}
-	m.Resources[0].Schema.Attributes = append(m.Resources[0].Schema.Attributes,
-		ir.Attribute{Name: "one", WireName: "one", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional, Nested: inner},
-		ir.Attribute{Name: "two", WireName: "two", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional, Nested: inner},
+	m.Resources[0].Attributes.Attributes = append(m.Resources[0].Attributes.Attributes,
+		ir.Attribute{Name: "one", WireName: "one", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional, NestedAttributes: inner},
+		ir.Attribute{Name: "two", WireName: "two", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional, NestedAttributes: inner},
 	)
 	innerBinding := func() []sdkbind.FieldBinding {
-		return []sdkbind.FieldBinding{{Attr: "inner", Wire: "inner", Kind: ir.TypeObject,
+		return []sdkbind.FieldBinding{{Attr: "inner", Wire: "inner", Type: ir.TypeObject,
 			Access:            sdkbind.FieldAccess{Get: "GetInner", Set: "SetInner", SDKType: "models.Innerable"},
 			NestedModel:       "models.Inner",
 			NestedWriteModel:  "models.Inner",
 			NestedConstructor: "models.NewInner()",
-			Nested: []sdkbind.FieldBinding{{Attr: "x", Wire: "x", Kind: ir.TypeString,
+			Nested: []sdkbind.FieldBinding{{Attr: "x", Wire: "x", Type: ir.TypeString,
 				Access: kiotaAccess("X", "*string", "FromPtrString", "ToPtrString", "")}},
 		}}
 	}
 	b.Resources["http_server"].Fields = append(b.Resources["http_server"].Fields,
-		sdkbind.FieldBinding{Attr: "one", Wire: "one", Kind: ir.TypeObject,
+		sdkbind.FieldBinding{Attr: "one", Wire: "one", Type: ir.TypeObject,
 			Access:      sdkbind.FieldAccess{Get: "GetOne", Set: "SetOne", SDKType: "models.Oneable"},
 			NestedModel: "models.One", NestedWriteModel: "models.One", NestedConstructor: "models.NewOne()",
 			Nested: innerBinding()},
-		sdkbind.FieldBinding{Attr: "two", Wire: "two", Kind: ir.TypeObject,
+		sdkbind.FieldBinding{Attr: "two", Wire: "two", Type: ir.TypeObject,
 			Access:      sdkbind.FieldAccess{Get: "GetTwo", Set: "SetTwo", SDKType: "models.Twoable"},
 			NestedModel: "models.Two", NestedWriteModel: "models.Two", NestedConstructor: "models.NewTwo()",
 			Nested: innerBinding()},
@@ -222,7 +222,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 
 	// A list resource whose element carries no id.
 	m, b = fictionalModel(), fictionalBindings()
-	m.ListResources[0].Schema.Attributes = m.ListResources[0].Schema.Attributes[1:]
+	m.ListResources[0].Attributes.Attributes = m.ListResources[0].Attributes.Attributes[1:]
 	b.ListResources["http_server"].Fields = b.ListResources["http_server"].Fields[1:]
 	expectRenderExclusion(t, pc, m, b, "http_server", "id")
 
@@ -413,11 +413,11 @@ func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) 
 	// request or response body declares it and no SDK model carries it. It
 	// must survive the join all the same, or nothing can fill the call.
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "owner", WireName: "owner", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-		{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+		{Name: "owner", WireName: "owner", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+		{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+		{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
-	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Kind: ir.TypeString,
+	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Type: ir.TypeString,
 		Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
 
 	nodes := joinTree(tree, bound, map[string]bool{"owner": true})
@@ -435,7 +435,7 @@ func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) 
 
 func TestUnit_JoinTree_DropsAnUnboundAttributeThatAddressesNothing(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "ghost", WireName: "ghost", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+		{Name: "ghost", WireName: "ghost", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 	if nodes := joinTree(tree, nil); len(nodes) != 0 {
 		t.Fatalf("an ordinary unbound attribute must be dropped, got %d node(s)", len(nodes))
@@ -443,12 +443,12 @@ func TestUnit_JoinTree_DropsAnUnboundAttributeThatAddressesNothing(t *testing.T)
 }
 
 func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *testing.T) {
-	read := &ir.Operation{PathParameters: []ir.Parameter{
+	read := &ir.Operation{PathParameters: []ir.URLPathParameter{
 		{Name: "owner", Type: ir.TypeString},
 		{Name: "repo", Type: ir.TypeString},
 		{Name: "ruleset_id", Type: ir.TypeInt64},
 	}}
-	list := &ir.Operation{PathParameters: []ir.Parameter{{Name: "org", Type: ir.TypeString}}}
+	list := &ir.Operation{PathParameters: []ir.URLPathParameter{{Name: "org", Type: ir.TypeString}}}
 
 	names := addressingNames(nil, read, nil, list)
 	for _, want := range []string{"owner", "repo", "ruleset_id", "org"} {
@@ -461,13 +461,13 @@ func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *test
 	}
 }
 
-func TestUnit_ParamNode_RefusesAnObjectOfTheSameName(t *testing.T) {
+func TestUnit_ParamNode_ExcludesAnObjectOfTheSameName(t *testing.T) {
 	// A path parameter is a scalar in the URL. An attribute of the same name
 	// that is an object is a different thing the document spells the same
 	// way, and reading a value out of it does not compile.
 	nodes := []node{
-		{attribute: ir.Attribute{Name: "owner", WireName: "owner", Kind: ir.TypeObject,
-			Nested: &ir.AttributeTree{}}},
+		{attribute: ir.Attribute{Name: "owner", WireName: "owner", Type: ir.TypeObject,
+			NestedAttributes: &ir.AttributeTree{}}},
 	}
 	if _, err := parameterNode(sdkbind.CallParameter{Local: "owner", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
 		t.Fatal("an object must not answer a path parameter")
@@ -478,7 +478,7 @@ func TestUnit_ParamNode_TakesTheLastParameterAsTheID(t *testing.T) {
 	// An item path with a parent takes two parameters, and its key is the
 	// last one — whatever the response happens to call its own id.
 	nodes := []node{
-		{attribute: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "id", WireName: "id", Type: ir.TypeString}},
 	}
 	got, err := parameterNode(sdkbind.CallParameter{Local: "cfg", Wire: "configuration_id", GoType: "string"}, nodes, true)
 	if err != nil {
@@ -498,7 +498,7 @@ func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
 	nodes := []node{
 		{attribute: ir.Attribute{Name: "kept", ComputedOptionalRequired: ir.Required}},
 		{attribute: ir.Attribute{Name: "dropped", ComputedOptionalRequired: ir.Computed}},
-		{attribute: ir.Attribute{Name: "block", ComputedOptionalRequired: ir.Optional, Nested: &ir.AttributeTree{}},
+		{attribute: ir.Attribute{Name: "block", ComputedOptionalRequired: ir.Optional, NestedAttributes: &ir.AttributeTree{}},
 			children: []node{
 				{attribute: ir.Attribute{Name: "inner_kept", ComputedOptionalRequired: ir.Optional}},
 				{attribute: ir.Attribute{Name: "inner_dropped", ComputedOptionalRequired: ir.Computed}},
@@ -528,7 +528,7 @@ func TestUnit_ComputedOptionalRequiredLines_NeverRendersComputedInAnActionSchema
 	}
 }
 
-func TestUnit_RenderServices_RefusesALookupWhoseReadAnswersACollection(t *testing.T) {
+func TestUnit_RenderServices_ExcludesALookupWhoseReadAnswersACollection(t *testing.T) {
 	// A read that answers with a collection is not a lookup: the state
 	// mapper reads fields off one object, and which element it should map is
 	// not something the document says.
@@ -545,8 +545,8 @@ func TestUnit_FindIdentityNode_AcceptsAnIdentityTheAPIDidNotSpellAsAString(t *te
 	// with a numeric id.
 	for _, kind := range []ir.AttributeType{ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool} {
 		nodes := []node{{
-			attribute: ir.Attribute{Name: "id", WireName: "id", Kind: kind},
-			fb:        &sdkbind.FieldBinding{Attr: "id", Wire: "id", Kind: kind, Access: sdkbind.FieldAccess{Get: "GetId"}},
+			attribute: ir.Attribute{Name: "id", WireName: "id", Type: kind},
+			fb:        &sdkbind.FieldBinding{Attr: "id", Wire: "id", Type: kind, Access: sdkbind.FieldAccess{Get: "GetId"}},
 		}}
 		if _, ok := findIdentityNode(nodes); !ok {
 			t.Fatalf("a %s id must serve as the list identity", kind)
@@ -555,20 +555,20 @@ func TestUnit_FindIdentityNode_AcceptsAnIdentityTheAPIDidNotSpellAsAString(t *te
 
 	// An object of that name is not an identity, and neither is an unbound one.
 	nested := []node{{
-		attribute: ir.Attribute{Name: "id", Kind: ir.TypeObject, Nested: &ir.AttributeTree{}},
+		attribute: ir.Attribute{Name: "id", Type: ir.TypeObject, NestedAttributes: &ir.AttributeTree{}},
 		fb:        &sdkbind.FieldBinding{Attr: "id", Access: sdkbind.FieldAccess{Get: "GetId"}},
 	}}
 	if _, ok := findIdentityNode(nested); ok {
 		t.Fatal("an object must not serve as the list identity")
 	}
-	if _, ok := findIdentityNode([]node{{attribute: ir.Attribute{Name: "id", Kind: ir.TypeString}}}); ok {
+	if _, ok := findIdentityNode([]node{{attribute: ir.Attribute{Name: "id", Type: ir.TypeString}}}); ok {
 		t.Fatal("an unbound attribute cannot be read for the identity")
 	}
 }
 
 func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) {
 	numeric := node{
-		attribute: ir.Attribute{Name: "id", Kind: ir.TypeInt64},
+		attribute: ir.Attribute{Name: "id", Type: ir.TypeInt64},
 		fb:        &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*int64"}},
 	}
 	got := readStringLocal("id", numeric)
@@ -577,7 +577,7 @@ func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) 
 	}
 
 	text := node{
-		attribute: ir.Attribute{Name: "id", Kind: ir.TypeString},
+		attribute: ir.Attribute{Name: "id", Type: ir.TypeString},
 		fb:        &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*string"}},
 	}
 	if got := readStringLocal("id", text); strings.Contains(got, "fmt.Sprintf") {
@@ -630,7 +630,7 @@ func TestUnit_RenderServices_EmitsASingletonWithoutCreateOrDelete(t *testing.T) 
 	}
 }
 
-func TestUnit_RenderServices_RefusesASingletonWithoutAnUpdate(t *testing.T) {
+func TestUnit_RenderServices_ExcludesASingletonWithoutAnUpdate(t *testing.T) {
 	pc := fictionalProviderCore()
 	m, b := fictionalModel(), fictionalBindings()
 

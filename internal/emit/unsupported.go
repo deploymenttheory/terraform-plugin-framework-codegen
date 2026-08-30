@@ -15,7 +15,7 @@ const UnsupportedName = "unsupported.json"
 
 // unsupportedFormatVersion is the report's own schema version, bumped when
 // the shape changes so a reader can tell.
-const unsupportedFormatVersion = 2
+const unsupportedFormatVersion = 3
 
 // The stages that can refuse something. Each names one place in the
 // pipeline, so a reader can tell a document the toolkit could not model
@@ -49,10 +49,10 @@ const (
 // otherwise have to parse prose to do it, and prose that must be parsed is
 // a format with no version.
 type Unsupported struct {
-	// Kind is what was refused: "resource", "datasource", "list_resource"
+	// TerraformBlockType is what was refused: "resource", "datasource", "list_resource"
 	// or "action". Empty for an entity refused before it became any of
 	// them, which is the honest answer rather than a default.
-	Kind string `json:"kind,omitempty"`
+	TerraformBlockType string `json:"terraformBlockType,omitempty"`
 	// Entity is the entity key.
 	Entity string `json:"entity"`
 	// Attribute is the dotted attribute path, empty when the whole entity
@@ -80,7 +80,7 @@ type Unsupported struct {
 
 // UnsupportedReport is the whole committed report.
 type UnsupportedReport struct {
-	FormatVersion int           `json:"format_version"`
+	FormatVersion int           `json:"formatVersion"`
 	Unsupported   []Unsupported `json:"unsupported"`
 }
 
@@ -161,7 +161,7 @@ func namesByKey(m *ir.Model) map[string]ir.Names {
 // change that breaks fifteen entities becomes fifteen added lines in a
 // generation pull request instead of fifteen deleted directories among
 // thousands of regenerated ones.
-func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbind.Dropped, emissionRefusals []ir.UnsupportedEntity, keptUnbound map[string]bool) (File, []Unsupported, error) {
+func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbind.Dropped, emissionExclusions []ir.UnsupportedEntity, keptUnbound map[string]bool) (File, []Unsupported, error) {
 	report := UnsupportedReport{FormatVersion: unsupportedFormatVersion}
 
 	if m != nil {
@@ -174,50 +174,50 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 		} {
 			for _, exclusion := range excluded.entries {
 				report.Unsupported = append(report.Unsupported, Unsupported{
-					Kind:    exclusion.Kind,
-					Entity:  exclusion.Key,
-					Service: exclusion.Service,
-					Tag:     exclusion.Tag,
-					Cause:   causeOf(exclusion.Cause),
-					Stage:   excluded.stage,
-					Reason:  exclusion.Reason,
+					TerraformBlockType: exclusion.TerraformBlockType,
+					Entity:             exclusion.Key,
+					Service:            exclusion.Service,
+					Tag:                exclusion.Tag,
+					Cause:              causeOf(exclusion.Cause),
+					Stage:              excluded.stage,
+					Reason:             exclusion.Reason,
 				})
 			}
 		}
-		report.Unsupported = append(report.Unsupported, refusedAttributes(m)...)
+		report.Unsupported = append(report.Unsupported, excludedAttributes(m)...)
 	}
 
 	refused, _ := SeparateKept(removals, keptUnbound)
 	for _, removal := range refused {
 		report.Unsupported = append(report.Unsupported, located(m, Unsupported{
-			Kind:      removal.Kind,
-			Entity:    removal.Key,
-			Attribute: removal.Attribute,
-			Cause:     causeOf(removal.Cause),
-			Stage:     StageBinding,
-			Reason:    removal.Reason,
+			TerraformBlockType: removal.Kind,
+			Entity:             removal.Key,
+			Attribute:          removal.Attribute,
+			Cause:              causeOf(removal.Cause),
+			Stage:              StageBinding,
+			Reason:             removal.Reason,
 		}))
 	}
 
 	for _, drop := range dropped {
 		report.Unsupported = append(report.Unsupported, located(m, Unsupported{
-			Kind:   drop.Kind,
-			Entity: drop.Key,
-			Cause:  causeOf(ir.Cause{Code: sdkbind.CauseUnbuildableEntity}),
-			Stage:  StageBinding,
-			Reason: drop.Reason,
+			TerraformBlockType: drop.Kind,
+			Entity:             drop.Key,
+			Cause:              causeOf(ir.Cause{Code: sdkbind.CauseUnbuildableEntity}),
+			Stage:              StageBinding,
+			Reason:             drop.Reason,
 		}))
 	}
 
-	for _, refusal := range emissionRefusals {
+	for _, exclusion := range emissionExclusions {
 		report.Unsupported = append(report.Unsupported, Unsupported{
-			Kind:    refusal.Kind,
-			Entity:  refusal.Key,
-			Service: refusal.Service,
-			Tag:     refusal.Tag,
-			Cause:   causeOf(refusal.Cause),
-			Stage:   StageEmission,
-			Reason:  refusal.Reason,
+			TerraformBlockType: exclusion.TerraformBlockType,
+			Entity:             exclusion.Key,
+			Service:            exclusion.Service,
+			Tag:                exclusion.Tag,
+			Cause:              causeOf(exclusion.Cause),
+			Stage:              StageEmission,
+			Reason:             exclusion.Reason,
 		})
 	}
 
@@ -245,8 +245,8 @@ func sortUnsupported(entries []Unsupported) {
 		switch {
 		case a.Entity != z.Entity:
 			return a.Entity < z.Entity
-		case a.Kind != z.Kind:
-			return a.Kind < z.Kind
+		case a.TerraformBlockType != z.TerraformBlockType:
+			return a.TerraformBlockType < z.TerraformBlockType
 		case a.Attribute != z.Attribute:
 			return a.Attribute < z.Attribute
 		case a.Stage != z.Stage:
@@ -257,9 +257,9 @@ func sortUnsupported(entries []Unsupported) {
 	})
 }
 
-// refusedAttributes walks every entity's tree for the attributes
+// excludedAttributes walks every entity's tree for the attributes
 // deriveType marked unsupported, at any depth.
-func refusedAttributes(m *ir.Model) []Unsupported {
+func excludedAttributes(m *ir.Model) []Unsupported {
 	var out []Unsupported
 
 	walk := func(kind string, names ir.Names, tree *ir.AttributeTree) {
@@ -276,34 +276,34 @@ func refusedAttributes(m *ir.Model) []Unsupported {
 				}
 				if attribute.Unsupported {
 					out = append(out, Unsupported{
-						Kind:      kind,
-						Entity:    key,
-						Attribute: name,
-						Cause:     causeOf(attribute.UnsupportedCause),
-						Service:   service,
-						Tag:       tag,
-						Stage:     StageDerivation,
-						Reason:    attribute.UnsupportedReason,
+						TerraformBlockType: kind,
+						Entity:             key,
+						Attribute:          name,
+						Cause:              causeOf(attribute.UnsupportedCause),
+						Service:            service,
+						Tag:                tag,
+						Stage:              StageDerivation,
+						Reason:             attribute.UnsupportedReason,
 					})
 					continue
 				}
-				descend(name, attribute.Nested)
+				descend(name, attribute.NestedAttributes)
 			}
 		}
 		descend("", tree)
 	}
 
 	for i := range m.Resources {
-		walk(bindingKindResource, m.Resources[i].Names, m.Resources[i].Schema)
+		walk(bindingKindResource, m.Resources[i].Names, m.Resources[i].Attributes)
 	}
 	for i := range m.Datasources {
-		walk(bindingKindDatasource, m.Datasources[i].Names, m.Datasources[i].Schema)
+		walk(bindingKindDatasource, m.Datasources[i].Names, m.Datasources[i].Attributes)
 	}
 	for i := range m.ListResources {
-		walk(bindingKindListResource, m.ListResources[i].Names, m.ListResources[i].Schema)
+		walk(bindingKindListResource, m.ListResources[i].Names, m.ListResources[i].Attributes)
 	}
 	for i := range m.Actions {
-		walk(bindingKindAction, m.Actions[i].Names, m.Actions[i].RequestSchema)
+		walk(bindingKindAction, m.Actions[i].Names, m.Actions[i].RequestAttributes)
 	}
 	return out
 }

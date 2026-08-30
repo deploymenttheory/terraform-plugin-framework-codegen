@@ -501,7 +501,7 @@ func allExclusions(m *ir.Model, dropped []sdkbind.Dropped, refused []ir.Unsuppor
 	out := make([]ir.UnsupportedEntity, 0, len(derived)+len(dropped)+len(refused))
 	out = append(out, derived...)
 	for _, d := range dropped {
-		out = append(out, locate(located, ir.UnsupportedEntity{Key: d.Key, Kind: d.Kind, Reason: d.Reason}))
+		out = append(out, locate(located, ir.UnsupportedEntity{Key: d.Key, TerraformBlockType: d.Kind, Reason: d.Reason}))
 	}
 	for _, r := range refused {
 		out = append(out, locate(located, r))

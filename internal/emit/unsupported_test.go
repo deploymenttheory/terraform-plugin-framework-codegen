@@ -20,31 +20,31 @@ func unsupportedModel() *ir.Model {
 		},
 		Resources: []ir.Resource{{
 			Names: ir.Names{Key: "tag"},
-			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-				{Name: "metadata", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseShapelessObject}, UnsupportedReason: "free-form object: map support is out of scope"},
-				{Name: "settings", Kind: ir.TypeObject, Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "retries", Kind: ir.TypeInt64},
+			Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "metadata", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseObjectWithoutPropertiesOrAdditionalProperties}, UnsupportedReason: "free-form object: map support is out of scope"},
+				{Name: "settings", Type: ir.TypeObject, NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "retries", Type: ir.TypeInt64},
 					{Name: "extra", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseUndeclaredType}, UnsupportedReason: "no type declared"},
 				}}},
-				{Name: "rules", Kind: ir.TypeList, Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "rules", Type: ir.TypeList, NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "shape", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseWritableUnion}, UnsupportedReason: "oneOf/anyOf union: no single attribute type describes it"},
 				}}},
 			}},
 		}},
 		Actions: []ir.Action{{
 			Names: ir.Names{Key: "deploy"},
-			RequestSchema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "payload", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseShapelessObject}, UnsupportedReason: "free-form object: map support is out of scope"},
+			RequestAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "payload", Unsupported: true, UnsupportedCause: ir.Cause{Code: ir.CauseObjectWithoutPropertiesOrAdditionalProperties}, UnsupportedReason: "free-form object: map support is out of scope"},
 			}},
 		}},
 	}
 }
 
-// TestUnit_RenderUnsupported_FindsEveryRefusalAtEveryDepth proves the walk
+// TestUnit_RenderUnsupported_FindsEveryExclusionAtEveryDepth proves the walk
 // reaches nested objects and list elements, and addresses each by its
 // dotted path — the half of the report that surfaces nowhere else.
-func TestUnit_RenderUnsupported_FindsEveryRefusalAtEveryDepth(t *testing.T) {
+func TestUnit_RenderUnsupported_FindsEveryExclusionAtEveryDepth(t *testing.T) {
 	_, entries, err := RenderUnsupported(unsupportedModel(), nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RenderUnsupported: %v", err)
@@ -171,7 +171,7 @@ func TestUnit_RenderUnsupported_IsAStableDiff(t *testing.T) {
 		t.Fatalf("the report is not valid JSON: %v", err)
 	}
 	if report.FormatVersion != unsupportedFormatVersion {
-		t.Errorf("format_version = %d, want %d", report.FormatVersion, unsupportedFormatVersion)
+		t.Errorf("formatVersion = %d, want %d", report.FormatVersion, unsupportedFormatVersion)
 	}
 	for i := 1; i < len(report.Unsupported); i++ {
 		if report.Unsupported[i-1].Entity > report.Unsupported[i].Entity {
@@ -201,7 +201,7 @@ func TestUnit_RenderUnsupported_EmptyModelStillRendersTheReport(t *testing.T) {
 		t.Fatalf("the report is not valid JSON: %v", err)
 	}
 	if report.FormatVersion != unsupportedFormatVersion {
-		t.Errorf("format_version = %d, want %d", report.FormatVersion, unsupportedFormatVersion)
+		t.Errorf("formatVersion = %d, want %d", report.FormatVersion, unsupportedFormatVersion)
 	}
 }
 
@@ -214,8 +214,8 @@ func TestUnit_UnsupportedSummary_CountsByStageAndStaysSilentWhenClean(t *testing
 	}
 
 	got := UnsupportedSummary([]Unsupported{
-		{Kind: "resource", Entity: "a", Stage: StageBinding},
-		{Kind: "resource", Entity: "b", Stage: StageBinding},
+		{TerraformBlockType: "resource", Entity: "a", Stage: StageBinding},
+		{TerraformBlockType: "resource", Entity: "b", Stage: StageBinding},
 		{Entity: "c", Stage: StageDerivation},
 	})
 	for _, want := range []string{UnsupportedName, "3 refusals", "2 in binding", "1 in derivation"} {
@@ -224,7 +224,7 @@ func TestUnit_UnsupportedSummary_CountsByStageAndStaysSilentWhenClean(t *testing
 		}
 	}
 
-	if one := UnsupportedSummary([]Unsupported{{Kind: "resource", Entity: "a", Stage: StageBinding}}); !strings.Contains(one, "1 refusal (") {
+	if one := UnsupportedSummary([]Unsupported{{TerraformBlockType: "resource", Entity: "a", Stage: StageBinding}}); !strings.Contains(one, "1 refusal (") {
 		t.Errorf("a single refusal summarised as %q, want the singular noun", one)
 	}
 }
@@ -309,10 +309,10 @@ func TestUnit_RenderUnsupported_KeptIsMatchedPerEntity(t *testing.T) {
 // that was dropped.
 func TestUnit_JoinTreeKeeping_ReportsOnlyWhatItKeptUnbound(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "id", Kind: ir.TypeString},
-		{Name: "org", Kind: ir.TypeString},
-		{Name: "name", Kind: ir.TypeString},
-		{Name: "colour", Kind: ir.TypeString},
+		{Name: "id", Type: ir.TypeString},
+		{Name: "org", Type: ir.TypeString},
+		{Name: "name", Type: ir.TypeString},
+		{Name: "colour", Type: ir.TypeString},
 	}}
 	// Only "name" has a binding; "colour" has none and is not addressing.
 	fbs := []sdkbind.FieldBinding{{Attr: "name"}}
@@ -351,7 +351,7 @@ func TestUnit_JoinTreeKeeping_ReportsOnlyWhatItKeptUnbound(t *testing.T) {
 // The record carries fields; a test asserting on one entity's refusal still
 // reads better as a sentence than as five comparisons.
 func subject(e Unsupported) string {
-	kind := e.Kind
+	kind := e.TerraformBlockType
 	if kind == "" {
 		kind = "entity"
 	}
@@ -361,10 +361,10 @@ func subject(e Unsupported) string {
 	return fmt.Sprintf("%s %q attribute %q", kind, e.Entity, e.Attribute)
 }
 
-// TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields holds the
+// TestUnit_RenderUnsupported_AnExclusionCarriesItsSubjectAsFields holds the
 // subject to fields rather than to a rendered sentence. A reader grouping
 // refusals by entity or by kind should not have to parse prose to do it.
-func TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields(t *testing.T) {
+func TestUnit_RenderUnsupported_AnExclusionCarriesItsSubjectAsFields(t *testing.T) {
 	model := unsupportedModel()
 	model.Resources[0].Names = ir.Names{Key: "tag", Service: "tags", Tag: "Tags"}
 
@@ -379,8 +379,8 @@ func TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields(t *testing.T) 
 			continue
 		}
 		found = true
-		if e.Kind != bindingKindResource {
-			t.Errorf("Kind = %q, want %q", e.Kind, bindingKindResource)
+		if e.TerraformBlockType != bindingKindResource {
+			t.Errorf("Kind = %q, want %q", e.TerraformBlockType, bindingKindResource)
 		}
 		if e.Service != "tags" || e.Tag != "Tags" {
 			t.Errorf("Service/Tag = %q/%q, want tags/Tags", e.Service, e.Tag)
@@ -394,11 +394,11 @@ func TestUnit_RenderUnsupported_ARefusalCarriesItsSubjectAsFields(t *testing.T) 
 	}
 }
 
-// TestUnit_RenderUnsupported_AnEntityRefusedBeforeItBecameAnythingIsStillPlaced
+// TestUnit_RenderUnsupported_AnEntityExcludedBeforeItBecameAnythingIsStillPlaced
 // is the case the fields exist for. An entity refused at classification has
 // no kind, and until it carried its own location there was nothing to group
 // it by — which is most of what a large document refuses.
-func TestUnit_RenderUnsupported_AnEntityRefusedBeforeItBecameAnythingIsStillPlaced(t *testing.T) {
+func TestUnit_RenderUnsupported_AnEntityExcludedBeforeItBecameAnythingIsStillPlaced(t *testing.T) {
 	model := unsupportedModel()
 	model.ExcludedByClassification[0] = ir.UnsupportedEntity{
 		Key:            "orphan",
@@ -417,8 +417,8 @@ func TestUnit_RenderUnsupported_AnEntityRefusedBeforeItBecameAnythingIsStillPlac
 		if e.Entity != "orphan" {
 			continue
 		}
-		if e.Kind != "" {
-			t.Errorf("Kind = %q, want empty: it became no kind, which is why it was refused", e.Kind)
+		if e.TerraformBlockType != "" {
+			t.Errorf("Kind = %q, want empty: it became no kind, which is why it was refused", e.TerraformBlockType)
 		}
 		if e.Service != "orphans" || e.Tag != "Orphans" {
 			t.Errorf("Service/Tag = %q/%q, want orphans/Orphans", e.Service, e.Tag)
@@ -445,8 +445,8 @@ func TestUnit_RenderUnsupported_ADroppedEntityKeepsItsKind(t *testing.T) {
 		if e.Stage != StageBinding || e.Entity != "tag" || e.Attribute != "" {
 			continue
 		}
-		if e.Kind != bindingKindResource {
-			t.Errorf("Kind = %q, want %q", e.Kind, bindingKindResource)
+		if e.TerraformBlockType != bindingKindResource {
+			t.Errorf("Kind = %q, want %q", e.TerraformBlockType, bindingKindResource)
 		}
 		if e.Service != "tags" {
 			t.Errorf("Service = %q, want the location read back from the model", e.Service)
@@ -477,11 +477,11 @@ func TestUnit_SeparateKept_DividesWhatCostsTheOperatorSomething(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderUnsupported_AKeptRemovalIsNotARefusal keeps the record to
+// TestUnit_RenderUnsupported_AKeptRemovalIsNotAnExclusion keeps the record to
 // what the provider will not carry. The attribute reaches the schema, so
 // recording it as unsupported would overstate the loss in the one file a
 // reviewer reads to see what a spec change cost.
-func TestUnit_RenderUnsupported_AKeptRemovalIsNotARefusal(t *testing.T) {
+func TestUnit_RenderUnsupported_AKeptRemovalIsNotAnExclusion(t *testing.T) {
 	model := unsupportedModel()
 	removals := []sdkbind.Removal{
 		{Kind: "resource", Key: "tag", Attribute: "id", Reason: "models.Tagable carries no GetIdEscaped"},
@@ -529,12 +529,12 @@ func TestUnit_RenderUnsupported_ConfigurationAndClassificationAreSeparateStages(
 	}
 }
 
-// TestUnit_RenderUnsupported_EveryRefusalCarriesACause is the invariant the
+// TestUnit_RenderUnsupported_EveryExclusionCarriesACause is the invariant the
 // report rests on. A refusal with no cause cannot be grouped with the ones
 // that share its fact, so it reads as its own finding — which for a model
 // carrying none of an entity's fields means one finding per attribute
 // instead of one fact with a list of casualties.
-func TestUnit_RenderUnsupported_EveryRefusalCarriesACause(t *testing.T) {
+func TestUnit_RenderUnsupported_EveryExclusionCarriesACause(t *testing.T) {
 	model := unsupportedModel()
 	model.ExcludedByConfiguration = []ir.UnsupportedEntity{
 		{Key: "unwanted", Cause: ir.Cause{Code: ir.CauseExcludedByConfiguration}, Reason: "excluded by configuration"},
@@ -548,7 +548,7 @@ func TestUnit_RenderUnsupported_EveryRefusalCarriesACause(t *testing.T) {
 	}}
 	dropped := []sdkbind.Dropped{{Key: "ruleset", Kind: "resource", Reason: "the SDK does not carry this resource's binding"}}
 	emission := []ir.UnsupportedEntity{{
-		Key: "nested_path", Kind: "datasource",
+		Key: "nested_path", TerraformBlockType: "datasource",
 		Cause:  ir.Cause{Code: CauseUnmatchedPathArgument},
 		Reason: "a path parameter no attribute answers",
 	}}
@@ -563,16 +563,16 @@ func TestUnit_RenderUnsupported_EveryRefusalCarriesACause(t *testing.T) {
 	for _, e := range entries {
 		if e.Cause == nil || e.Cause.Code == "" {
 			t.Errorf("%s %q attribute %q (%s) carries no cause: %s",
-				e.Kind, e.Entity, e.Attribute, e.Stage, e.Reason)
+				e.TerraformBlockType, e.Entity, e.Attribute, e.Stage, e.Reason)
 		}
 	}
 }
 
-// TestUnit_RenderUnsupported_RefusalsSharingAFactShareACause proves the
+// TestUnit_RenderUnsupported_ExclusionsSharingAFactShareACause proves the
 // grouping is an exact comparison of fields rather than a guess at which
 // prose reasons mean the same thing. The two reasons below differ — they
 // name different accessors — and the fact behind them does not.
-func TestUnit_RenderUnsupported_RefusalsSharingAFactShareACause(t *testing.T) {
+func TestUnit_RenderUnsupported_ExclusionsSharingAFactShareACause(t *testing.T) {
 	shared := ir.Cause{Code: sdkbind.CauseNoAccessor, Subject: "models.Envelopeable"}
 	removals := []sdkbind.Removal{
 		{Kind: "datasource", Key: "preload", Attribute: "asset_tag", Cause: shared,

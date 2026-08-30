@@ -103,8 +103,8 @@ type resourceData struct {
 	UpdateParamCopies    string
 	MissingUpdate        bool
 
-	HasEC      bool
-	ECDuration string
+	HasReadAfterWriteDelay bool
+	ReadAfterWriteDelay    string
 
 	HasValidators               bool
 	ConfigValidatorExprs        string
@@ -143,7 +143,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, unrenderable(CauseResourceNoLifecycleCall, "a resource needs bound create, read and delete calls")
 	}
 
-	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(r.Schema,
+	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Attributes, rb.Fields, addressingNames(r.Attributes,
 		r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 	d := &resourceData{
 		Package:        r.Names.Package,
@@ -168,9 +168,9 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		// a constant rather than anything the API answers with.
 		d.SingletonID = r.Names.TerraformType
 	}
-	if r.EventualConsistency > 0 {
-		d.HasEC = true
-		d.ECDuration = goDuration(int64(r.EventualConsistency))
+	if r.ReadAfterWriteDelay > 0 {
+		d.HasReadAfterWriteDelay = true
+		d.ReadAfterWriteDelay = goDuration(int64(r.ReadAfterWriteDelay))
 	}
 
 	if err := e.resourceCode(d, r, rb, nodes); err != nil {
@@ -179,7 +179,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 	if err := e.resourceCRUD(d, rb, nodes); err != nil {
 		return nil, err
 	}
-	spec := deriveFixtures(r.Schema, nodes)
+	spec := deriveFixtures(r.Attributes, nodes)
 	spec.PinNumeric(integerParsedParameters(rb.Read, nodes))
 	if !d.Singleton {
 		if err := e.resourceMocks(d, r, rb, spec); err != nil {
@@ -260,7 +260,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	for _, n := range nodes {
 		byName[n.attribute.Name] = n
 	}
-	deps, err := dependencyMap(r.Schema, byName)
+	deps, err := dependencyMap(r.Attributes, byName)
 	if err != nil {
 		return err
 	}
@@ -282,7 +282,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 		}
 	}
 
-	description := entityDescription(r.Schema, "Manages the "+r.Names.Key+" entity.")
+	description := entityDescription(r.Attributes, "Manages the "+r.Names.Key+" entity.")
 	if r.CoManagementNote != "" {
 		description += " " + r.CoManagementNote
 	}
@@ -324,7 +324,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	updateBody := ""
 	updateUsesFmt := false
 	if rb.UpdateWriteModel != "" {
-		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(r.Schema,
+		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Attributes, rb.UpdateFields, addressingNames(r.Attributes,
 			r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 		updateBody, updateUsesFmt, err = constructLinesFor(updateNodes, d.Pascal, "data", "body", "", 1, false)
 		if err != nil {
@@ -373,8 +373,8 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	// AlsoRequires in the schema above; this file carries the resource's
 	// ConfigValidators method — the stock Conflicting for mutually-exclusive
 	// groups and the named custom validators for the value-conditional edges.
-	if treeHasConfigValidators(r.Schema) {
-		exprs, declarations, err := configValidators(d.Type, r.Schema, nodes)
+	if treeHasConfigValidators(r.Attributes) {
+		exprs, declarations, err := configValidators(d.Type, r.Attributes, nodes)
 		if err != nil {
 			return err
 		}
@@ -385,7 +385,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 		validatorImports.add("", "context")
 		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
-		if len(r.Schema.MutuallyExclusiveGroups) > 0 {
+		if len(r.Attributes.MutuallyExclusiveGroups) > 0 {
 			validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator")
 		}
 		d.ValidatorImports = validatorImports.render()
@@ -466,7 +466,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
 	imports.add("", e.pc.Module+"/internal/services/common/crud")
 	imports.add("", e.pc.Module+"/internal/services/common/errors")
-	if d.HasEC {
+	if d.HasReadAfterWriteDelay {
 		imports.add("", "time")
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/tfsdk")
 	}

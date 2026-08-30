@@ -12,14 +12,14 @@ import (
 // one: the value type is the map's, not the field's.
 func portsNode() node {
 	child := node{
-		attribute: ir.Attribute{Name: "bore", WireName: "bore", Kind: ir.TypeInt64},
+		attribute: ir.Attribute{Name: "bore", WireName: "bore", Type: ir.TypeInt64},
 		fb: &sdkbind.FieldBinding{Attr: "bore", Wire: "bore",
 			Access: sdkbind.FieldAccess{Get: "GetBore", Set: "SetBore",
 				SDKType: "*int64", ConvertGet: "FromPtrInt64", ConvertSet: "ToPtrInt64"}},
 	}
 	return node{
-		attribute: ir.Attribute{Name: "ports", WireName: "ports", Kind: ir.TypeMap,
-			ElementType: ir.TypeObject, Nested: &ir.AttributeTree{}},
+		attribute: ir.Attribute{Name: "ports", WireName: "ports", Type: ir.TypeMap,
+			ElementType: ir.TypeObject, NestedAttributes: &ir.AttributeTree{}},
 		fb: &sdkbind.FieldBinding{Attr: "ports", Wire: "ports",
 			NestedModel: "models.Portable", NestedWriteModel: "models.Port",
 			NestedConstructor: "models.NewPort()",
@@ -90,7 +90,7 @@ func TestUnit_StateNested_ReadsAMapIntoAKeyedValue(t *testing.T) {
 func TestUnit_SchemaTypeOf_AMapOfObjectsIsAMapNestedAttribute(t *testing.T) {
 	t.Parallel()
 	resolved := schemaTypeOf(node{attribute: ir.Attribute{
-		Kind: ir.TypeMap, ElementType: ir.TypeObject, Nested: &ir.AttributeTree{},
+		Type: ir.TypeMap, ElementType: ir.TypeObject, NestedAttributes: &ir.AttributeTree{},
 	}})
 	if resolved.SchemaAttribute != "MapNestedAttribute" {
 		t.Errorf("schema attribute = %q, want MapNestedAttribute", resolved.SchemaAttribute)
@@ -104,7 +104,7 @@ func TestUnit_SchemaTypeOf_AMapOfObjectsIsAMapNestedAttribute(t *testing.T) {
 // carry unknown, which a Go map of structs cannot.
 func TestUnit_FieldType_AMapOfObjectsIsHeldAsAMap(t *testing.T) {
 	t.Parallel()
-	n := node{attribute: ir.Attribute{Kind: ir.TypeMap, ElementType: ir.TypeObject, Nested: &ir.AttributeTree{}}}
+	n := node{attribute: ir.Attribute{Type: ir.TypeMap, ElementType: ir.TypeObject, NestedAttributes: &ir.AttributeTree{}}}
 	if got := fieldType(n); got != "types.Map" {
 		t.Errorf("field type = %q, want types.Map", got)
 	}

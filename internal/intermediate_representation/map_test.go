@@ -25,16 +25,16 @@ func TestUnit_DeriveMapType_AMapOfObjectsCarriesItsNestedTree(t *testing.T) {
 	if got.Unsupported {
 		t.Fatalf("refused with %q", got.UnsupportedReason)
 	}
-	if got.Kind != TypeMap || got.ElementType != TypeObject {
-		t.Fatalf("kind/element = %q/%q, want a map of objects", got.Kind, got.ElementType)
+	if got.Type != TypeMap || got.ElementType != TypeObject {
+		t.Fatalf("kind/element = %q/%q, want a map of objects", got.Type, got.ElementType)
 	}
-	if got.Nested == nil {
+	if got.NestedAttributes == nil {
 		t.Fatal("the map carries no nested tree, so nothing describes one value")
 	}
-	if len(got.Nested.Attributes) != 2 {
-		t.Errorf("the nested tree carries %d attributes, want the value schema's two", len(got.Nested.Attributes))
+	if len(got.NestedAttributes.Attributes) != 2 {
+		t.Errorf("the nested tree carries %d attributes, want the value schema's two", len(got.NestedAttributes.Attributes))
 	}
 	for _, want := range []string{"colour", "size"} {
-		attribute(t, got.Nested, want)
+		attribute(t, got.NestedAttributes, want)
 	}
 }

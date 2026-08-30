@@ -199,7 +199,7 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 		"Delete(ctx, &abstractions.RequestConfiguration[sdk.HttpServerItemRequestBuilderDeleteQueryParameters]{QueryParameters: &sdk.HttpServerItemRequestBuilderDeleteQueryParameters{Confirm: convert.PointerTo(true)}})",
 		`"github.com/microsoft/kiota-abstractions-go"`,
 		`"example.test/provider/internal/services/common/convert"`,
-		"const eventualConsistency = 30 * time.Second",
+		"const readAfterWriteDelay = 30 * time.Second",
 		"opts.ConsistencyPredicate = consistencyPredicate",
 		"crud.DeleteWithRetry",
 		"errors.HandleCreateError",

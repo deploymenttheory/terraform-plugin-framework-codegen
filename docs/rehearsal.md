@@ -50,7 +50,7 @@ provider repo (a `git init` repo, so Go's `-buildvcs` stamping succeeds).
 
 | # | Verb | Exit | What happened |
 |---|---|---|---|
-| 1 | `config validate --secrets` (secret unset) | 1 | Refused, naming `TFPFGEN_AUTH_TOKEN` — the preflight dies in milliseconds. |
+| 1 | `config validate --secrets` (secret unset) | 1 | Stopped, naming `TFPFGEN_AUTH_TOKEN` — the preflight dies in milliseconds. |
 | 2 | `config validate --secrets` | 0 | `tfpfgen.yaml is valid: provider orbit, backend kiota@1.34.1, auth bearer_token`. |
 | 3 | `spec import ./monitor.openapi.yaml` | 0 | Pinned `spec/imported.yaml`, sha256 `d47ccb0bcc54`, openapi 3.0.3. |
 | 4 | `spec revise` (no observations) | 0 | `spec/revised.yaml` = the upstream document, 0 corrections. |
@@ -130,7 +130,7 @@ realizing every edge as a stock-idiom config validator (the `#42` form):
 `kindValidConfigurationValidator`, each a `resource.ConfigValidator`, plus
 `stringvalidator.OneOf("ping","web","dns")` on the `kind` attribute. These
 are the value-conditional equivalent of `AlsoRequires` / `ConflictsWith`:
-the config is refused when a variant's required field is missing or when a
+the config is not accepted when a variant's required field is missing or when a
 field is set under the wrong `kind`. The generated resource unit tests
 apply variant-consistent configurations and pass against them.
 

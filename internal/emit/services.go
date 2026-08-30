@@ -276,12 +276,12 @@ const (
 // does not say reads as an entity that became nothing at all.
 func excludedEntity(kind string, names ir.Names, cause ir.Cause, reason string) ir.UnsupportedEntity {
 	return ir.UnsupportedEntity{
-		Key:     names.Key,
-		Kind:    kind,
-		Service: names.Service,
-		Tag:     names.Tag,
-		Cause:   cause,
-		Reason:  reason,
+		Key:                names.Key,
+		TerraformBlockType: kind,
+		Service:            names.Service,
+		Tag:                names.Tag,
+		Cause:              cause,
+		Reason:             reason,
 	}
 }
 
@@ -470,7 +470,7 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressi
 	for _, a := range tree.Attributes {
 		fb, ok := byAttr[a.Name]
 		if !ok {
-			if !root || !addressing[a.Name] || a.Nested != nil {
+			if !root || !addressing[a.Name] || a.NestedAttributes != nil {
 				continue
 			}
 			out = append(out, node{attribute: a})
@@ -478,8 +478,8 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressi
 			continue
 		}
 		n := node{attribute: a, fb: fb, held: held || fb.KeptFromPlan}
-		if a.Nested != nil {
-			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, n.held, kept)
+		if a.NestedAttributes != nil {
+			n.children = joinAttributes(a.NestedAttributes, fb.Nested, addressing, false, n.held, kept)
 		}
 		out = append(out, n)
 	}
@@ -514,7 +514,7 @@ func addressingNames(tree *ir.AttributeTree, operations ...*ir.Operation) map[st
 				continue
 			}
 			for _, attribute := range tree.Attributes {
-				if attribute.WireName == parameter.Name && attribute.Nested == nil {
+				if attribute.WireName == parameter.Name && attribute.NestedAttributes == nil {
 					names[attribute.Name] = true
 				}
 			}
@@ -556,8 +556,8 @@ func supportedTree(tree *ir.AttributeTree, nodes []node) *ir.AttributeTree {
 			continue
 		}
 		copied := a
-		if a.Nested != nil {
-			copied.Nested = supportedTree(a.Nested, n.children)
+		if a.NestedAttributes != nil {
+			copied.NestedAttributes = supportedTree(a.NestedAttributes, n.children)
 		}
 		out.Attributes = append(out.Attributes, copied)
 	}

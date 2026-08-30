@@ -331,8 +331,8 @@ func serverFilledMembersComputed(attributes []Attribute, beneathServerFilledPare
 		if beneathServerFilledParent && attribute.ComputedOptionalRequired != Computed {
 			attribute.ComputedOptionalRequired = ComputedOptional
 		}
-		if attribute.Nested != nil {
-			serverFilledMembersComputed(attribute.Nested.Attributes, beneathServerFilledParent || attribute.ComputedOptionalRequired == ComputedOptional)
+		if attribute.NestedAttributes != nil {
+			serverFilledMembersComputed(attribute.NestedAttributes.Attributes, beneathServerFilledParent || attribute.ComputedOptionalRequired == ComputedOptional)
 		}
 	}
 }
@@ -342,7 +342,7 @@ func serverFilledMembersComputed(attributes []Attribute, beneathServerFilledPare
 func convertValidConfiguration(validConfiguration specmodel.ValidConfiguration) ValidConfiguration {
 	out := ValidConfiguration{Discriminator: snakeCase(validConfiguration.Discriminator)}
 	for _, value := range validConfiguration.Variants {
-		out.Variants = append(out.Variants, ConfigVariant{Value: value.Value, Valid: sortedUnique(snakeCaseAll(value.Fields))})
+		out.Variants = append(out.Variants, ValidConfigurationVariant{Value: value.Value, AttributesValidWhenEqual: sortedUnique(snakeCaseAll(value.Fields))})
 	}
 	sort.Slice(out.Variants, func(first, second int) bool { return out.Variants[first].Value < out.Variants[second].Value })
 	return out
@@ -357,13 +357,13 @@ func sortedConditionals(gates map[[2]string][]string) []ConditionalRequirement {
 	out := make([]ConditionalRequirement, 0, len(gates))
 	for gate, names := range gates {
 		sort.Strings(names)
-		out = append(out, ConditionalRequirement{Property: gate[0], Equals: gate[1], Required: names})
+		out = append(out, ConditionalRequirement{Property: gate[0], WhenPropertyEquals: gate[1], Required: names})
 	}
 	sort.Slice(out, func(first, second int) bool {
 		if out[first].Property != out[second].Property {
 			return out[first].Property < out[second].Property
 		}
-		return out[first].Equals < out[second].Equals
+		return out[first].WhenPropertyEquals < out[second].WhenPropertyEquals
 	})
 	return out
 }
@@ -377,13 +377,13 @@ func sortedValidities(gates map[[2]string][]string) []ConditionalValidity {
 	out := make([]ConditionalValidity, 0, len(gates))
 	for gate, names := range gates {
 		sort.Strings(names)
-		out = append(out, ConditionalValidity{Property: gate[0], Equals: gate[1], Valid: names})
+		out = append(out, ConditionalValidity{Property: gate[0], WhenPropertyEquals: gate[1], AttributesValidWhenEqual: names})
 	}
 	sort.Slice(out, func(first, second int) bool {
 		if out[first].Property != out[second].Property {
 			return out[first].Property < out[second].Property
 		}
-		return out[first].Equals < out[second].Equals
+		return out[first].WhenPropertyEquals < out[second].WhenPropertyEquals
 	})
 	return out
 }
@@ -470,7 +470,7 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 	volatile, _ := extensions.Volatile()
 	immutable, _ := extensions.Immutable()
 	serverDefault, hasServerDefault := extensions.ServerDefault()
-	attribute.SilentlyIgnoredOnUpdate, _ = extensions.IgnoredOnUpdate()
+	attribute.IgnoredOnUpdate, _ = extensions.IgnoredOnUpdate()
 	attribute.Normalisation, _ = extensions.Normalisation()
 
 	// The document's prose, taken from whichever side declares any. A
@@ -550,13 +550,13 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 		// removal from configuration is sticky — which is a diff to explain
 		// rather than an apply that cannot succeed.
 		attribute.ComputedOptionalRequired = ComputedOptional
-		attribute.Authority = computedOptionalAuthority(hasServerDefault, property.requiredRead, resolvedCreate.hasDefault)
+		attribute.SchemaAttributeTypeDetermination = computedOptionalDetermination(hasServerDefault, property.requiredRead, resolvedCreate.hasDefault)
 	default:
 		// Writable, and the server leaves it absent when the request omits it.
 		// Genuinely rare: most APIs answer with something.
 		attribute.ComputedOptionalRequired = Optional
 	}
-	// refusedByUpdate is the document's own account of immutability: the
+	// excludedByUpdate is the document's own account of immutability: the
 	// create body declares this property and the update body does not, so
 	// the API offers no way to change it after create. Free, offline, and
 	// true of the document whether or not an audit has ever run — which is
@@ -566,9 +566,9 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 	// the update body for the uninteresting reason that it is absent from
 	// every request body, and on hasUpdateBody, because a document that
 	// declares no update schema is silent rather than restrictive.
-	refusedByUpdate := writable && property.hasUpdateBody && property.update == nil
+	excludedByUpdate := writable && property.hasUpdateBody && property.update == nil
 
-	if attribute.ComputedOptionalRequired != Computed && (immutable || property.everyAttributeRequiresReplace || refusedByUpdate) {
+	if attribute.ComputedOptionalRequired != Computed && (immutable || property.everyAttributeRequiresReplace || excludedByUpdate) {
 		attribute.RequiresReplace = true
 	}
 
@@ -580,7 +580,7 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 	}
 	deriveType(&attribute, governingSchema, childCreate, property.read, property.update)
 
-	if len(governingSchema.enum) > 0 && attribute.Kind != TypeList && attribute.Kind != TypeObject && !attribute.Unsupported {
+	if len(governingSchema.enum) > 0 && attribute.Type != TypeList && attribute.Type != TypeObject && !attribute.Unsupported {
 		values := renderEnum(governingSchema.enum)
 		if open, _ := extensions.Values(); open {
 			attribute.AdvisoryValues = values
@@ -590,7 +590,7 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 	}
 	// A list's set came from its element; the property's own x-tfpfgen-values
 	// says whether that set is closed.
-	if open, _ := extensions.Values(); open && attribute.Kind == TypeList && len(attribute.OneOf) > 0 {
+	if open, _ := extensions.Values(); open && attribute.Type == TypeList && len(attribute.OneOf) > 0 {
 		attribute.AdvisoryValues, attribute.OneOf = attribute.OneOf, nil
 	}
 
@@ -607,7 +607,7 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 	return attribute, edges
 }
 
-// computedOptionalAuthority names the strongest declaration that applies,
+// computedOptionalDetermination names the strongest declaration that applies,
 // in the order the presence decision consults them. Several routes reach
 // computed_optional at once and the strongest is the one worth recording:
 // an attribute the audit measured is not made weaker by the document also
@@ -615,15 +615,15 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 //
 // The fourth route needs no condition. It is the remaining disjunct of the
 // case that got here, so reaching the default arm is what identifies it.
-func computedOptionalAuthority(hasServerDefault, requiredRead, hasDefault bool) Authority {
+func computedOptionalDetermination(hasServerDefault, requiredRead, hasDefault bool) SchemaAttributeTypeDetermination {
 	switch {
 	case hasServerDefault:
-		return AuthorityServerDefault
+		return SchemaAttributeTypeDeterminationServerDefault
 	case requiredRead:
-		return AuthorityResponseRequired
+		return SchemaAttributeTypeDeterminationResponseRequired
 	case hasDefault:
-		return AuthorityRequestDefault
+		return SchemaAttributeTypeDeterminationRequestDefault
 	default:
-		return AuthorityResponseProperty
+		return SchemaAttributeTypeDeterminationResponseProperty
 	}
 }

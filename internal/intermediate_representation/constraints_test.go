@@ -78,7 +78,7 @@ components:
 func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
 	resource := resourceByKey(t, mustDerive(t, constrainedSpec, testConfig()), "key")
 
-	secret := attribute(t, resource.Schema, "secret")
+	secret := attribute(t, resource.Attributes, "secret")
 	if !secret.WriteOnly {
 		t.Error("WriteOnly not carried")
 	}
@@ -91,11 +91,11 @@ func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
 	assertBound(t, "MinLength", secret.MinLength, 8)
 	assertBound(t, "MaxLength", secret.MaxLength, 64)
 
-	if !attribute(t, resource.Schema, "legacy").Deprecated {
+	if !attribute(t, resource.Attributes, "legacy").Deprecated {
 		t.Error("Deprecated not carried")
 	}
 
-	weight := attribute(t, resource.Schema, "weight")
+	weight := attribute(t, resource.Attributes, "weight")
 	if weight.Minimum == nil || *weight.Minimum != 1 {
 		t.Errorf("Minimum = %v", weight.Minimum)
 	}
@@ -103,14 +103,14 @@ func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
 		t.Errorf("Maximum = %v", weight.Maximum)
 	}
 
-	tags := attribute(t, resource.Schema, "tags")
+	tags := attribute(t, resource.Attributes, "tags")
 	if !tags.UniqueItems {
 		t.Error("UniqueItems not carried")
 	}
 	assertBound(t, "MinItems", tags.MinItems, 1)
 	assertBound(t, "MaxItems", tags.MaxItems, 5)
 
-	plain := attribute(t, resource.Schema, "plain")
+	plain := attribute(t, resource.Attributes, "plain")
 	if plain.WriteOnly || plain.Deprecated || plain.UniqueItems ||
 		plain.Format != "" || plain.Pattern != "" ||
 		plain.MinLength != nil || plain.MaxLength != nil {
@@ -165,11 +165,11 @@ components:
 `
 	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "account")
 	for _, name := range []string{"formatted", "write_only", "both"} {
-		if !attribute(t, resource.Schema, name).Sensitive {
+		if !attribute(t, resource.Attributes, name).Sensitive {
 			t.Errorf("%q is a declared secret and is not marked sensitive", name)
 		}
 	}
-	if attribute(t, resource.Schema, "plain").Sensitive {
+	if attribute(t, resource.Attributes, "plain").Sensitive {
 		t.Error("an ordinary attribute is marked sensitive")
 	}
 }
@@ -235,27 +235,27 @@ components:
 	// A false or an empty default is a declaration like any other: the test
 	// is that the document states one, not that the value is truthy.
 	for _, name := range []string{"retries", "enabled", "label"} {
-		if got := attribute(t, resource.Schema, name).ComputedOptionalRequired; got != ComputedOptional {
+		if got := attribute(t, resource.Attributes, name).ComputedOptionalRequired; got != ComputedOptional {
 			t.Errorf("%q with a declared default = %q, want computed_optional", name, got)
 		}
 	}
 	// note declares no default and the response does not describe it, so
 	// nothing says the server fills it: the one route left to plain Optional.
-	if got := attribute(t, resource.Schema, "note").ComputedOptionalRequired; got != Optional {
+	if got := attribute(t, resource.Attributes, "note").ComputedOptionalRequired; got != Optional {
 		t.Errorf("%q declares no default and became %q", "note", got)
 	}
 	// A default on the response side says nothing about what happens when a
 	// request omits the field, and summary is not writable at all.
-	if got := attribute(t, resource.Schema, "summary").ComputedOptionalRequired; got != Computed {
+	if got := attribute(t, resource.Attributes, "summary").ComputedOptionalRequired; got != Computed {
 		t.Errorf("a response-only property with a default = %q, want computed", got)
 	}
 }
 
-// TestUnit_Attribute_RefusesAReservedRootName proves a root attribute
+// TestUnit_Attribute_ExcludesAReservedRootName proves a root attribute
 // terraform reserves is refused rather than emitted. Declaring one costs the
 // whole provider: terraform rejects the schema and loads none of it, so the
 // entity beside it goes too.
-func TestUnit_Attribute_RefusesAReservedRootName(t *testing.T) {
+func TestUnit_Attribute_ExcludesAReservedRootName(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
@@ -296,7 +296,7 @@ components:
 	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "group")
 
 	for _, name := range []string{"count", "lifecycle"} {
-		got := attribute(t, resource.Schema, name)
+		got := attribute(t, resource.Attributes, name)
 		if !got.Unsupported {
 			t.Errorf("%q is reserved at the root and was emitted anyway", name)
 		}
@@ -304,17 +304,17 @@ components:
 			t.Errorf("%q refused for %q, which does not say why", name, got.UnsupportedReason)
 		}
 	}
-	if attribute(t, resource.Schema, "name").Unsupported {
+	if attribute(t, resource.Attributes, "name").Unsupported {
 		t.Error("an ordinary root attribute was refused")
 	}
 
 	// The same name nested inside an object is an ordinary field: terraform
 	// reserves it only where a practitioner would write a meta-argument.
-	nested := attribute(t, resource.Schema, "nested")
-	if nested.Nested == nil {
+	nested := attribute(t, resource.Attributes, "nested")
+	if nested.NestedAttributes == nil {
 		t.Fatalf("nested = %+v", nested)
 	}
-	if attribute(t, nested.Nested, "count").Unsupported {
+	if attribute(t, nested.NestedAttributes, "count").Unsupported {
 		t.Error("a reserved name nested inside an object was refused")
 	}
 }
@@ -387,13 +387,13 @@ components:
 func TestUnit_Attribute_CarriesTheDeclaredExample(t *testing.T) {
 	resource := resourceByKey(t, mustDerive(t, exampleSpec, testConfig()), "stream")
 
-	if got := attribute(t, resource.Schema, "endpoint_url").Example; got != "https://api.example.otel-collector" {
+	if got := attribute(t, resource.Attributes, "endpoint_url").Example; got != "https://api.example.otel-collector" {
 		t.Errorf("Example = %#v, want the one declared on the referenced schema", got)
 	}
-	if got := attribute(t, resource.Schema, "retries").Example; got != 300 {
+	if got := attribute(t, resource.Attributes, "retries").Example; got != 300 {
 		t.Errorf("Example = %#v, want the declared number", got)
 	}
-	if got := attribute(t, resource.Schema, "plain").Example; got != nil {
+	if got := attribute(t, resource.Attributes, "plain").Example; got != nil {
 		t.Errorf("a property declaring no example carries %#v", got)
 	}
 }
@@ -457,7 +457,7 @@ components:
 func TestUnit_Attribute_TheIdentifierPropertyNamesTheIdsWire(t *testing.T) {
 	resource := resourceByKey(t, mustDerive(t, identifierPropertySpec, testConfig()), "group")
 
-	if id := attribute(t, resource.Schema, "id"); id.WireName != "aid" {
+	if id := attribute(t, resource.Attributes, "id"); id.WireName != "aid" {
 		t.Errorf("the id attribute reads %q, want the property the response carries", id.WireName)
 	}
 }
@@ -469,7 +469,7 @@ func TestUnit_Attribute_TheIdWireFallsBackToThePathParameter(t *testing.T) {
 	plain := strings.Replace(identifierPropertySpec, "      x-tfpfgen-identifier-property: aid\n", "", 1)
 	resource := resourceByKey(t, mustDerive(t, plain, testConfig()), "group")
 
-	if id := attribute(t, resource.Schema, "id"); id.WireName != "id" {
+	if id := attribute(t, resource.Attributes, "id"); id.WireName != "id" {
 		t.Errorf("the id attribute reads %q, want the path parameter's name", id.WireName)
 	}
 }

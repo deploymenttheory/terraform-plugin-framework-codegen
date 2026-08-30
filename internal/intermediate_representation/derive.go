@@ -327,7 +327,7 @@ func (indexer *operationIndexer) resource(classification specmodel.Classificatio
 		}
 	}
 	ensureID(tree, keyParameter, keyAttributeType)
-	refuseReservedRootNames(tree)
+	excludeReservedRootNames(tree)
 	readOperation := indexer.operation(classification.Read, OperationRead)
 	if readOperation != nil {
 		parents := parentParameters(readOperation.PathParameters)
@@ -361,12 +361,12 @@ func (indexer *operationIndexer) resource(classification specmodel.Classificatio
 			Delete: indexer.operation(classification.Delete, OperationDelete),
 			List:   indexer.operation(classification.List, OperationList),
 		},
-		Schema:              tree,
+		Attributes:          tree,
 		MissingUpdate:       classification.MissingUpdate,
 		Singleton:           classification.Singleton,
 		ParentEntity:        parentEntity,
 		UpdateStyle:         updateStyle,
-		EventualConsistency: maxEventualConsistency(resolvedCreate, resolvedRead, resolvedUpdate, resolvedDelete),
+		ReadAfterWriteDelay: longestReadAfterWriteDelay(resolvedCreate, resolvedRead, resolvedUpdate, resolvedDelete),
 		DeleteNotFoundOK:    deleteNotFoundOK,
 		Timeouts:            defaultTimeouts(),
 		ListWrapperKey:      listWrapperKey(indexer.resolveOperation(classification.List)),
@@ -470,7 +470,7 @@ func (indexer *operationIndexer) datasource(classification specmodel.Classificat
 
 	if classification.LookupByKey {
 		requireKey(itemTree, keyParameter, keyAttributeType)
-		refuseReservedRootNames(itemTree)
+		excludeReservedRootNames(itemTree)
 		readOperation := indexer.operation(classification.Read, OperationRead)
 		if readOperation != nil {
 			ensureParentParameters(itemTree, parentParameters(readOperation.PathParameters), "")
@@ -478,7 +478,7 @@ func (indexer *operationIndexer) datasource(classification specmodel.Classificat
 		return Datasource{
 			Names:        names,
 			Operations:   Operations{Read: readOperation},
-			Schema:       itemTree,
+			Attributes:   itemTree,
 			LookupByKey:  true,
 			KeyParameter: keyParameter,
 		}
@@ -499,15 +499,15 @@ func (indexer *operationIndexer) datasource(classification specmodel.Classificat
 	}
 	ensureFilterAttributes(companionTree, itemTree)
 	companionTree.Attributes = append(companionTree.Attributes, Attribute{
-		Name: "items", WireName: "items", Kind: TypeList, ElementType: TypeObject,
-		ComputedOptionalRequired: Computed, Nested: itemTree,
+		Name: "items", WireName: "items", Type: TypeList, ElementType: TypeObject,
+		ComputedOptionalRequired: Computed, NestedAttributes: itemTree,
 	})
-	refuseReservedRootNames(companionTree)
+	excludeReservedRootNames(companionTree)
 
 	return Datasource{
 		Names:          names,
 		Operations:     Operations{Read: indexer.operation(classification.Read, OperationRead), List: listOperation},
-		Schema:         companionTree,
+		Attributes:     companionTree,
 		ListWrapperKey: listWrapperKey(indexer.resolveOperation(classification.List)),
 	}
 }
@@ -519,8 +519,8 @@ func (indexer *operationIndexer) listResource(classification specmodel.Classific
 	resolvedList := indexer.resolveOperation(classification.List)
 	element := listElementSchema(resolvedList)
 	listOperation := *indexer.operation(classification.List, OperationList)
-	addressing := addressingSchema(listOperation.PathParameters)
-	refuseReservedRootNames(addressing)
+	addressing := addressingAttributes(listOperation.PathParameters)
+	excludeReservedRootNames(addressing)
 
 	// A list result is an identity, and an identity is the resource's id. The
 	// resource takes its id from the item path key where the object declares
@@ -536,11 +536,11 @@ func (indexer *operationIndexer) listResource(classification specmodel.Classific
 	ensureID(tree, keyParameter, keyAttributeType)
 
 	return ListResource{
-		Names:            names,
-		ListOperation:    listOperation,
-		Schema:           tree,
-		AddressingSchema: addressing,
-		ListWrapperKey:   listWrapperKey(resolvedList),
+		Names:                names,
+		ListOperation:        listOperation,
+		Attributes:           tree,
+		AddressingAttributes: addressing,
+		ListWrapperKey:       listWrapperKey(resolvedList),
 	}
 }
 
@@ -549,13 +549,13 @@ func (indexer *operationIndexer) action(classification specmodel.Classification,
 	var request *AttributeTree
 	if resolvedCreate != nil && resolvedCreate.RequestBody != nil {
 		request = buildAttributeTree(resolvedCreate.RequestBody, nil, nil, false)
-		refuseReservedRootNames(request)
+		excludeReservedRootNames(request)
 	}
 	return Action{
-		Names:           names,
-		InvokeOperation: *indexer.operation(classification.Create, OperationInvoke),
-		RequestSchema:   request,
-		ParentEntity:    enclosingEntity(classification.CollectionPath, parentKey),
+		Names:             names,
+		InvokeOperation:   *indexer.operation(classification.Create, OperationAction),
+		RequestAttributes: request,
+		ParentEntity:      enclosingEntity(classification.CollectionPath, parentKey),
 	}
 }
 
@@ -581,14 +581,14 @@ var templateParameterPattern = regexp.MustCompile(`\{([^}]+)\}`)
 // pathParameters lists an operation's path parameters in path-template order —
 // the order any call expression will take them — typed from the declared
 // parameter schema, string when the document does not say.
-func pathParameters(pathTemplate string, operation *specmodel.Operation) []Parameter {
+func pathParameters(pathTemplate string, operation *specmodel.Operation) []URLPathParameter {
 	matches := templateParameterPattern.FindAllStringSubmatch(pathTemplate, -1)
 	if len(matches) == 0 {
 		return nil
 	}
-	out := make([]Parameter, 0, len(matches))
+	out := make([]URLPathParameter, 0, len(matches))
 	for _, match := range matches {
-		parameter := Parameter{Name: match[1], Type: TypeString}
+		parameter := URLPathParameter{Name: match[1], Type: TypeString}
 		if operation != nil {
 			for _, declared := range operation.Parameters {
 				if declared.In == "path" && declared.Name == match[1] {
@@ -656,10 +656,10 @@ func successCode(operation *specmodel.Operation) int {
 	return 0
 }
 
-// maxEventualConsistency takes the largest declared read-after-write lag
+// longestReadAfterWriteDelay takes the largest declared read-after-write lag
 // across the lifecycle: whichever operation observed the worst lag governs
 // how long generated code must be prepared to wait.
-func maxEventualConsistency(operations ...*specmodel.Operation) time.Duration {
+func longestReadAfterWriteDelay(operations ...*specmodel.Operation) time.Duration {
 	var longest time.Duration
 	for _, operation := range operations {
 		if operation == nil {

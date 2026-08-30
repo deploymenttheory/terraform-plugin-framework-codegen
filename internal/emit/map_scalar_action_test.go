@@ -18,10 +18,10 @@ import (
 // so parsing is not the check. The literal has to be a literal.
 func TestUnit_Emit_AMapValueRendersAGoLiteralOfItsElementKind(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "limits", WireName: "limits", Kind: ir.TypeMap, ElementType: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
-		{Name: "weights", WireName: "weights", Kind: ir.TypeMap, ElementType: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
-		{Name: "flags", WireName: "flags", Kind: ir.TypeMap, ElementType: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
-		{Name: "labels", WireName: "labels", Kind: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+		{Name: "limits", WireName: "limits", Type: ir.TypeMap, ElementType: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+		{Name: "weights", WireName: "weights", Type: ir.TypeMap, ElementType: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
+		{Name: "flags", WireName: "flags", Type: ir.TypeMap, ElementType: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+		{Name: "labels", WireName: "labels", Type: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 
 	for _, v := range fixtures.Derive(tree).Entries {
@@ -48,7 +48,7 @@ func TestUnit_Emit_AMapValueRendersAGoLiteralOfItsElementKind(t *testing.T) {
 // name the same kind rather than merely parsing.
 func TestUnit_Emit_AMapLiteralMatchesItsDeclaredTftype(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "limits", WireName: "limits", Kind: ir.TypeMap, ElementType: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+		{Name: "limits", WireName: "limits", Type: ir.TypeMap, ElementType: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
 	}}
 	got := tftypeNewValue(fixtures.Derive(tree).Entries[0])
 

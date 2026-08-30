@@ -67,7 +67,7 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expre
 		}
 		name := namer.name(lowerFirst(ir.GoName(request.Property)) + "RequiredWhen")
 		description := fmt.Sprintf("%s must be set when %s is %q.",
-			strings.Join(request.Required, ", "), request.Property, request.Equals)
+			strings.Join(request.Required, ", "), request.Property, request.WhenPropertyEquals)
 		declarationLines.WriteString(renderCustomValidator(name, typeName, description, body.String()))
 		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
@@ -78,7 +78,7 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expre
 		}
 		name := namer.name(lowerFirst(ir.GoName(v.Property)) + "ValidWhen")
 		description := fmt.Sprintf("%s may be set only when %s is %q.",
-			strings.Join(v.Valid, ", "), v.Property, v.Equals)
+			strings.Join(v.AttributesValidWhenEqual, ", "), v.Property, v.WhenPropertyEquals)
 		declarationLines.WriteString(renderCustomValidator(name, typeName, description, body.String()))
 		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
@@ -185,7 +185,7 @@ func emitRequiredWhen(b *strings.Builder, byName map[string]node, request ir.Con
 	if err := stringGate(byName, request.Property, "conditional requirement"); err != nil {
 		return err
 	}
-	fmt.Fprintf(b, "\tif data.%s.ValueString() == %s {\n", ir.GoName(request.Property), strconv.Quote(request.Equals))
+	fmt.Fprintf(b, "\tif data.%s.ValueString() == %s {\n", ir.GoName(request.Property), strconv.Quote(request.WhenPropertyEquals))
 	for _, required := range request.Required {
 		target, ok := byName[required]
 		if !ok {
@@ -193,7 +193,7 @@ func emitRequiredWhen(b *strings.Builder, byName map[string]node, request ir.Con
 		}
 		fmt.Fprintf(b, "\t\tif %s {\n", nullCheck(target))
 		writeError(b, "\t\t\t", required, "Missing required attribute",
-			fmt.Sprintf("%s must be set when %s is %q.", required, request.Property, request.Equals))
+			fmt.Sprintf("%s must be set when %s is %q.", required, request.Property, request.WhenPropertyEquals))
 		b.WriteString("\t\t}\n")
 	}
 	b.WriteString("\t}\n")
@@ -206,15 +206,15 @@ func emitValidWhen(b *strings.Builder, byName map[string]node, v ir.ConditionalV
 	if err := stringGate(byName, v.Property, "conditional validity"); err != nil {
 		return err
 	}
-	fmt.Fprintf(b, "\tif data.%s.ValueString() != %s {\n", ir.GoName(v.Property), strconv.Quote(v.Equals))
-	for _, name := range v.Valid {
+	fmt.Fprintf(b, "\tif data.%s.ValueString() != %s {\n", ir.GoName(v.Property), strconv.Quote(v.WhenPropertyEquals))
+	for _, name := range v.AttributesValidWhenEqual {
 		target, ok := byName[name]
 		if !ok {
 			return fmt.Errorf("conditional validity allows %q, which is not an attribute", name)
 		}
 		fmt.Fprintf(b, "\t\tif %s {\n", notNull(target))
 		writeError(b, "\t\t\t", name, "Invalid attribute combination",
-			fmt.Sprintf("%s is valid only when %s is %q.", name, v.Property, v.Equals))
+			fmt.Sprintf("%s is valid only when %s is %q.", name, v.Property, v.WhenPropertyEquals))
 		b.WriteString("\t\t}\n")
 	}
 	b.WriteString("\t}\n")
@@ -233,7 +233,7 @@ func emitValidConfiguration(b *strings.Builder, byName map[string]node, vc ir.Va
 	allowed := map[string][]string{}
 	var fields []string
 	for _, variant := range vc.Variants {
-		for _, f := range variant.Valid {
+		for _, f := range variant.AttributesValidWhenEqual {
 			if _, seen := allowed[f]; !seen {
 				fields = append(fields, f)
 			}
@@ -269,7 +269,7 @@ func stringGate(byName map[string]node, name, label string) error {
 	if !ok {
 		return unrenderable(CauseUnvalidatableAttribute, "%s names %q, which is not an attribute", label, name)
 	}
-	if gate.attribute.Kind != ir.TypeString || gate.attribute.Nested != nil {
+	if gate.attribute.Type != ir.TypeString || gate.attribute.NestedAttributes != nil {
 		return unrenderable(CauseUnvalidatableAttribute, "%s on %q needs a string attribute", label, name)
 	}
 	return nil

@@ -59,14 +59,14 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 		Type:          a.Names.PascalCase + "Action",
 		TerraformType: a.Names.TerraformType,
 		ClientType:    "*sdk." + e.bindings.SDK.ClientTypeName,
-		HasBody:       a.RequestSchema != nil && ab.WriteModel != "",
+		HasBody:       a.RequestAttributes != nil && ab.WriteModel != "",
 		AuthGitHubApp: e.pc.AuthGitHubApp,
 	}
 
 	// The schema is the invocation's arguments: one attribute per path
 	// parameter, then the request body's tree.
 	paramNodes := actionParameterNodes(&a.InvokeOperation)
-	bodyNodes := e.joinTree(bindingKindAction, a.Names.Key, a.RequestSchema, ab.Fields)
+	bodyNodes := e.joinTree(bindingKindAction, a.Names.Key, a.RequestAttributes, ab.Fields)
 	nodes := append(append([]node{}, paramNodes...), invocable(bodyNodes)...)
 
 	imports := newImportSet(e.pc.Module)
@@ -77,7 +77,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	sb := &schemaBuilder{kind: schemaAction, imports: imports}
 	d.SchemaAttributes = sb.attributeDeclarations(nodes, 3)
-	description := entityDescription(a.RequestSchema, "Invokes the "+a.Names.Key+" operation.")
+	description := entityDescription(a.RequestAttributes, "Invokes the "+a.Names.Key+" operation.")
 	if a.CoManagementNote != "" {
 		description += " " + a.CoManagementNote
 	}
@@ -129,7 +129,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	d.InvokeImports = invokeImports.render()
 
 	// Test wiring.
-	spec := deriveFixtures(actionTree(paramNodes, a.RequestSchema), nodes)
+	spec := deriveFixtures(actionTree(paramNodes, a.RequestAttributes), nodes)
 	spec.PinNumeric(integerParsedParameters(ab.Invoke, nodes))
 	d.InvokeMethod = a.InvokeOperation.Method
 	d.InvokeStatus = successStatus(&a.InvokeOperation, 204)
@@ -199,7 +199,7 @@ func actionParameterNodes(operation *ir.Operation) []node {
 		out = append(out, node{attribute: ir.Attribute{
 			Name:                     ir.TerraformName(p.Name),
 			WireName:                 p.Name,
-			Kind:                     kind,
+			Type:                     kind,
 			ComputedOptionalRequired: ir.Required,
 		}})
 	}
@@ -344,7 +344,7 @@ func invocable(nodes []node) []node {
 		if n.attribute.ComputedOptionalRequired == ir.Computed {
 			continue
 		}
-		if n.attribute.Nested != nil {
+		if n.attribute.NestedAttributes != nil {
 			n.children = invocable(n.children)
 		}
 		kept = append(kept, n)

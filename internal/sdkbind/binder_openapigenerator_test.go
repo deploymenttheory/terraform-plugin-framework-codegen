@@ -51,18 +51,18 @@ func TestOAGCallSpelling(t *testing.T) {
 		},
 		{
 			name:      "read passes the path parameter",
-			operation: operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			operation: operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			want:      "client.TagsAPI.GetTag(ctx, tagId).Execute()",
 		},
 		{
 			name:      "update passes parameter then body",
-			operation: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			operation: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			hasBody:   true,
 			want:      "client.TagsAPI.UpdateTag(ctx, tagId).Tags(*body).Execute()",
 		},
 		{
 			name:      "delete",
-			operation: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			operation: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			want:      "client.TagsAPI.DeleteTag(ctx, tagId).Execute()",
 		},
 	}
@@ -94,7 +94,7 @@ func TestOAGCallDrafts(t *testing.T) {
 	}
 
 	del := openAPIGeneratorBinder{}.call(
-		operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+		operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, info)
 	if del.ResponseType != "" || len(del.Results) != 2 {
 		t.Errorf("delete drafts = response %q results %v", del.ResponseType, del.Results)

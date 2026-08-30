@@ -56,17 +56,17 @@ func TestUnit_Derive_ListResourceTakesItsIDFromTheItemPathKey(t *testing.T) {
 	model := mustDerive(t, keyedSpec, testConfig())
 
 	listResource := listResourceByKey(t, model, "widget")
-	id := attribute(t, listResource.Schema, "id")
+	id := attribute(t, listResource.Attributes, "id")
 	if id.WireName != "widgetId" {
 		t.Errorf("the list element's id reads %q, want the item path key %q", id.WireName, "widgetId")
 	}
-	if id.Kind != TypeString || id.ComputedOptionalRequired != Computed {
+	if id.Type != TypeString || id.ComputedOptionalRequired != Computed {
 		t.Errorf("id = %+v, want a computed string", id)
 	}
 	// The resource is addressed by the same key, and terraform matches the
 	// two by type name: an identity that named a different field would list
 	// identities the resource cannot be imported by.
-	if got := attribute(t, resourceByKey(t, model, "widget").Schema, "id"); got.WireName != id.WireName {
+	if got := attribute(t, resourceByKey(t, model, "widget").Attributes, "id"); got.WireName != id.WireName {
 		t.Errorf("resource id reads %q but the list element's reads %q", got.WireName, id.WireName)
 	}
 }
@@ -76,7 +76,7 @@ func TestUnit_Derive_ListResourceTakesItsIDFromTheItemPathKey(t *testing.T) {
 func TestUnit_Derive_ListResourceKeepsAnElementsOwnID(t *testing.T) {
 	model := mustDerive(t, thingSpec, testConfig())
 
-	id := attribute(t, listResourceByKey(t, model, "thing").Schema, "id")
+	id := attribute(t, listResourceByKey(t, model, "thing").Attributes, "id")
 	if id.WireName != "id" {
 		t.Errorf("id reads %q, want the element's own %q", id.WireName, "id")
 	}
@@ -99,7 +99,7 @@ func TestUnit_Derive_ListResource(t *testing.T) {
 				listResource.Names.TerraformType, resource.Names.TerraformType)
 		}
 		for _, name := range []string{"name", "id"} {
-			if a := attribute(t, listResource.Schema, name); a.ComputedOptionalRequired != Computed {
+			if a := attribute(t, listResource.Attributes, name); a.ComputedOptionalRequired != Computed {
 				t.Errorf("%q = %+v", name, a)
 			}
 		}

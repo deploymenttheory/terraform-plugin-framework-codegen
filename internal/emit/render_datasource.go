@@ -143,14 +143,14 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 		return fixtures.Fixture{}, unrenderable(CauseDatasourceNoReadCall, "a lookup-by-key datasource needs a bound read call")
 	}
 
-	nodes := e.joinTree(bindingKindDatasource, ds.Names.Key, ds.Schema, db.Fields, addressingNames(ds.Schema, ds.Operations.Read, ds.Operations.List))
+	nodes := e.joinTree(bindingKindDatasource, ds.Names.Key, ds.Attributes, db.Fields, addressingNames(ds.Attributes, ds.Operations.Read, ds.Operations.List))
 	key := keyAttrName(ds)
 	if !hasNode(nodes, key) {
 		// The SDK model does not carry the key parameter as a field; the
 		// schema still must, so the caller has somewhere to put it.
 		nodes = append([]node{{attribute: ir.Attribute{
 			Name: key, WireName: ds.KeyParameter,
-			Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
+			Type: ir.TypeString, ComputedOptionalRequired: ir.Required,
 		}}}, nodes...)
 	}
 
@@ -164,7 +164,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	imports.add("commonschema", e.pc.Module+"/internal/services/common/schema")
 	sb := &schemaBuilder{kind: schemaDatasource, imports: imports}
 	d.SchemaAttributes = sb.attributeDeclarations(nodes, 3)
-	description := entityDescription(ds.Schema, "Reads one "+ds.Names.Key+" by its "+key+".")
+	description := entityDescription(ds.Attributes, "Reads one "+ds.Names.Key+" by its "+key+".")
 	if ds.CoManagementNote != "" {
 		description += " " + ds.CoManagementNote
 	}
@@ -228,7 +228,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	e.addSDKImports(stateImports, stateBody, d.ReadModel)
 	d.StateImports = stateImports.render()
 
-	spec := deriveFixtures(ds.Schema, nodes)
+	spec := deriveFixtures(ds.Attributes, nodes)
 	spec.PinNumeric(integerParsedParameters(db.Read, nodes))
 	e.datasourceMocks(d, ds, spec)
 	e.datasourceChecks(d, ds.Names.Key, spec)
@@ -252,7 +252,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// where that field does. Binding deletes what the SDK cannot carry, and
 	// the item model is built from what is left: a filter over a deleted
 	// field would compare against a model field that does not exist.
-	filters := make([]ir.Attribute, 0, len(ds.Schema.Attributes))
+	filters := make([]ir.Attribute, 0, len(ds.Attributes.Attributes))
 	for _, f := range companionFilters(ds) {
 		if hasNode(itemNodes, f.Name) {
 			filters = append(filters, f)
@@ -321,7 +321,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// from config and which no item model can hold.
 	root := "type " + d.Type + "Model struct {\n"
 	for _, a := range append(companionAddressing(ds), filters...) {
-		root += "\t" + ir.GoName(a.Name) + " " + scalarSchemaType(a.Kind).ValueType +
+		root += "\t" + ir.GoName(a.Name) + " " + scalarSchemaType(a.Type).ValueType +
 			" `tfsdk:\"" + a.Name + "\"`\n"
 	}
 	root += "\tItems []" + d.ItemModel + " `tfsdk:\"items\"`\n" +
@@ -422,12 +422,12 @@ func itemPayloadExpr(db *sdkbind.DatasourceBinding) string {
 
 // companionItemTree finds the items attribute's element tree.
 func companionItemTree(ds *ir.Datasource) *ir.AttributeTree {
-	if ds.Schema == nil {
+	if ds.Attributes == nil {
 		return nil
 	}
-	for _, a := range ds.Schema.Attributes {
+	for _, a := range ds.Attributes.Attributes {
 		if a.Name == "items" {
-			return a.Nested
+			return a.NestedAttributes
 		}
 	}
 	return nil
@@ -588,15 +588,15 @@ func reindentJSON(block, prefix string) string {
 // neither of the filter inputs nor the item list: the path parameters
 // derivation added so a parent-scoped collection can be reached.
 func companionAddressing(ds *ir.Datasource) []ir.Attribute {
-	if ds == nil || ds.Schema == nil {
+	if ds == nil || ds.Attributes == nil {
 		return nil
 	}
 	var out []ir.Attribute
-	for _, a := range ds.Schema.Attributes {
-		if a.Name == "items" || a.Filter {
+	for _, a := range ds.Attributes.Attributes {
+		if a.Name == "items" || a.IsDatasourceFilterArgument {
 			continue
 		}
-		if a.Nested == nil {
+		if a.NestedAttributes == nil {
 			out = append(out, a)
 		}
 	}
@@ -634,12 +634,12 @@ func filterChecks(filters []ir.Attribute) string {
 // companionFilters is the arguments that select which listed objects come
 // back: one per scalar field at the root of a listed object.
 func companionFilters(ds *ir.Datasource) []ir.Attribute {
-	if ds == nil || ds.Schema == nil {
+	if ds == nil || ds.Attributes == nil {
 		return nil
 	}
 	var out []ir.Attribute
-	for _, a := range ds.Schema.Attributes {
-		if a.Filter {
+	for _, a := range ds.Attributes.Attributes {
+		if a.IsDatasourceFilterArgument {
 			out = append(out, a)
 		}
 	}

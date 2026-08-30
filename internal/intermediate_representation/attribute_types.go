@@ -15,13 +15,13 @@ import (
 func deriveType(attribute *Attribute, governingSchema resolvedSchema, create, read, update *specmodel.Schema) {
 	switch {
 	case governingSchema.declaredType == "string":
-		attribute.Kind = TypeString
+		attribute.Type = TypeString
 	case governingSchema.declaredType == "boolean":
-		attribute.Kind = TypeBool
+		attribute.Type = TypeBool
 	case governingSchema.declaredType == "integer":
-		attribute.Kind = TypeInt64
+		attribute.Type = TypeInt64
 	case governingSchema.declaredType == "number":
-		attribute.Kind = TypeFloat64
+		attribute.Type = TypeFloat64
 	case governingSchema.declaredType == "array":
 		deriveListType(attribute, create, read, update)
 	case governingSchema.declaredType == "object" || (governingSchema.declaredType == "" && len(governingSchema.properties) > 0):
@@ -29,14 +29,14 @@ func deriveType(attribute *Attribute, governingSchema resolvedSchema, create, re
 			deriveMapType(attribute, governingSchema, create, read, update)
 			return
 		}
-		attribute.Kind = TypeObject
-		attribute.Nested = buildAttributeTree(create, read, update, false)
+		attribute.Type = TypeObject
+		attribute.NestedAttributes = buildAttributeTree(create, read, update, false)
 	case governingSchema.declaredType == "" && governingSchema.hasUnion:
 		deriveUnionType(attribute, governingSchema, create, read)
 	case governingSchema.declaredType == "":
-		refuse(attribute, Cause{Code: CauseUndeclaredType}, "no type declared")
+		exclude(attribute, Cause{Code: CauseUndeclaredType}, "no type declared")
 	default:
-		refuse(attribute, Cause{Code: CauseUnsupportedType, Subject: governingSchema.declaredType},
+		exclude(attribute, Cause{Code: CauseUnsupportedType, Subject: governingSchema.declaredType},
 			fmt.Sprintf("type %q is not supported", governingSchema.declaredType))
 	}
 }
@@ -58,14 +58,14 @@ func deriveType(attribute *Attribute, governingSchema resolvedSchema, create, re
 // that.
 func deriveUnionType(attribute *Attribute, governingSchema resolvedSchema, create, read *specmodel.Schema) {
 	if create != nil {
-		refuse(attribute, Cause{Code: CauseWritableUnion}, "oneOf/anyOf union in a writable position: its variants would have to be mutually exclusive in configuration, which the schema alone does not express")
+		exclude(attribute, Cause{Code: CauseWritableUnion}, "oneOf/anyOf union in a writable position: its variants would have to be mutually exclusive in configuration, which the schema alone does not express")
 		return
 	}
 
 	variants := make([]Attribute, 0, len(governingSchema.unionBranches))
 	for _, branch := range governingSchema.unionBranches {
 		if branch == nil || branch.Ref == "" {
-			refuse(attribute, Cause{Code: CauseUnnamedUnionBranch}, fmt.Sprintf(
+			exclude(attribute, Cause{Code: CauseUnnamedUnionBranch}, fmt.Sprintf(
 				"oneOf/anyOf union with %d branches, of which %d name no component: a variant the document does not name has no attribute to become",
 				len(governingSchema.unionBranches), anonymousBranches(governingSchema.unionBranches)))
 			return
@@ -73,21 +73,21 @@ func deriveUnionType(attribute *Attribute, governingSchema resolvedSchema, creat
 		variants = append(variants, Attribute{
 			Name:     snakeCase(branch.Ref),
 			WireName: branch.Ref,
-			Kind:     TypeObject,
+			Type:     TypeObject,
 			// Read-only throughout: the API answers with one branch and the
 			// practitioner chooses none of them.
 			ComputedOptionalRequired: Computed,
 			Description:              resolveSchema(branch).description,
-			Nested:                   buildAttributeTree(nil, branch, nil, false),
+			NestedAttributes:         buildAttributeTree(nil, branch, nil, false),
 		})
 	}
 	if len(variants) == 0 {
-		refuse(attribute, Cause{Code: CauseEmptyUnion}, "oneOf/anyOf union declaring no branches")
+		exclude(attribute, Cause{Code: CauseEmptyUnion}, "oneOf/anyOf union declaring no branches")
 		return
 	}
 
-	attribute.Kind = TypeObject
-	attribute.Nested = &AttributeTree{Attributes: variants, Description: resolveSchema(read).description}
+	attribute.Type = TypeObject
+	attribute.NestedAttributes = &AttributeTree{Attributes: variants, Description: resolveSchema(read).description}
 }
 
 // anonymousBranches counts the branches of a union that reference no
@@ -116,23 +116,23 @@ func deriveMapType(attribute *Attribute, governingSchema resolvedSchema, create,
 	valueSchema := governingSchema.additionalProperties
 	if valueSchema == nil {
 		if governingSchema.additionalPropertiesDeclared {
-			refuse(attribute, Cause{Code: CauseUntypedAdditionalProperties}, "object whose additionalProperties is a bare boolean: it declares no value type to map")
+			exclude(attribute, Cause{Code: CauseUntypedAdditionalProperties}, "object whose additionalProperties is a bare boolean: it declares no value type to map")
 			return
 		}
-		refuse(attribute, Cause{Code: CauseShapelessObject}, "object declaring neither properties nor additionalProperties: it has no declared shape")
+		exclude(attribute, Cause{Code: CauseObjectWithoutPropertiesOrAdditionalProperties}, "object declaring neither properties nor additionalProperties: it has no declared shape")
 		return
 	}
 
 	resolvedValue := resolveSchema(valueSchema)
 	switch {
 	case resolvedValue.declaredType == "string":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeString
+		attribute.Type, attribute.ElementType = TypeMap, TypeString
 	case resolvedValue.declaredType == "boolean":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeBool
+		attribute.Type, attribute.ElementType = TypeMap, TypeBool
 	case resolvedValue.declaredType == "integer":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeInt64
+		attribute.Type, attribute.ElementType = TypeMap, TypeInt64
 	case resolvedValue.declaredType == "number":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeFloat64
+		attribute.Type, attribute.ElementType = TypeMap, TypeFloat64
 	case resolvedValue.declaredType == "object" || (resolvedValue.declaredType == "" && len(resolvedValue.properties) > 0):
 		if len(resolvedValue.properties) == 0 {
 			// A value that is itself a map has no properties and is not
@@ -142,22 +142,22 @@ func deriveMapType(attribute *Attribute, governingSchema resolvedSchema, create,
 			// yet describe an element that is itself a collection, so the
 			// refusal names that rather than blaming the document.
 			if resolvedValue.additionalProperties != nil {
-				refuse(attribute, Cause{Code: CauseMapOfMaps},
+				exclude(attribute, Cause{Code: CauseMapOfMaps},
 					"map whose values are themselves maps: the derivation carries one element kind and cannot yet nest one")
 				return
 			}
-			refuse(attribute, Cause{Code: CauseMapOfObjects},
+			exclude(attribute, Cause{Code: CauseMapOfObjects},
 				"map of objects the specification gives no properties: there are no attributes to map")
 			return
 		}
-		attribute.Kind, attribute.ElementType = TypeMap, TypeObject
-		attribute.Nested = buildAttributeTree(
+		attribute.Type, attribute.ElementType = TypeMap, TypeObject
+		attribute.NestedAttributes = buildAttributeTree(
 			resolveSchema(create).additionalProperties,
 			resolveSchema(read).additionalProperties,
 			resolveSchema(update).additionalProperties,
 			false)
 	default:
-		refuse(attribute, Cause{Code: CauseUnsupportedMapValue, Subject: resolvedValue.declaredType},
+		exclude(attribute, Cause{Code: CauseUnsupportedMapValue, Subject: resolvedValue.declaredType},
 			fmt.Sprintf("map of %q values is not supported", resolvedValue.declaredType))
 	}
 }
@@ -173,9 +173,9 @@ func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema
 	resolvedItems := resolveSchema(governingItems)
 	switch {
 	case resolvedItems.empty:
-		refuse(attribute, Cause{Code: CauseItemlessArray}, "array declares no items schema")
+		exclude(attribute, Cause{Code: CauseItemlessArray}, "array declares no items schema")
 	case resolvedItems.declaredType == "string":
-		attribute.Kind, attribute.ElementType = TypeList, TypeString
+		attribute.Type, attribute.ElementType = TypeList, TypeString
 		// The element's closed set is the list's: each member the
 		// practitioner writes is validated against it, and a fixture takes
 		// its member from it.
@@ -183,27 +183,27 @@ func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema
 			attribute.OneOf = renderEnum(resolvedItems.enum)
 		}
 	case resolvedItems.declaredType == "boolean":
-		attribute.Kind, attribute.ElementType = TypeList, TypeBool
+		attribute.Type, attribute.ElementType = TypeList, TypeBool
 	case resolvedItems.declaredType == "integer":
-		attribute.Kind, attribute.ElementType = TypeList, TypeInt64
+		attribute.Type, attribute.ElementType = TypeList, TypeInt64
 	case resolvedItems.declaredType == "number":
-		attribute.Kind, attribute.ElementType = TypeList, TypeFloat64
+		attribute.Type, attribute.ElementType = TypeList, TypeFloat64
 	case resolvedItems.declaredType == "object" || (resolvedItems.declaredType == "" && len(resolvedItems.properties) > 0):
 		if len(resolvedItems.properties) == 0 {
-			refuse(attribute, Cause{Code: CauseFreeFormArrayElement}, "array of free-form objects: map support is out of scope")
+			exclude(attribute, Cause{Code: CauseFreeFormArrayElement}, "array of free-form objects: map support is out of scope")
 			return
 		}
-		attribute.Kind, attribute.ElementType = TypeList, TypeObject
-		attribute.Nested = buildAttributeTree(createItems, readItems, updateItems, false)
+		attribute.Type, attribute.ElementType = TypeList, TypeObject
+		attribute.NestedAttributes = buildAttributeTree(createItems, readItems, updateItems, false)
 	default:
-		refuse(attribute, Cause{Code: CauseUnsupportedArrayElement, Subject: resolvedItems.declaredType},
+		exclude(attribute, Cause{Code: CauseUnsupportedArrayElement, Subject: resolvedItems.declaredType},
 			fmt.Sprintf("array of %q elements is not supported", resolvedItems.declaredType))
 	}
 }
 
-// refuse marks an attribute unsupported with the reason a person reads.
-func refuse(attribute *Attribute, cause Cause, reason string) {
-	attribute.Kind = ""
+// exclude marks an attribute unsupported with the reason a person reads.
+func exclude(attribute *Attribute, cause Cause, reason string) {
+	attribute.Type = ""
 	attribute.Unsupported = true
 	attribute.UnsupportedCause = cause
 	attribute.UnsupportedReason = reason
@@ -218,18 +218,18 @@ var reservedRootNames = map[string]bool{
 	"lifecycle": true, "provider": true, "provisioner": true,
 }
 
-// refuseReservedRootNames refuses a root attribute terraform will not accept
+// excludeReservedRootNames excludes a root attribute terraform will not accept
 // the name of.
 //
-// Refused rather than renamed: the name is what a practitioner writes, and
+// Excluded rather than renamed: the name is what a practitioner writes, and
 // choosing another belongs in a correction to the document rather than in a
 // rule here. The cost of declaring one is the whole provider — terraform
-// rejects the schema and loads none of it — so this is not a refusal that can
+// rejects the schema and loads none of it — so this is not an exclusion that can
 // be deferred to the operator's judgement.
 //
 // Root only, matching the framework: the same name nested inside an object is
 // an ordinary field and needs no special syntax.
-func refuseReservedRootNames(tree *AttributeTree) {
+func excludeReservedRootNames(tree *AttributeTree) {
 	if tree == nil {
 		return
 	}
@@ -238,7 +238,7 @@ func refuseReservedRootNames(tree *AttributeTree) {
 		if !reservedRootNames[attribute.Name] {
 			continue
 		}
-		refuse(attribute, Cause{Code: CauseReservedRootName, Subject: attribute.Name}, fmt.Sprintf(
+		exclude(attribute, Cause{Code: CauseReservedRootName, Subject: attribute.Name}, fmt.Sprintf(
 			"terraform reserves %q at the root of a schema, and refuses to load a provider that declares it; rename the property in a correction",
 			attribute.Name))
 	}

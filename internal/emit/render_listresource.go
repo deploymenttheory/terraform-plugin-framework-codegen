@@ -69,7 +69,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	if lb.List == nil {
 		return nil, unrenderable(sdkbind.CauseListResourceNoListCall, "a list resource needs a bound list call")
 	}
-	nodes := e.joinTree(bindingKindListResource, lr.Names.Key, lr.Schema, lb.Fields, addressingNames(lr.Schema, &lr.ListOperation))
+	nodes := e.joinTree(bindingKindListResource, lr.Names.Key, lr.Attributes, lb.Fields, addressingNames(lr.Attributes, &lr.ListOperation))
 
 	d := &listResourceData{
 		Package:       lr.Names.Package,
@@ -84,7 +84,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		ProviderName:  e.pc.ProviderName,
 	}
 
-	description := entityDescription(lr.Schema, "Lists "+lr.Names.Key+" objects. The entity is enumerable but not addressable, so listing is the whole surface.")
+	description := entityDescription(lr.Attributes, "Lists "+lr.Names.Key+" objects. The entity is enumerable but not addressable, so listing is the whole surface.")
 	if lr.CoManagementNote != "" {
 		description += " " + lr.CoManagementNote
 	}
@@ -94,7 +94,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	// configuration, not from an element: a list resource has no object to
 	// address, so the practitioner supplies the scope the collection path
 	// names.
-	configNodes := joinTree(lr.AddressingSchema, nil, addressingNames(lr.AddressingSchema, &lr.ListOperation))
+	configNodes := joinTree(lr.AddressingAttributes, nil, addressingNames(lr.AddressingAttributes, &lr.ListOperation))
 
 	listOp := lr.ListOperation
 	plan, err := buildCallPlan(lb.List, "result", configNodes, "config", streamDiagnostics())
@@ -149,8 +149,8 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	addPlanImports(listImports, plan)
 	d.ListImports = listImports.render()
 
-	spec := deriveFixtures(lr.Schema, nodes)
-	configSpec := deriveFixtures(lr.AddressingSchema, configNodes)
+	spec := deriveFixtures(lr.Attributes, nodes)
+	configSpec := deriveFixtures(lr.AddressingAttributes, configNodes)
 	configSpec.PinNumeric(integerParsedParameters(lb.List, configNodes))
 	// A parameterised collection path is requested with the addressing
 	// substituted in, so the mock matches the shape rather than the template,
@@ -287,10 +287,10 @@ func listResultLines(nodes []node, identity []identityAttribute, config []node) 
 func identityCandidates(nodes []node) string {
 	var found []string
 	for _, n := range nodes {
-		if n.attribute.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
+		if n.attribute.NestedAttributes != nil || n.fb == nil || n.fb.Access.Get == "" {
 			continue
 		}
-		switch n.attribute.Kind {
+		switch n.attribute.Type {
 		case ir.TypeString, ir.TypeInt64, ir.TypeFloat64:
 		default:
 			continue
@@ -309,7 +309,7 @@ func identityCandidates(nodes []node) string {
 // findStringNode finds a plain string attribute by name.
 func findStringNode(nodes []node, name string) (node, bool) {
 	for _, n := range nodes {
-		if n.attribute.Name == name && n.attribute.Kind == ir.TypeString && n.attribute.Nested == nil && n.fb != nil && n.fb.Access.Get != "" {
+		if n.attribute.Name == name && n.attribute.Type == ir.TypeString && n.attribute.NestedAttributes == nil && n.fb != nil && n.fb.Access.Get != "" {
 			return n, true
 		}
 	}
@@ -323,10 +323,10 @@ func findStringNode(nodes []node, name string) (node, bool) {
 // repositories, issues and organizations among them.
 func findIdentityNode(nodes []node) (node, bool) {
 	for _, n := range nodes {
-		if n.attribute.Name != idAttributeName || n.attribute.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
+		if n.attribute.Name != idAttributeName || n.attribute.NestedAttributes != nil || n.fb == nil || n.fb.Access.Get == "" {
 			continue
 		}
-		switch n.attribute.Kind {
+		switch n.attribute.Type {
 		case ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool:
 			return n, true
 		}

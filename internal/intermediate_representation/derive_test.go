@@ -75,8 +75,8 @@ func TestUnit_Derive_ResourceLifecycle(t *testing.T) {
 	if resource.UpdateStyle != UpdateStylePutFull {
 		t.Errorf("UpdateStyle = %q, want the declared put-full", resource.UpdateStyle)
 	}
-	if resource.EventualConsistency != 30*time.Second {
-		t.Errorf("EventualConsistency = %v, want 30s", resource.EventualConsistency)
+	if resource.ReadAfterWriteDelay != 30*time.Second {
+		t.Errorf("EventualConsistency = %v, want 30s", resource.ReadAfterWriteDelay)
 	}
 	if !resource.DeleteNotFoundOK {
 		t.Errorf("DeleteNotFoundOK not carried from the delete operation")
@@ -98,7 +98,7 @@ func TestUnit_Derive_ResourceLifecycle(t *testing.T) {
 	if deleteOperation.PathTemplate != "/v7/things/{thingId}" || deleteOperation.SuccessCode != 204 {
 		t.Errorf("delete op = %+v", deleteOperation)
 	}
-	want := []Parameter{{Name: "thingId", Type: TypeString}}
+	want := []URLPathParameter{{Name: "thingId", Type: TypeString}}
 	if !reflect.DeepEqual(deleteOperation.PathParameters, want) {
 		t.Errorf("delete path parameters = %+v, want %+v", deleteOperation.PathParameters, want)
 	}
@@ -153,8 +153,8 @@ components:
 	if resource.Names.APIVersionDirectory != "v1" {
 		t.Errorf("APIVersionDirectory = %q, want the v1 default", resource.Names.APIVersionDirectory)
 	}
-	if resource.EventualConsistency != 0 {
-		t.Errorf("EventualConsistency = %v with none declared", resource.EventualConsistency)
+	if resource.ReadAfterWriteDelay != 0 {
+		t.Errorf("EventualConsistency = %v with none declared", resource.ReadAfterWriteDelay)
 	}
 	if resource.DeleteNotFoundOK {
 		t.Errorf("DeleteNotFoundOK true with none declared")
@@ -206,12 +206,12 @@ components:
 		t.Errorf("UpdateStyle = %q on a resource with no update", resource.UpdateStyle)
 	}
 	for _, name := range []string{"label", "color"} {
-		if a := attribute(t, resource.Schema, name); !a.RequiresReplace {
+		if a := attribute(t, resource.Attributes, name); !a.RequiresReplace {
 			t.Errorf("writable %q lacks RequiresReplace under MissingUpdate", name)
 		}
 	}
 	for _, name := range []string{"serial", "id"} {
-		if a := attribute(t, resource.Schema, name); a.RequiresReplace {
+		if a := attribute(t, resource.Attributes, name); a.RequiresReplace {
 			t.Errorf("computed %q carries RequiresReplace", name)
 		}
 	}
@@ -231,32 +231,32 @@ func TestUnit_Derive_CompanionDatasource(t *testing.T) {
 	// optional and typed as the field it selects on. A filter is how a
 	// caller names the object it wants instead of counting to it.
 	for _, name := range []string{"name", "quantity", "enabled"} {
-		derived := attribute(t, datasource.Schema, name)
-		if !derived.Filter || derived.ComputedOptionalRequired != Optional {
+		derived := attribute(t, datasource.Attributes, name)
+		if !derived.IsDatasourceFilterArgument || derived.ComputedOptionalRequired != Optional {
 			t.Errorf("%s = %+v, want an optional filter", name, derived)
 		}
 	}
-	if got := attribute(t, datasource.Schema, "quantity").Kind; got != TypeInt64 {
+	if got := attribute(t, datasource.Attributes, "quantity").Type; got != TypeInt64 {
 		t.Errorf("a filter takes the type of the field it selects on, got %s", got)
 	}
 	// Nested fields are not filters: HCL would have to describe the whole
 	// object to match one leaf of it.
-	for _, candidate := range datasource.Schema.Attributes {
-		if candidate.Filter && candidate.Nested != nil {
+	for _, candidate := range datasource.Attributes.Attributes {
+		if candidate.IsDatasourceFilterArgument && candidate.NestedAttributes != nil {
 			t.Errorf("nested attribute %q offered as a filter", candidate.Name)
 		}
 	}
-	items := attribute(t, datasource.Schema, "items")
-	if items.Kind != TypeList || items.ElementType != TypeObject || items.ComputedOptionalRequired != Computed {
+	items := attribute(t, datasource.Attributes, "items")
+	if items.Type != TypeList || items.ElementType != TypeObject || items.ComputedOptionalRequired != Computed {
 		t.Errorf("items = %+v", items)
 	}
 	// Inside items everything is computed: the datasource never writes.
-	for _, candidate := range items.Nested.Attributes {
+	for _, candidate := range items.NestedAttributes.Attributes {
 		if candidate.ComputedOptionalRequired != Computed {
 			t.Errorf("companion item attribute %q is %s, want computed", candidate.Name, candidate.ComputedOptionalRequired)
 		}
 	}
-	if candidate := attribute(t, items.Nested, "name"); candidate.ComputedOptionalRequired != Computed {
+	if candidate := attribute(t, items.NestedAttributes, "name"); candidate.ComputedOptionalRequired != Computed {
 		t.Errorf("name inside items = %+v", candidate)
 	}
 }
@@ -273,14 +273,14 @@ func TestUnit_Derive_LookupByKeyDatasource(t *testing.T) {
 	if datasource.Operations.Read == nil || datasource.Operations.List != nil {
 		t.Errorf("lookup ops = %+v", datasource.Operations)
 	}
-	key := attribute(t, datasource.Schema, "setting_name")
-	if key.ComputedOptionalRequired != Required || key.Kind != TypeString || key.WireName != "settingName" {
+	key := attribute(t, datasource.Attributes, "setting_name")
+	if key.ComputedOptionalRequired != Required || key.Type != TypeString || key.WireName != "settingName" {
 		t.Errorf("key attribute = %+v", key)
 	}
-	if a := attribute(t, datasource.Schema, "id"); a.ComputedOptionalRequired != Computed {
+	if a := attribute(t, datasource.Attributes, "id"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("id = %+v", a)
 	}
-	if a := attribute(t, datasource.Schema, "value"); a.ComputedOptionalRequired != Computed {
+	if a := attribute(t, datasource.Attributes, "value"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("value = %+v", a)
 	}
 }
@@ -294,8 +294,8 @@ func TestUnit_Derive_ListReadEntityYieldsDatasource(t *testing.T) {
 	if datasource.Operations.List == nil || datasource.Operations.Read == nil {
 		t.Errorf("stream ops = %+v", datasource.Operations)
 	}
-	items := attribute(t, datasource.Schema, "items")
-	if a := attribute(t, items.Nested, "topic"); a.ComputedOptionalRequired != Computed {
+	items := attribute(t, datasource.Attributes, "items")
+	if a := attribute(t, items.NestedAttributes, "topic"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("topic = %+v", a)
 	}
 }
@@ -305,11 +305,11 @@ func TestUnit_Derive_ListReadEntityYieldsDatasource(t *testing.T) {
 // after the thing they identify.
 // and none carries RequiresReplace because a list block has no plan.
 func TestUnit_AddressingSchema_TakesEveryPathParameter(t *testing.T) {
-	if tree := addressingSchema(nil); tree != nil {
+	if tree := addressingAttributes(nil); tree != nil {
 		t.Errorf("a path with no parameters declares no configuration, got %+v", tree)
 	}
 
-	tree := addressingSchema([]Parameter{
+	tree := addressingAttributes([]URLPathParameter{
 		{Name: "tenantId", Type: TypeString},
 		{Name: "groupId", Type: TypeInt64},
 	})
@@ -317,11 +317,11 @@ func TestUnit_AddressingSchema_TakesEveryPathParameter(t *testing.T) {
 		t.Fatalf("addressingSchema = %+v", tree)
 	}
 	for index, want := range []Attribute{
-		{Name: "tenant_id", WireName: "tenantId", Kind: TypeString, ComputedOptionalRequired: Required},
-		{Name: "group_id", WireName: "groupId", Kind: TypeInt64, ComputedOptionalRequired: Required},
+		{Name: "tenant_id", WireName: "tenantId", Type: TypeString, ComputedOptionalRequired: Required},
+		{Name: "group_id", WireName: "groupId", Type: TypeInt64, ComputedOptionalRequired: Required},
 	} {
 		got := tree.Attributes[index]
-		if got.Name != want.Name || got.WireName != want.WireName || got.Kind != want.Kind ||
+		if got.Name != want.Name || got.WireName != want.WireName || got.Type != want.Type ||
 			got.ComputedOptionalRequired != want.ComputedOptionalRequired {
 			t.Errorf("attribute %d = %+v, want %+v", index, got, want)
 		}
@@ -343,11 +343,11 @@ func TestUnit_Derive_Action(t *testing.T) {
 	if action.ParentEntity != "thing" {
 		t.Errorf("ParentEntity = %q, want the enclosing thing entity", action.ParentEntity)
 	}
-	if action.InvokeOperation.Kind != OperationInvoke || action.InvokeOperation.SuccessCode != 202 {
+	if action.InvokeOperation.Kind != OperationAction || action.InvokeOperation.SuccessCode != 202 {
 		t.Errorf("invoke op = %+v", action.InvokeOperation)
 	}
-	force := attribute(t, action.RequestSchema, "force")
-	if force.Kind != TypeBool || force.ComputedOptionalRequired != Required {
+	force := attribute(t, action.RequestAttributes, "force")
+	if force.Type != TypeBool || force.ComputedOptionalRequired != Required {
 		t.Errorf("force = %+v", force)
 	}
 }
@@ -366,8 +366,8 @@ paths:
 		t.Fatalf("%d actions", len(model.Actions))
 	}
 	action := model.Actions[0]
-	if action.RequestSchema != nil {
-		t.Errorf("a bodiless action carries a request schema: %+v", action.RequestSchema)
+	if action.RequestAttributes != nil {
+		t.Errorf("a bodiless action carries a request schema: %+v", action.RequestAttributes)
 	}
 	if action.ParentEntity != "" {
 		t.Errorf("ParentEntity = %q with nothing enclosing", action.ParentEntity)

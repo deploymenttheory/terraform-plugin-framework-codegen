@@ -48,7 +48,7 @@ func names(key, service string) ir.Names {
 	}
 }
 
-func operation(kind ir.OperationKind, method, path, opID string, parameters ...ir.Parameter) *ir.Operation {
+func operation(kind ir.OperationKind, method, path, opID string, parameters ...ir.URLPathParameter) *ir.Operation {
 	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: parameters}
 }
 
@@ -63,14 +63,14 @@ func deleteWithQuery(operation *ir.Operation) *ir.Operation {
 }
 
 func attribute(name, wire string, kind ir.AttributeType, participation ir.ComputedOptionalRequired) ir.Attribute {
-	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: participation}
+	return ir.Attribute{Name: name, WireName: wire, Type: kind, ComputedOptionalRequired: participation}
 }
 
 // filterAttr is one companion datasource filter: toolkit vocabulary with no
 // SDK side, so binding must leave it alone rather than look for a field.
 func filterAttr(name string) ir.Attribute {
-	return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeString,
-		ComputedOptionalRequired: ir.Optional, Filter: true}
+	return ir.Attribute{Name: name, WireName: name, Type: ir.TypeString,
+		ComputedOptionalRequired: ir.Optional, IsDatasourceFilterArgument: true}
 }
 
 // tagSchema is the shared attribute tree both fake SDKs carry variants
@@ -82,7 +82,7 @@ func tagSchema() *ir.AttributeTree {
 		attribute("weight", "weight", ir.TypeFloat64, ir.Optional),
 	}}
 	nested := attribute("detail", "detail", ir.TypeObject, ir.Optional)
-	nested.Nested = detail
+	nested.NestedAttributes = detail
 
 	labels := attribute("labels", "labels", ir.TypeList, ir.Optional)
 	labels.ElementType = ir.TypeString
@@ -125,7 +125,7 @@ func tagSchema() *ir.AttributeTree {
 // kiotaModel is the intermediate representation the kiota fake SDK
 // implements — plus one entity ("widgets") the SDK does not carry at all.
 func kiotaModel() *ir.Model {
-	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
+	tagID := ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
 		attribute("id", "id", ir.TypeString, ir.Computed),
@@ -133,7 +133,7 @@ func kiotaModel() *ir.Model {
 	}}
 	items := attribute("items", "items", ir.TypeList, ir.Computed)
 	items.ElementType = ir.TypeObject
-	items.Nested = itemTree
+	items.NestedAttributes = itemTree
 
 	assignTree := &ir.AttributeTree{Attributes: []ir.Attribute{
 		attribute("name", "name", ir.TypeString, ir.Required),
@@ -150,15 +150,15 @@ func kiotaModel() *ir.Model {
 					Update: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", tagID),
 					Delete: deleteWithQuery(operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID)),
 				},
-				Schema: tagSchema(),
+				Attributes: tagSchema(),
 			},
 			{
 				Names: names("widgets", "widgets"),
 				Operations: ir.Operations{
 					Create: operation(ir.OperationCreate, "POST", "/widgets", ""),
-					Read:   operation(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
+					Read:   operation(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.URLPathParameter{Name: "widgetId", Type: ir.TypeString}),
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("id", "id", ir.TypeString, ir.Computed),
 					attribute("name", "name", ir.TypeString, ir.Required),
 				}},
@@ -171,7 +171,7 @@ func kiotaModel() *ir.Model {
 					Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
 					List: operation(ir.OperationList, "GET", "/tags", ""),
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					filterAttr("id"),
 					filterAttr("name"),
 					items,
@@ -180,10 +180,10 @@ func kiotaModel() *ir.Model {
 		},
 		Actions: []ir.Action{
 			{
-				Names:           names("tags_assign", "tags"),
-				InvokeOperation: *operation(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", tagID),
-				RequestSchema:   assignTree,
-				ParentEntity:    "tags",
+				Names:             names("tags_assign", "tags"),
+				InvokeOperation:   *operation(ir.OperationAction, "POST", "/tags/{tagId}/assign", "", tagID),
+				RequestAttributes: assignTree,
+				ParentEntity:      "tags",
 			},
 		},
 	}
@@ -193,7 +193,7 @@ func kiotaModel() *ir.Model {
 // SDK implements. The tags service area is deliberately misspelled
 // ("tag") so pruning has to repair the service field off the client.
 func openAPIGeneratorModel() *ir.Model {
-	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
+	tagID := ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
 		attribute("id", "id", ir.TypeString, ir.Computed),
@@ -201,7 +201,7 @@ func openAPIGeneratorModel() *ir.Model {
 	}}
 	items := attribute("items", "items", ir.TypeList, ir.Computed)
 	items.ElementType = ir.TypeObject
-	items.Nested = itemTree
+	items.NestedAttributes = itemTree
 
 	schema := tagSchema()
 	// The oag fake carries no keyword-mangled, mispromised or
@@ -227,7 +227,7 @@ func openAPIGeneratorModel() *ir.Model {
 					Update: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", tagID),
 					Delete: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", tagID),
 				},
-				Schema: schema,
+				Attributes: schema,
 			},
 		},
 		Datasources: []ir.Datasource{
@@ -237,7 +237,7 @@ func openAPIGeneratorModel() *ir.Model {
 					Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
 					List: operation(ir.OperationList, "GET", "/tags", "listTags"),
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					filterAttr("id"),
 					filterAttr("name"),
 					items,
@@ -248,7 +248,7 @@ func openAPIGeneratorModel() *ir.Model {
 			{
 				Names:         names("groups", "groups"),
 				ListOperation: *operation(ir.OperationList, "GET", "/groups", "listGroups"),
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},

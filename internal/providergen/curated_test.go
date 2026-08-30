@@ -102,7 +102,7 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 			for _, u := range res.Unsupported {
 				if u.Cause == nil || u.Cause.Code == "" {
 					t.Errorf("refusal carries no cause: %s %q attribute %q (%s): %s",
-						u.Kind, u.Entity, u.Attribute, u.Stage, u.Reason)
+						u.TerraformBlockType, u.Entity, u.Attribute, u.Stage, u.Reason)
 				}
 			}
 			for _, r := range res.Removals {

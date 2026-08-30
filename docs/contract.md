@@ -26,8 +26,8 @@ succeeded jobs' artifacts persist within the run.
 
 ## The decision gate
 
-Job [6] refuses to write while any correction awaits a decision. That
-refusal is the point, but a refusal alone destroys what it refuses: proposals
+Job [6] stops without writing while any correction awaits a decision. That
+stop is the point, but a stop alone destroys what it set aside: proposals
 written into the runner's workspace by a job that then exits 1 leave with the
 runner, and the operator has nothing to review. Jobs [4] and [5] and the
 `20-corrections.yml` workflow close that loop.
@@ -252,7 +252,7 @@ only `open-correction-prs` and `open-pr` keep write. `secrets: inherit`
 hands the repo's secrets across by name — the `TFPFGEN_AUTH_*` roles, read
 only by the audit job, and `TFPFGEN_APP_ID` / `TFPFGEN_APP_PRIVATE_KEY` if
 the repo has them. Every secret is declared `required: false`; validation,
-not the workflow, is what refuses a missing role.
+not the workflow, is what stops on a missing role.
 
 `20-corrections.yml` is the one caller whose trigger is not a dispatch,
 because it answers a decision rather than starting work:
@@ -295,7 +295,7 @@ follow.
 | Code | Meaning |
 |---|---|
 | 0 | Success. |
-| 1 | Failure: the operation ran and refused, or broke. |
+| 1 | Failure: the operation ran and stopped on an exclusion, or broke. |
 | 2 | Usage: the invocation itself was misspelt. |
 
 New codes are appended, never renumbered.
@@ -331,7 +331,7 @@ The App must be installed on the provider repo with **contents: write**,
 ## Versioning
 
 - Provider repos pin `generator.version` to an exact release tag; branches
-  are refused by validation.
+  are not accepted by validation.
 - Caller workflows reference `deploymenttheory/terraform-plugin-framework-codegen/.github/workflows/<NN-name>.yml`
   at the moving major tag — `@v0` until the 1.0.0 contract freeze, `@v1`
   after it. Compatible releases fast-forward the tag; breaking changes cut
@@ -344,6 +344,6 @@ The App must be installed on the provider repo with **contents: write**,
 
 Everything in a provider repo is derived — regenerated wholesale, digest-
 tracked in `manifest.json` — except the authored data files: `tfpfgen.yaml`,
-`spec/corrections/**`, `audit/inputs.json`. Generation refuses to write an
-authored path; CI refuses a hand edit to a derived one. There are no
+`spec/corrections/**`, `audit/inputs.json`. Generation never writes an
+authored path; CI fails on a hand edit to a derived one. There are no
 hand-owned code files.

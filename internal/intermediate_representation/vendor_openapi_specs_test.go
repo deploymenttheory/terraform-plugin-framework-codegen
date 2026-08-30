@@ -30,7 +30,7 @@ func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *
 	// Nothing about a real document may come out anonymous or untyped at
 	// the top level of its naming.
 	for _, resource := range model.Resources {
-		if resource.Names.Key == "" || resource.Names.TerraformType == "" || resource.Schema == nil {
+		if resource.Names.Key == "" || resource.Names.TerraformType == "" || resource.Attributes == nil {
 			t.Errorf("anonymous resource: %+v", resource.Names)
 		}
 		// A singleton is one object at a fixed path: read and updated,

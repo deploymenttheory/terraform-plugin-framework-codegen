@@ -20,7 +20,7 @@ func declarationOf(kind schemaKind, attribute ir.Attribute) string {
 func TestUnit_AttributeDecl_MarksASecretSensitive(t *testing.T) {
 	for _, kind := range []schemaKind{schemaResource, schemaDatasource} {
 		declaration := declarationOf(kind, ir.Attribute{
-			Name: "password", Kind: ir.TypeString,
+			Name: "password", Type: ir.TypeString,
 			ComputedOptionalRequired: ir.Optional, Sensitive: true,
 		})
 		if !strings.Contains(declaration, "Sensitive: true,") {
@@ -29,7 +29,7 @@ func TestUnit_AttributeDecl_MarksASecretSensitive(t *testing.T) {
 	}
 
 	plain := declarationOf(schemaResource, ir.Attribute{
-		Name: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+		Name: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 	})
 	if strings.Contains(plain, "Sensitive") {
 		t.Errorf("an ordinary attribute is marked sensitive:\n%s", plain)
@@ -42,7 +42,7 @@ func TestUnit_AttributeDecl_MarksASecretSensitive(t *testing.T) {
 func TestUnit_AttributeDecl_OmitsSensitiveWhereThePackageLacksIt(t *testing.T) {
 	for _, kind := range []schemaKind{schemaAction, schemaListResource} {
 		declaration := declarationOf(kind, ir.Attribute{
-			Name: "password", Kind: ir.TypeString,
+			Name: "password", Type: ir.TypeString,
 			ComputedOptionalRequired: ir.Optional, Sensitive: true,
 		})
 		if strings.Contains(declaration, "Sensitive") {
@@ -57,7 +57,7 @@ func TestUnit_AttributeDecl_OmitsSensitiveWhereThePackageLacksIt(t *testing.T) {
 func TestUnit_AttributeDecl_WarnsOnADeprecatedAttribute(t *testing.T) {
 	for _, kind := range []schemaKind{schemaResource, schemaDatasource, schemaAction, schemaListResource} {
 		declaration := declarationOf(kind, ir.Attribute{
-			Name: "legacy", Kind: ir.TypeString,
+			Name: "legacy", Type: ir.TypeString,
 			ComputedOptionalRequired: ir.Optional, Deprecated: true,
 		})
 		if !strings.Contains(declaration, `DeprecationMessage: "This attribute is deprecated and may be removed in a future API version.",`) {
@@ -66,7 +66,7 @@ func TestUnit_AttributeDecl_WarnsOnADeprecatedAttribute(t *testing.T) {
 	}
 
 	current := declarationOf(schemaResource, ir.Attribute{
-		Name: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+		Name: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 	})
 	if strings.Contains(current, "DeprecationMessage") {
 		t.Errorf("an undeprecated attribute carries a warning:\n%s", current)
@@ -78,7 +78,7 @@ func TestUnit_AttributeDecl_WarnsOnADeprecatedAttribute(t *testing.T) {
 // rather than re-planning that value as unknown for ever.
 func TestUnit_AttributeDecl_PinsAComputedOptionalValue(t *testing.T) {
 	pinned := declarationOf(schemaResource, ir.Attribute{
-		Name: "timezone", Kind: ir.TypeString,
+		Name: "timezone", Type: ir.TypeString,
 		ComputedOptionalRequired: ir.ComputedOptional,
 	})
 	if !strings.Contains(pinned, "UseStateForUnknown()") {
@@ -89,7 +89,7 @@ func TestUnit_AttributeDecl_PinsAComputedOptionalValue(t *testing.T) {
 	// because it is computed, and pinning it makes terraform insist on a value
 	// the next read contradicts.
 	unpinned := declarationOf(schemaResource, ir.Attribute{
-		Name: "modified_at", Kind: ir.TypeString,
+		Name: "modified_at", Type: ir.TypeString,
 		ComputedOptionalRequired: ir.Computed,
 	})
 	if strings.Contains(unpinned, "UseStateForUnknown()") {
@@ -98,7 +98,7 @@ func TestUnit_AttributeDecl_PinsAComputedOptionalValue(t *testing.T) {
 
 	// A datasource has no plan to modify at all.
 	ds := declarationOf(schemaDatasource, ir.Attribute{
-		Name: "timezone", Kind: ir.TypeString,
+		Name: "timezone", Type: ir.TypeString,
 		ComputedOptionalRequired: ir.ComputedOptional,
 	})
 	if strings.Contains(ds, "PlanModifiers") {

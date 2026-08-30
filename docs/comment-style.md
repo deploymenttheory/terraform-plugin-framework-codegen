@@ -43,7 +43,7 @@ These are facts, and they are the point of the comment.
   that scope a claim: "`list/schema` attribute types declare no `Sensitive`
   field", "measured against terraform-plugin-framework v1.19.0".
 - **Raw evidence quoted inline** — an SDK accessor spelling
-  (`GetPasswordEscaped`), a refusal reason as the report prints it, an HTTP
+  (`GetPasswordEscaped`), an exclusion reason as the report prints it, an HTTP
   status, a framework type name. They are what makes the surrounding claim
   checkable.
 - **Indented tabular blocks.** They render as godoc code blocks and usually carry
@@ -60,7 +60,7 @@ These are facts, and they are the point of the comment.
   is evidence and stays. Drop a bare URL only when the sentence still stands
   without it.
 - **Contracts** — locking requirements, `nil, nil` returns, ordering guarantees,
-  what a caller must do first, which stage owns a refusal.
+  what a caller must do first, which stage owns an exclusion.
 - **Operator-visible risk in credentialed tests** — why a test is opt-in, what it
   does to somebody's tenant. State it as a standing risk, not as an anecdote.
 

@@ -46,7 +46,7 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 			ReadModel:        read,
 			WriteModel:       write,
 			WriteConstructor: constructor,
-			Fields:           fieldBindings(d, r.Schema, accessReadWrite),
+			Fields:           fieldBindings(d, r.Attributes, accessReadWrite),
 		}
 		if r.Operations.Create != nil {
 			rb.Create = d.call(r.Operations.Create, r.Names, true, info)
@@ -82,17 +82,17 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 			Key:         lr.Names.Key,
 			List:        d.call(&listOp, lr.Names, false, info),
 			EnvelopeKey: lr.ListWrapperKey,
-			Fields:      fieldBindings(d, lr.Schema, accessReadOnly),
+			Fields:      fieldBindings(d, lr.Attributes, accessReadOnly),
 		}
 	}
 
 	for _, a := range m.Actions {
 		invokeOp := a.InvokeOperation
-		hasBody := a.RequestSchema != nil
+		hasBody := a.RequestAttributes != nil
 		ab := &ActionBinding{
 			Key:    a.Names.Key,
 			Invoke: d.call(&invokeOp, a.Names, hasBody, info),
-			Fields: fieldBindings(d, a.RequestSchema, accessWriteOnly),
+			Fields: fieldBindings(d, a.RequestAttributes, accessWriteOnly),
 		}
 		if hasBody {
 			_, write, constructor := d.models(a.Names, info)
@@ -111,17 +111,17 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 // SDK side, so they take no bindings.
 func datasourceElementTree(ds ir.Datasource) *ir.AttributeTree {
 	if ds.LookupByKey {
-		return ds.Schema
+		return ds.Attributes
 	}
-	if ds.Schema == nil {
+	if ds.Attributes == nil {
 		return nil
 	}
-	for _, a := range ds.Schema.Attributes {
+	for _, a := range ds.Attributes.Attributes {
 		if a.Name == "items" {
-			return a.Nested
+			return a.NestedAttributes
 		}
 	}
-	return ds.Schema
+	return ds.Attributes
 }
 
 // fieldBindings drafts the field accesses of one attribute tree,
@@ -147,7 +147,7 @@ func boundFields(d dialect, t *ir.AttributeTree, mode accessMode, underWriteOnly
 		}
 		fb := FieldBinding{
 			Attr: a.Name, Wire: a.WireName,
-			Kind: a.Kind, ElementType: a.ElementType,
+			Type: a.Type, ElementType: a.ElementType,
 			Access: d.access(a, mode),
 		}
 		// A property the document declares write-only is never read back,
@@ -161,12 +161,12 @@ func boundFields(d dialect, t *ir.AttributeTree, mode accessMode, underWriteOnly
 			fb.KeptFromPlan = true
 			writeOnly = true
 		}
-		if a.Nested != nil {
+		if a.NestedAttributes != nil {
 			nestedMode := mode
 			if writeOnly {
 				nestedMode = accessWriteOnly
 			}
-			fb.Nested = boundFields(d, a.Nested, nestedMode, writeOnly)
+			fb.Nested = boundFields(d, a.NestedAttributes, nestedMode, writeOnly)
 		}
 		out = append(out, fb)
 	}

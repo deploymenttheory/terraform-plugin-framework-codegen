@@ -18,12 +18,12 @@ func settingUnder(parentParam string) ir.Resource {
 		ParentEntity: "http_server",
 		Operations: ir.Operations{
 			Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/http-servers/{" + parentParam + "}/setting",
-				PathParameters: []ir.Parameter{{Name: parentParam, Type: ir.TypeString}}, SuccessCode: 200},
+				PathParameters: []ir.URLPathParameter{{Name: parentParam, Type: ir.TypeString}}, SuccessCode: 200},
 		},
-		Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-			{Name: "http_server_id", WireName: parentParam, Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-			{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-			{Name: "scope", WireName: "scope", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+		Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+			{Name: "http_server_id", WireName: parentParam, Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+			{Name: "scope", WireName: "scope", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 		}},
 	}
 }
@@ -79,7 +79,7 @@ func TestUnit_DependencyBlocks_CarryABorrowedObjectsBlock(t *testing.T) {
 	e := &serviceRenderer{pc: pc, bindings: b, resources: map[string]*ir.Resource{"http_server": &m.Resources[0]}}
 	rule := ir.Resource{Names: names("alert_rule", "AlertRule", "alerts"), Operations: ir.Operations{
 		Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/v7/alert-rules", SuccessCode: 201},
-		Read:   &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/alert-rules/{ruleId}", PathParameters: []ir.Parameter{{Name: "ruleId"}}},
+		Read:   &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/alert-rules/{ruleId}", PathParameters: []ir.URLPathParameter{{Name: "ruleId"}}},
 	}}
 	fixture := fixtures.Fixture{Entries: []fixtures.Entry{
 		{Name: "name", Wire: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "r"},
@@ -114,16 +114,16 @@ func TestUnit_ParentAttribute_NamesTheImmediateParentsAttribute(t *testing.T) {
 	}
 	keyed := settingUnder("httpServerId")
 	keyed.Singleton = false
-	keyed.Operations.Read.PathParameters = []ir.Parameter{{Name: "httpServerId"}, {Name: "settingId"}}
+	keyed.Operations.Read.PathParameters = []ir.URLPathParameter{{Name: "httpServerId"}, {Name: "settingId"}}
 	if got := parentAttribute(&keyed); got != "http_server_id" {
 		t.Errorf("a keyed child's parent attribute = %q, want the parameter above the key", got)
 	}
-	keyed.Operations.Read.PathParameters = []ir.Parameter{{Name: "settingId"}}
+	keyed.Operations.Read.PathParameters = []ir.URLPathParameter{{Name: "settingId"}}
 	if got := parentAttribute(&keyed); got != "" {
 		t.Errorf("a top-level resource has a parent attribute: %q", got)
 	}
 	unanswered := settingUnder("ownerId")
-	unanswered.Schema.Attributes = unanswered.Schema.Attributes[1:]
+	unanswered.Attributes.Attributes = unanswered.Attributes.Attributes[1:]
 	if got := parentAttribute(&unanswered); got != "" {
 		t.Errorf("a parameter no attribute answers = %q, want none", got)
 	}

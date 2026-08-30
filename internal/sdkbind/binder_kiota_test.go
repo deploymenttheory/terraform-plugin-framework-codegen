@@ -27,30 +27,30 @@ func TestKiotaChainSpelling(t *testing.T) {
 		},
 		{
 			name:      "read indexes by the path parameter",
-			operation: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			operation: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			want:      "client.Tags().ByTagId(tagId).Get(ctx, nil)",
 		},
 		{
 			name:      "update keeps the declared verb",
-			operation: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			operation: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			hasBody:   true,
 			want:      "client.Tags().ByTagId(tagId).Patch(ctx, body, nil)",
 		},
 		{
 			name:      "delete takes no body",
-			operation: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			operation: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			want:      "client.Tags().ByTagId(tagId).Delete(ctx, nil)",
 		},
 		{
 			name: "kebab and nested segments become builder hops",
 			operation: operation(ir.OperationRead, "GET", "/v7/http-server/{serverId}/status", "",
-				ir.Parameter{Name: "serverId", Type: ir.TypeString}),
+				ir.URLPathParameter{Name: "serverId", Type: ir.TypeString}),
 			want: "client.V7().HttpServer().ByServerId(serverId).Status().Get(ctx, nil)",
 		},
 		{
 			name: "a keyword-named parameter gets a safe local",
 			operation: operation(ir.OperationRead, "GET", "/types/{type}", "",
-				ir.Parameter{Name: "type", Type: ir.TypeString}),
+				ir.URLPathParameter{Name: "type", Type: ir.TypeString}),
 			want: "client.Types().ByType(type_).Get(ctx, nil)",
 		},
 	}
@@ -73,7 +73,7 @@ func TestKiotaChainSpelling(t *testing.T) {
 func TestKiotaCallDrafts(t *testing.T) {
 	n := names("tags", "tags")
 	read := kiotaBinder{}.call(
-		operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+		operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, kiotaInfo())
 
 	if read.ResponseType != "models.Tagsable" {
@@ -89,7 +89,7 @@ func TestKiotaCallDrafts(t *testing.T) {
 	}
 
 	del := kiotaBinder{}.call(
-		operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+		operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, kiotaInfo())
 	if del.ResponseType != "" || len(del.Results) != 1 || del.Results[0] != "error" {
 		t.Errorf("delete draft = response %q results %v, want none and [error]", del.ResponseType, del.Results)
@@ -210,14 +210,14 @@ func TestKiotaBindWalk(t *testing.T) {
 
 func TestUnit_Binder_AWriteOnlyRootLeavesItsComputedMembersOut(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "agents", WireName: "agents", Kind: ir.TypeList, ElementType: ir.TypeObject, WriteOnly: true,
-			ComputedOptionalRequired: ir.Required, Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "agent_id", WireName: "agentId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-				{Name: "agent_name", WireName: "agentName", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-				{Name: "coordinates", WireName: "coordinates", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Computed,
-					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{{Name: "latitude", WireName: "latitude", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Computed}}}},
+		{Name: "agents", WireName: "agents", Type: ir.TypeList, ElementType: ir.TypeObject, WriteOnly: true,
+			ComputedOptionalRequired: ir.Required, NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "agent_id", WireName: "agentId", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+				{Name: "agent_name", WireName: "agentName", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "coordinates", WireName: "coordinates", Type: ir.TypeObject, ComputedOptionalRequired: ir.Computed,
+					NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{{Name: "latitude", WireName: "latitude", Type: ir.TypeFloat64, ComputedOptionalRequired: ir.Computed}}}},
 			}}},
-		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+		{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 	}}
 	got := fieldBindings(kiotaBinder{}, tree, accessReadWrite)
 	if len(got) != 2 || got[0].Attr != "agents" || !got[0].KeptFromPlan || got[0].Access.Get != "" || got[0].Access.Set == "" {

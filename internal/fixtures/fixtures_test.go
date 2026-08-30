@@ -19,24 +19,24 @@ import (
 func testTree() *ir.AttributeTree {
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-			{Name: "enabled", WireName: "enabled", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
-			{Name: "port", WireName: "port", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
-			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
-			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+			{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+			{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "enabled", WireName: "enabled", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "port", WireName: "port", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+			{Name: "ratio", WireName: "ratio", Type: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
+			{Name: "kind", WireName: "kind", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 				OneOf: []string{"basic", "advanced"}},
-			{Name: "mode", WireName: "mode", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional,
+			{Name: "mode", WireName: "mode", Type: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional,
 				AdvisoryValues: []string{"auto", "manual"}},
-			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
-					{Name: "trace", WireName: "trace", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "tags", WireName: "tags", Type: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "settings", WireName: "settings", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "retries", WireName: "retries", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
+					{Name: "trace", WireName: "trace", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
 				}}},
-			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "pattern", WireName: "pattern", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "rules", WireName: "rules", Type: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "pattern", WireName: "pattern", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				}}},
 			{Name: "blob", WireName: "blob", ComputedOptionalRequired: ir.Optional,
 				Unsupported: true, UnsupportedReason: "free-form object declares no properties"},
@@ -104,8 +104,8 @@ func TestUnit_Fixturespec_SkipsCarryTheirReason(t *testing.T) {
 	}
 
 	nested := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "outer", WireName: "outer", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-			Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "outer", WireName: "outer", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+			NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 				{Name: "inner", WireName: "inner", ComputedOptionalRequired: ir.Optional, Unsupported: true},
 			}}},
 	}}
@@ -243,33 +243,33 @@ func TestUnit_Fixturespec_WireJSONKeepsTreeOrderAndParses(t *testing.T) {
 func variantTree() *ir.AttributeTree {
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
+			{Name: "kind", WireName: "kind", Type: ir.TypeString, ComputedOptionalRequired: ir.Required,
 				OneOf: []string{"ping", "web", "dns"}},
-			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "interval", WireName: "interval", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
-			{Name: "target_host", WireName: "target_host", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "domain", WireName: "domain", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "dnssec", WireName: "dnssec", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
-			{Name: "web", WireName: "web", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "url", WireName: "url", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "interval", WireName: "interval", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
+			{Name: "target_host", WireName: "target_host", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "domain", WireName: "domain", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "dnssec", WireName: "dnssec", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "web", WireName: "web", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "url", WireName: "url", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				}}},
-			{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+			{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 		},
 		ConditionalValidities: []ir.ConditionalValidity{
-			{Property: "kind", Equals: "dns", Valid: []string{"dnssec", "domain"}},
-			{Property: "kind", Equals: "ping", Valid: []string{"target_host"}},
+			{Property: "kind", WhenPropertyEquals: "dns", AttributesValidWhenEqual: []string{"dnssec", "domain"}},
+			{Property: "kind", WhenPropertyEquals: "ping", AttributesValidWhenEqual: []string{"target_host"}},
 		},
 		ConditionalRequirements: []ir.ConditionalRequirement{
-			{Property: "kind", Equals: "dns", Required: []string{"domain"}},
-			{Property: "kind", Equals: "ping", Required: []string{"target_host"}},
-			{Property: "kind", Equals: "web", Required: []string{"web"}},
+			{Property: "kind", WhenPropertyEquals: "dns", Required: []string{"domain"}},
+			{Property: "kind", WhenPropertyEquals: "ping", Required: []string{"target_host"}},
+			{Property: "kind", WhenPropertyEquals: "web", Required: []string{"web"}},
 		},
 		ValidConfigurations: []ir.ValidConfiguration{{
 			Discriminator: "kind",
-			Variants: []ir.ConfigVariant{
-				{Value: "dns", Valid: []string{"dnssec", "domain"}},
-				{Value: "ping", Valid: []string{"target_host"}},
+			Variants: []ir.ValidConfigurationVariant{
+				{Value: "dns", AttributesValidWhenEqual: []string{"dnssec", "domain"}},
+				{Value: "ping", AttributesValidWhenEqual: []string{"target_host"}},
 			},
 		}},
 	}
@@ -354,13 +354,13 @@ func TestUnit_Fixturespec_SingleVariantEntityIsUngated(t *testing.T) {
 // refused before any assertion runs.
 func TestUnit_Fixturespec_AFormatDecidesTheValueShape(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "created_at", WireName: "createdAt", Kind: ir.TypeString, Format: "date-time"},
-		{Name: "born_on", WireName: "bornOn", Kind: ir.TypeString, Format: "date"},
-		{Name: "agent_id", WireName: "agentId", Kind: ir.TypeString, Format: "uuid"},
-		{Name: "owner_email", WireName: "ownerEmail", Kind: ir.TypeString, Format: "email"},
-		{Name: "home", WireName: "home", Kind: ir.TypeString, Format: "uri"},
-		{Name: "address", WireName: "address", Kind: ir.TypeString, Format: "ipv4"},
-		{Name: "label", WireName: "label", Kind: ir.TypeString},
+		{Name: "created_at", WireName: "createdAt", Type: ir.TypeString, Format: "date-time"},
+		{Name: "born_on", WireName: "bornOn", Type: ir.TypeString, Format: "date"},
+		{Name: "agent_id", WireName: "agentId", Type: ir.TypeString, Format: "uuid"},
+		{Name: "owner_email", WireName: "ownerEmail", Type: ir.TypeString, Format: "email"},
+		{Name: "home", WireName: "home", Type: ir.TypeString, Format: "uri"},
+		{Name: "address", WireName: "address", Type: ir.TypeString, Format: "ipv4"},
+		{Name: "label", WireName: "label", Type: ir.TypeString},
 	}}
 
 	got := map[string]any{}
@@ -414,19 +414,19 @@ func exampleTree() *ir.AttributeTree {
 	minimum, maximum := 10.0, 1.0
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
+			{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Required,
 				Example: "Production metrics stream"},
-			{Name: "endpoint_url", WireName: "endpointUrl", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
+			{Name: "endpoint_url", WireName: "endpointUrl", Type: ir.TypeString, ComputedOptionalRequired: ir.Required,
 				Example: "https://api.example.otel-collector"},
-			{Name: "created", WireName: "created", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+			{Name: "created", WireName: "created", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 				Format: "date-time", Example: "whenever"},
-			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+			{Name: "kind", WireName: "kind", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 				OneOf: []string{"basic", "advanced"}, Example: "advanced"},
-			{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional,
+			{Name: "retries", WireName: "retries", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional,
 				Minimum: &minimum},
-			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional,
+			{Name: "ratio", WireName: "ratio", Type: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional,
 				Maximum: &maximum},
-			{Name: "interval", WireName: "interval", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional,
+			{Name: "interval", WireName: "interval", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional,
 				Example: 300},
 		},
 	}
@@ -491,7 +491,7 @@ func TestUnit_Fixturespec_APrefixedStringSuppressesTheRestore(t *testing.T) {
 	// A string the document says nothing about already carries the prefix, so
 	// nothing needs restoring and every example stands.
 	tree.Attributes = append(tree.Attributes, ir.Attribute{
-		Name: "label", WireName: "label", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+		Name: "label", WireName: "label", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 	})
 	s := Derive(tree)
 
@@ -508,13 +508,13 @@ func TestUnit_Fixturespec_APrefixedStringSuppressesTheRestore(t *testing.T) {
 func acceptedTree() *ir.AttributeTree {
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-			{Name: "match_type", WireName: "matchType", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "colour", WireName: "colour", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "labels", WireName: "labels", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+			{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "match_type", WireName: "matchType", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "colour", WireName: "colour", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "labels", WireName: "labels", Type: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "settings", WireName: "settings", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "retries", WireName: "retries", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
 				}}},
 		},
 	}

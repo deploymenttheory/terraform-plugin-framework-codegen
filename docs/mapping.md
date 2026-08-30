@@ -39,7 +39,7 @@ sticky — and a union is where it does real damage.
 A variant is named for the component its branch references, which is also what
 the SDK names its accessor after, so the two agree without either being told
 about the other. A branch that references no component names nothing on either
-side, and one of those refuses the whole union: half a union is a schema that
+side, and one of those excludes the whole union: half a union is a schema that
 cannot hold what the API returns.
 
 ## Entity operation sets

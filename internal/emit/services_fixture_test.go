@@ -31,36 +31,36 @@ func names(key, pascal, service string) ir.Names {
 func fictionalModel() *ir.Model {
 	httpServerSchema := &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-			{Name: "enabled", WireName: "enabled", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
-			{Name: "port", WireName: "port", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional, RequiresReplace: true},
-			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
-			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+			{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+			{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "enabled", WireName: "enabled", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "port", WireName: "port", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional, RequiresReplace: true},
+			{Name: "ratio", WireName: "ratio", Type: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
+			{Name: "kind", WireName: "kind", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 				OneOf: []string{"basic", "advanced"}},
-			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "protocols", WireName: "protocols", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+			{Name: "tags", WireName: "tags", Type: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "protocols", WireName: "protocols", Type: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 				OneOf: []string{"http", "https"}},
-			{Name: "seed", WireName: "seed", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional, SilentlyIgnoredOnUpdate: true},
-			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
-					{Name: "trace", WireName: "trace", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "seed", WireName: "seed", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional, IgnoredOnUpdate: true},
+			{Name: "settings", WireName: "settings", Type: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "retries", WireName: "retries", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+					{Name: "trace", WireName: "trace", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
 				}}},
-			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
-				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "pattern", WireName: "pattern", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "rules", WireName: "rules", Type: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "pattern", WireName: "pattern", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				}}},
 			{Name: "blob", WireName: "blob", ComputedOptionalRequired: ir.Optional,
 				Unsupported: true, UnsupportedReason: "free-form object declares no properties"},
-			{Name: "description", WireName: "description", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
-			{Name: "owner_id", WireName: "ownerId", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
+			{Name: "description", WireName: "description", Type: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
+			{Name: "owner_id", WireName: "ownerId", Type: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
 		},
 		ConditionalRequirements: []ir.ConditionalRequirement{
-			{Property: "kind", Equals: "advanced", Required: []string{"settings"}},
+			{Property: "kind", WhenPropertyEquals: "advanced", Required: []string{"settings"}},
 		},
 		ConditionalValidities: []ir.ConditionalValidity{
-			{Property: "kind", Equals: "advanced", Valid: []string{"rules"}},
+			{Property: "kind", WhenPropertyEquals: "advanced", AttributesValidWhenEqual: []string{"rules"}},
 		},
 		Dependencies: []ir.Dependency{
 			{Attribute: "ratio", Requires: []string{"port"}},
@@ -68,17 +68,17 @@ func fictionalModel() *ir.Model {
 		MutuallyExclusiveGroups: [][]string{{"protocols", "tags"}},
 		ValidConfigurations: []ir.ValidConfiguration{{
 			Discriminator: "kind",
-			Variants: []ir.ConfigVariant{
-				{Value: "advanced", Valid: []string{"settings"}},
-				{Value: "basic", Valid: []string{"port"}},
+			Variants: []ir.ValidConfigurationVariant{
+				{Value: "advanced", AttributesValidWhenEqual: []string{"settings"}},
+				{Value: "basic", AttributesValidWhenEqual: []string{"port"}},
 			},
 		}},
 	}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-		{Name: "enabled", WireName: "enabled", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Computed},
+		{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+		{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+		{Name: "enabled", WireName: "enabled", Type: ir.TypeBool, ComputedOptionalRequired: ir.Computed},
 	}}
 
 	return &ir.Model{
@@ -89,16 +89,16 @@ func fictionalModel() *ir.Model {
 				Operations: ir.Operations{
 					Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/v7/http-servers", SuccessCode: 201},
 					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
+						PathParameters: []ir.URLPathParameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
 					Update: &ir.Operation{Kind: ir.OperationUpdate, Method: "PATCH", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
+						PathParameters: []ir.URLPathParameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
 					Delete: &ir.Operation{Kind: ir.OperationDelete, Method: "DELETE", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
+						PathParameters: []ir.URLPathParameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
 					List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
 				},
-				Schema:              httpServerSchema,
+				Attributes:          httpServerSchema,
 				UpdateStyle:         ir.UpdateStylePatchMerge,
-				EventualConsistency: 30 * time.Second,
+				ReadAfterWriteDelay: 30 * time.Second,
 				DeleteNotFoundOK:    true,
 				ListWrapperKey:      "value",
 				Timeouts: ir.Timeouts{
@@ -112,14 +112,14 @@ func fictionalModel() *ir.Model {
 				Operations: ir.Operations{
 					Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/v7/alert-rules", SuccessCode: 201},
 					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/alert-rules/{alertRuleId}",
-						PathParameters: []ir.Parameter{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 200},
+						PathParameters: []ir.URLPathParameter{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 200},
 					Delete: &ir.Operation{Kind: ir.OperationDelete, Method: "DELETE", PathTemplate: "/v7/alert-rules/{alertRuleId}",
-						PathParameters: []ir.Parameter{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 204},
+						PathParameters: []ir.URLPathParameter{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 204},
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-					{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, RequiresReplace: true},
-					{Name: "severity", WireName: "severity", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional, RequiresReplace: true},
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+					{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Required, RequiresReplace: true},
+					{Name: "severity", WireName: "severity", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Optional, RequiresReplace: true},
 				}},
 				MissingUpdate: true,
 				Timeouts: ir.Timeouts{
@@ -133,15 +133,15 @@ func fictionalModel() *ir.Model {
 				Names: names("http_server", "HTTPServer", "servers"),
 				Operations: ir.Operations{
 					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
+						PathParameters: []ir.URLPathParameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
 					List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional, Filter: true},
-					{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional, Filter: true},
-					{Name: "enabled", WireName: "enabled", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional, Filter: true},
-					{Name: "items", WireName: "items", Kind: ir.TypeList, ElementType: ir.TypeObject,
-						ComputedOptionalRequired: ir.Computed, Nested: itemTree},
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional, IsDatasourceFilterArgument: true},
+					{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional, IsDatasourceFilterArgument: true},
+					{Name: "enabled", WireName: "enabled", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional, IsDatasourceFilterArgument: true},
+					{Name: "items", WireName: "items", Type: ir.TypeList, ElementType: ir.TypeObject,
+						ComputedOptionalRequired: ir.Computed, NestedAttributes: itemTree},
 				}},
 				ListWrapperKey: "http_servers",
 			},
@@ -149,12 +149,12 @@ func fictionalModel() *ir.Model {
 				Names: names("license", "License", "licenses"),
 				Operations: ir.Operations{
 					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/licenses/{licenseKey}",
-						PathParameters: []ir.Parameter{{Name: "licenseKey", Type: ir.TypeString}}, SuccessCode: 200},
+						PathParameters: []ir.URLPathParameter{{Name: "licenseKey", Type: ir.TypeString}}, SuccessCode: 200},
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "license_key", WireName: "licenseKey", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-					{Name: "seats", WireName: "seats", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Computed},
-					{Name: "expires", WireName: "expires", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "license_key", WireName: "licenseKey", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+					{Name: "seats", WireName: "seats", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Computed},
+					{Name: "expires", WireName: "expires", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 				}},
 				LookupByKey:  true,
 				KeyParameter: "licenseKey",
@@ -164,9 +164,9 @@ func fictionalModel() *ir.Model {
 			{
 				Names:         names("http_server", "HTTPServer", "servers"),
 				ListOperation: ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-					{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "id", WireName: "id", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+					{Name: "name", WireName: "name", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 				}},
 				ListWrapperKey: "value",
 			},
@@ -174,11 +174,11 @@ func fictionalModel() *ir.Model {
 		Actions: []ir.Action{
 			{
 				Names: names("http_server_restart", "HTTPServerRestart", "servers"),
-				InvokeOperation: ir.Operation{Kind: ir.OperationInvoke, Method: "POST",
+				InvokeOperation: ir.Operation{Kind: ir.OperationAction, Method: "POST",
 					PathTemplate:   "/v7/http-servers/{httpServerId}/restart",
-					PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
-				RequestSchema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "mode", WireName: "mode", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+					PathParameters: []ir.URLPathParameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
+				RequestAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "mode", WireName: "mode", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				}},
 				ParentEntity: "http_server",
 			},
@@ -202,49 +202,49 @@ func readOnly(a sdkbind.FieldAccess) sdkbind.FieldAccess {
 
 func httpServerFields() []sdkbind.FieldBinding {
 	return []sdkbind.FieldBinding{
-		{Attr: "id", Wire: "id", Kind: ir.TypeString,
+		{Attr: "id", Wire: "id", Type: ir.TypeString,
 			Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "ToPtrString", ""))},
-		{Attr: "name", Wire: "name", Kind: ir.TypeString,
+		{Attr: "name", Wire: "name", Type: ir.TypeString,
 			Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")},
-		{Attr: "enabled", Wire: "enabled", Kind: ir.TypeBool,
+		{Attr: "enabled", Wire: "enabled", Type: ir.TypeBool,
 			Access: kiotaAccess("Enabled", "*bool", "FromPtrBool", "ToPtrBool", "")},
-		{Attr: "port", Wire: "port", Kind: ir.TypeInt64,
+		{Attr: "port", Wire: "port", Type: ir.TypeInt64,
 			Access: kiotaAccess("Port", "*int32", "FromPtrInt32", "ToPtrInt32", "")},
-		{Attr: "ratio", Wire: "ratio", Kind: ir.TypeFloat64,
+		{Attr: "ratio", Wire: "ratio", Type: ir.TypeFloat64,
 			Access: kiotaAccess("Ratio", "*float64", "FromPtrFloat64", "ToPtrFloat64", "")},
-		{Attr: "kind", Wire: "kind", Kind: ir.TypeString,
+		{Attr: "kind", Wire: "kind", Type: ir.TypeString,
 			Access: kiotaAccess("Kind", "*models.HttpServerKind", "FromPtrEnum", "ToPtrEnum", "models.ParseHttpServerKind")},
-		{Attr: "tags", Wire: "tags", Kind: ir.TypeList, ElementType: ir.TypeString,
+		{Attr: "tags", Wire: "tags", Type: ir.TypeList, ElementType: ir.TypeString,
 			Access: kiotaAccess("Tags", "[]string", "FromStringSlice", "ToStringSlice", "")},
-		{Attr: "protocols", Wire: "protocols", Kind: ir.TypeList, ElementType: ir.TypeString,
+		{Attr: "protocols", Wire: "protocols", Type: ir.TypeList, ElementType: ir.TypeString,
 			Access: kiotaAccess("Protocols", "[]models.HttpServerProtocol", "FromEnumSlice", "ToEnumSlice", "models.ParseHttpServerProtocol")},
-		{Attr: "seed", Wire: "seed", Kind: ir.TypeString,
+		{Attr: "seed", Wire: "seed", Type: ir.TypeString,
 			Access: kiotaAccess("Seed", "*string", "FromPtrString", "ToPtrString", "")},
-		{Attr: "settings", Wire: "settings", Kind: ir.TypeObject,
+		{Attr: "settings", Wire: "settings", Type: ir.TypeObject,
 			Access:            sdkbind.FieldAccess{Get: "GetSettings", Set: "SetSettings", SDKType: "models.HttpServerSettingsable"},
 			NestedModel:       "models.HttpServerSettings",
 			NestedWriteModel:  "models.HttpServerSettings",
 			NestedConstructor: "models.NewHttpServerSettings()",
 			Nested: []sdkbind.FieldBinding{
-				{Attr: "retries", Wire: "retries", Kind: ir.TypeInt64,
+				{Attr: "retries", Wire: "retries", Type: ir.TypeInt64,
 					Access: kiotaAccess("Retries", "*int64", "FromPtrInt64", "ToPtrInt64", "")},
-				{Attr: "trace", Wire: "trace", Kind: ir.TypeBool,
+				{Attr: "trace", Wire: "trace", Type: ir.TypeBool,
 					Access: kiotaAccess("Trace", "*bool", "FromPtrBool", "ToPtrBool", "")},
 			}},
-		{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject,
+		{Attr: "rules", Wire: "rules", Type: ir.TypeList, ElementType: ir.TypeObject,
 			Access:            sdkbind.FieldAccess{Get: "GetRules", Set: "SetRules", SDKType: "[]models.HttpServerRuleable"},
 			NestedModel:       "models.HttpServerRule",
 			NestedWriteModel:  "models.HttpServerRule",
 			NestedConstructor: "models.NewHttpServerRule()",
 			Nested: []sdkbind.FieldBinding{
-				{Attr: "pattern", Wire: "pattern", Kind: ir.TypeString,
+				{Attr: "pattern", Wire: "pattern", Type: ir.TypeString,
 					Access: kiotaAccess("Pattern", "*string", "FromPtrString", "ToPtrString", "")},
 			}},
-		{Attr: "description", Wire: "description", Kind: ir.TypeString,
+		{Attr: "description", Wire: "description", Type: ir.TypeString,
 			Access: kiotaAccess("Description", "*string", "FromPtrString", "ToPtrString", "")},
 		// Carried by the request and answered by no response: state keeps
 		// the planned value.
-		{Attr: "owner_id", Wire: "ownerId", Kind: ir.TypeString, KeptFromPlan: true,
+		{Attr: "owner_id", Wire: "ownerId", Type: ir.TypeString, KeptFromPlan: true,
 			Access: sdkbind.FieldAccess{Set: "SetOwnerId", SDKType: "*string", ConvertSet: "ToPtrString"}},
 	}
 }
@@ -299,11 +299,11 @@ func fictionalBindings() *sdkbind.Bindings {
 				WriteModel:       "models.AlertRule",
 				WriteConstructor: "models.NewAlertRule()",
 				Fields: []sdkbind.FieldBinding{
-					{Attr: "id", Wire: "id", Kind: ir.TypeString,
+					{Attr: "id", Wire: "id", Type: ir.TypeString,
 						Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "ToPtrString", ""))},
-					{Attr: "name", Wire: "name", Kind: ir.TypeString,
+					{Attr: "name", Wire: "name", Type: ir.TypeString,
 						Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")},
-					{Attr: "severity", Wire: "severity", Kind: ir.TypeInt64,
+					{Attr: "severity", Wire: "severity", Type: ir.TypeInt64,
 						Access: kiotaAccess("Severity", "*int64", "FromPtrInt64", "ToPtrInt64", "")},
 				},
 			},
@@ -318,11 +318,11 @@ func fictionalBindings() *sdkbind.Bindings {
 				CollectionAccess: "GetHttpServers()",
 				ListWrapperKey:   "http_servers",
 				Fields: []sdkbind.FieldBinding{
-					{Attr: "id", Wire: "id", Kind: ir.TypeString,
+					{Attr: "id", Wire: "id", Type: ir.TypeString,
 						Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "", ""))},
-					{Attr: "name", Wire: "name", Kind: ir.TypeString,
+					{Attr: "name", Wire: "name", Type: ir.TypeString,
 						Access: readOnly(kiotaAccess("Name", "*string", "FromPtrString", "", ""))},
-					{Attr: "enabled", Wire: "enabled", Kind: ir.TypeBool,
+					{Attr: "enabled", Wire: "enabled", Type: ir.TypeBool,
 						Access: readOnly(kiotaAccess("Enabled", "*bool", "FromPtrBool", "", ""))},
 				},
 			},
@@ -333,9 +333,9 @@ func fictionalBindings() *sdkbind.Bindings {
 					"models.Licenseable", "models.Licenseable", "error"),
 				ReadModel: "models.Licenseable",
 				Fields: []sdkbind.FieldBinding{
-					{Attr: "seats", Wire: "seats", Kind: ir.TypeInt64,
+					{Attr: "seats", Wire: "seats", Type: ir.TypeInt64,
 						Access: readOnly(kiotaAccess("Seats", "*int64", "FromPtrInt64", "", ""))},
-					{Attr: "expires", Wire: "expires", Kind: ir.TypeString,
+					{Attr: "expires", Wire: "expires", Type: ir.TypeString,
 						Access: readOnly(kiotaAccess("Expires", "*time.Time", "FromPtrTime", "", ""))},
 				},
 			},
@@ -347,9 +347,9 @@ func fictionalBindings() *sdkbind.Bindings {
 				ElementType:      "models.AuditEventable",
 				CollectionAccess: "GetValue()",
 				Fields: []sdkbind.FieldBinding{
-					{Attr: "id", Wire: "id", Kind: ir.TypeString,
+					{Attr: "id", Wire: "id", Type: ir.TypeString,
 						Access: readOnly(kiotaAccess("Id", "*string", "FromPtrString", "", ""))},
-					{Attr: "name", Wire: "name", Kind: ir.TypeString,
+					{Attr: "name", Wire: "name", Type: ir.TypeString,
 						Access: readOnly(kiotaAccess("Name", "*string", "FromPtrString", "", ""))},
 				},
 			},
@@ -362,7 +362,7 @@ func fictionalBindings() *sdkbind.Bindings {
 				WriteModel:       "models.HttpServerRestartRequest",
 				WriteConstructor: "models.NewHttpServerRestartRequest()",
 				Fields: []sdkbind.FieldBinding{
-					{Attr: "mode", Wire: "mode", Kind: ir.TypeString,
+					{Attr: "mode", Wire: "mode", Type: ir.TypeString,
 						Access: sdkbind.FieldAccess{Set: "SetMode", SDKType: "*string", ConvertSet: "ToPtrString"}},
 				},
 			},

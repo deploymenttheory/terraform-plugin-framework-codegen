@@ -12,11 +12,11 @@ import (
 // it keys objects by a name the practitioner chooses.
 func portsTree() *ir.AttributeTree {
 	return &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "ports", WireName: "ports", Kind: ir.TypeMap, ElementType: ir.TypeObject,
+		{Name: "ports", WireName: "ports", Type: ir.TypeMap, ElementType: ir.TypeObject,
 			ComputedOptionalRequired: ir.Optional,
-			Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "bore", WireName: "bore", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
-				{Name: "sealed", WireName: "sealed", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			NestedAttributes: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "bore", WireName: "bore", Type: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
+				{Name: "sealed", WireName: "sealed", Type: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
 			}}},
 	}}
 }

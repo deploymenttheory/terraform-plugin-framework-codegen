@@ -109,10 +109,10 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 	}
 }
 
-// TestUnit_ParamDeclaration_RefusesATruncatingConversion proves a numeric
+// TestUnit_ParamDeclaration_ExcludesATruncatingConversion proves a numeric
 // field into a narrower integer parameter is still refused: the conversion
 // loses information silently, and no parse reports that.
-func TestUnit_ParamDeclaration_RefusesATruncatingConversion(t *testing.T) {
+func TestUnit_ParamDeclaration_ExcludesATruncatingConversion(t *testing.T) {
 	p := sdkbind.CallParameter{Local: "groupId", Wire: "runner_group_id", GoType: "int32"}
 
 	if _, _, err := parameterDeclaration(p, "data", "GroupID", ir.TypeFloat64, "runner_group_id", respDiagnostics()); err == nil {

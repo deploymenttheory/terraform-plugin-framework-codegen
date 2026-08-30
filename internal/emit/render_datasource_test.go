@@ -23,13 +23,13 @@ func scopedCompanion(t *testing.T) *ServiceFiles {
 	ds.Operations.List = &ir.Operation{
 		Kind: ir.OperationList, Method: "GET",
 		PathTemplate:   "/v7/tenants/{tenantId}/http-servers",
-		PathParameters: []ir.Parameter{{Name: "tenantId", Type: ir.TypeString}},
+		PathParameters: []ir.URLPathParameter{{Name: "tenantId", Type: ir.TypeString}},
 		SuccessCode:    200,
 	}
-	ds.Schema.Attributes = append([]ir.Attribute{{
-		Name: "tenant_id", WireName: "tenantId", Kind: ir.TypeString,
+	ds.Attributes.Attributes = append([]ir.Attribute{{
+		Name: "tenant_id", WireName: "tenantId", Type: ir.TypeString,
 		ComputedOptionalRequired: ir.Required,
-	}}, ds.Schema.Attributes...)
+	}}, ds.Attributes.Attributes...)
 	b.Datasources["http_server"].List.Parameters = []sdkbind.CallParameter{
 		{Local: "tenantId", GoType: "string", Wire: "tenantId"}}
 
