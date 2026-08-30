@@ -22,7 +22,7 @@ var descriptions = map[string]string{
 	"version":                     "Schema version of this file; must equal the schema version the installed toolkit understands.",
 	"provider.name":               "Provider name as published to the registry; a lowercase DNS label.",
 	"provider.registry_namespace": "Registry namespace the provider is published under; a lowercase DNS label.",
-	"generator.version":           "Exact toolkit release tag (vX.Y.Z) the pipeline installs; branch names are refused.",
+	"generator.version":           "Exact toolkit release tag (vX.Y.Z) the pipeline installs; branch names are not accepted.",
 	"spec.document_url":           "http(s) URL of the upstream OpenAPI document that `tfpfgen spec import` pins by hash.",
 	"sdk.backend":                 "SDK generator behind the common interface; exactly one per provider repo.",
 	"sdk.backend_version":         "Exact version pin of the backend tool to install.",

@@ -14,11 +14,11 @@ type Names struct {
 	// APIVersionDirectory rather than living in the name.
 	Key string `json:"key"`
 	// PascalCase is the exported Go type spelling, e.g. "HTTPServer".
-	PascalCase string `json:"pascal"`
+	PascalCase string `json:"pascalCase"`
 	// CamelCase is the unexported Go spelling, e.g. "httpServer".
-	CamelCase string `json:"camel"`
+	CamelCase string `json:"camelCase"`
 	// TerraformType is "<provider>_<key>".
-	TerraformType string `json:"terraform_type"`
+	TerraformType string `json:"terraformType"`
 	// Package is the Go package name: the key with its underscores
 	// removed, per Go convention.
 	Package string `json:"package"`
@@ -27,7 +27,7 @@ type Names struct {
 	Service string `json:"service"`
 	// APIVersionDirectory is the stripped version segment, "v1" when the path
 	// declares none.
-	APIVersionDirectory string `json:"api_version_directory"`
+	APIVersionDirectory string `json:"apiVersionDirectory"`
 	// Tag is the group the document places the entity in, empty when it
 	// declares none. Unlike Service, which this package derives from the
 	// path, it is the vendor's own grouping and is carried rather than

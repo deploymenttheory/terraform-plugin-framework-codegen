@@ -79,7 +79,7 @@ type Services struct {
 	Exclude []string `mapstructure:"exclude"`
 }
 
-// SDK backends. The set is closed; config validation refuses others.
+// SDK backends. The set is closed; config validation does not accept others.
 const (
 	BackendKiota            = "kiota"
 	BackendOpenAPIGenerator = "openapi-generator"

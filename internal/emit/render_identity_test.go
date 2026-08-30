@@ -32,10 +32,10 @@ func TestUnit_ResourceIdentity_TheItemKeyIsTheIDAndNotAlsoAddressing(t *testing.
 			name: "the body declares the item key as a property",
 			read: &ir.Operation{Kind: ir.OperationRead, Method: "GET",
 				PathTemplate:   "/alerts/rules/{ruleId}",
-				PathParameters: []ir.Parameter{{Name: "ruleId", Type: ir.TypeString}}},
+				PathParameters: []ir.URLPathParameter{{Name: "ruleId", Type: ir.TypeString}}},
 			tree: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "id", WireName: "ruleId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-				{Name: "rule_id", WireName: "ruleId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "id", WireName: "ruleId", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "rule_id", WireName: "ruleId", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 			}},
 			want: []string{"id"},
 		},
@@ -43,21 +43,21 @@ func TestUnit_ResourceIdentity_TheItemKeyIsTheIDAndNotAlsoAddressing(t *testing.
 			name: "a parent scopes the object",
 			read: &ir.Operation{Kind: ir.OperationRead, Method: "GET",
 				PathTemplate: "/repos/{owner}/hooks/{hookId}",
-				PathParameters: []ir.Parameter{
+				PathParameters: []ir.URLPathParameter{
 					{Name: "owner", Type: ir.TypeString},
 					{Name: "hookId", Type: ir.TypeString},
 				}},
 			tree: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "owner", WireName: "owner", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-				{Name: "id", WireName: "hookId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
-				{Name: "hook_id", WireName: "hookId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "owner", WireName: "owner", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
+				{Name: "id", WireName: "hookId", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "hook_id", WireName: "hookId", Type: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 			}},
 			want: []string{"owner", "id"},
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			got := identityNames(resourceIdentity(&ir.Resource{
-				Schema:     testCase.tree,
+				Attributes: testCase.tree,
 				Operations: ir.Operations{Read: testCase.read},
 			}))
 			if !reflect.DeepEqual(got, testCase.want) {
@@ -73,7 +73,7 @@ func TestUnit_ResourceIdentity_ACollectionPathKeepsEveryParameter(t *testing.T) 
 	got := identityAddressing(&ir.Operation{
 		Kind: ir.OperationCreate, Method: "POST",
 		PathTemplate: "/orgs/{org}/teams",
-		PathParameters: []ir.Parameter{
+		PathParameters: []ir.URLPathParameter{
 			{Name: "org", Type: ir.TypeString},
 		}})
 	if !got["org"] {

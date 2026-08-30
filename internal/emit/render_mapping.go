@@ -60,7 +60,7 @@ func constructLines(namer *modelNamer, path string, nodes []node, source, destin
 		var lines string
 		var err error
 		var nestedUsesFmt bool
-		if n.attribute.Nested != nil {
+		if n.attribute.NestedAttributes != nil {
 			lines, nestedUsesFmt, err = constructNested(namer, childPath(path, n), n, source, destination, attrPath, depth)
 			usesFmt = usesFmt || nestedUsesFmt
 		} else if strings.HasSuffix(n.fb.Access.ConvertSet, "MapAdditionalData") {
@@ -74,7 +74,7 @@ func constructLines(namer *modelNamer, path string, nodes []node, source, destin
 			return "", false, err
 		}
 
-		if gateUpdates && n.attribute.SilentlyIgnoredOnUpdate {
+		if gateUpdates && n.attribute.IgnoredOnUpdate {
 			guarded := indent + "if isCreate {\n" + reindent(lines, "\t") + indent + "}\n"
 			b.WriteString(guarded)
 			continue
@@ -148,7 +148,7 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, source, destin
 		if n.fb == nil || n.fb.Access.Get == "" {
 			continue
 		}
-		if n.attribute.Nested != nil {
+		if n.attribute.NestedAttributes != nil {
 			lines, err := stateNested(namer, childPath(path, n), n, source, destination, depth)
 			if err != nil {
 				return "", err
@@ -163,7 +163,7 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, source, destin
 		// A root string the API stores in a spelling of its own reads back
 		// as the configured value where the answer is that spelling: the
 		// model being filled still holds the planned or prior value.
-		if path == "" && n.attribute.Normalisation != "" && n.attribute.Kind == ir.TypeString {
+		if path == "" && n.attribute.Normalisation != "" && n.attribute.Type == ir.TypeString {
 			fmt.Fprintf(&b, "%s%s.%s = convert.Normalised(%s.%s, convert.%s(%s.%s()), %q)\n",
 				indent, destination, ir.GoName(n.attribute.Name), destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get, n.attribute.Normalisation)
 			continue
@@ -266,7 +266,7 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 		if err != nil {
 			return finalisedAPIRequest{}, err
 		}
-		declaration, needs, err := parameterDeclaration(p, modelVar, ir.GoName(n.attribute.Name), n.attribute.Kind, n.attribute.Name, fail)
+		declaration, needs, err := parameterDeclaration(p, modelVar, ir.GoName(n.attribute.Name), n.attribute.Type, n.attribute.Name, fail)
 		if err != nil {
 			return finalisedAPIRequest{}, err
 		}
@@ -335,19 +335,19 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 	// an object's own key, which the document may declare as a property
 	// too, is answered by the id, which the create and the import fill.
 	for _, n := range nodes {
-		if n.attribute.WireName == p.Wire && n.attribute.Nested == nil {
+		if n.attribute.WireName == p.Wire && n.attribute.NestedAttributes == nil {
 			return n, nil
 		}
 	}
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
-		if n.attribute.Name == snake && n.attribute.Nested == nil {
+		if n.attribute.Name == snake && n.attribute.NestedAttributes == nil {
 			return n, nil
 		}
 	}
 	if idFallback {
 		for _, n := range nodes {
-			if n.attribute.Name == idAttributeName && n.attribute.Nested == nil {
+			if n.attribute.Name == idAttributeName && n.attribute.NestedAttributes == nil {
 				return n, nil
 			}
 		}
@@ -365,7 +365,7 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 func namesAnAttribute(p sdkbind.CallParameter, nodes []node) bool {
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
-		if n.attribute.Nested != nil {
+		if n.attribute.NestedAttributes != nil {
 			continue
 		}
 		if n.attribute.WireName == p.Wire || n.attribute.Name == snake {
@@ -537,7 +537,7 @@ func integerParsedParameters(call *sdkbind.Call, nodes []node) map[string]bool {
 		if err != nil {
 			continue
 		}
-		if n.attribute.Kind == ir.TypeString && isIntegerType(p.GoType) {
+		if n.attribute.Type == ir.TypeString && isIntegerType(p.GoType) {
 			out[n.attribute.Name] = true
 		}
 	}

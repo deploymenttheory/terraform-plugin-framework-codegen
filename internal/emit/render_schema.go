@@ -108,7 +108,7 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 		fmt.Fprintf(&b, "%s\tDeprecationMessage: %s,\n", indent, strconv.Quote(deprecationMessage))
 	}
 
-	if (n.attribute.Kind == ir.TypeList || n.attribute.Kind == ir.TypeMap) && n.attribute.Nested == nil {
+	if (n.attribute.Type == ir.TypeList || n.attribute.Type == ir.TypeMap) && n.attribute.NestedAttributes == nil {
 		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, schemaTypeOf(n).ElementType)
 	}
@@ -117,11 +117,11 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 
 	b.WriteString(sb.planModifierLines(n, indent+"\t"))
 
-	if n.attribute.Nested != nil {
+	if n.attribute.NestedAttributes != nil {
 		// A list and a map both wrap their attributes in a
 		// NestedAttributeObject; only a single nested object carries them
 		// directly.
-		if n.attribute.Kind == ir.TypeList || n.attribute.Kind == ir.TypeMap {
+		if n.attribute.Type == ir.TypeList || n.attribute.Type == ir.TypeMap {
 			fmt.Fprintf(&b, "%s\tNestedObject: %s.NestedAttributeObject{\n", indent, sb.goPackage())
 			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]%s.Attribute{\n", indent, sb.goPackage())
 			b.WriteString(sb.attributeDeclarations(n.children, depth+3))
@@ -150,7 +150,7 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 	var validators []code.CustomValidator
 
-	if len(n.attribute.OneOf) > 0 && n.attribute.Kind == ir.TypeString && n.attribute.Nested == nil {
+	if len(n.attribute.OneOf) > 0 && n.attribute.Type == ir.TypeString && n.attribute.NestedAttributes == nil {
 		quoted := make([]string, len(n.attribute.OneOf))
 		for i, v := range n.attribute.OneOf {
 			quoted[i] = strconv.Quote(v)
@@ -163,7 +163,7 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 		})
 	}
 
-	if len(n.attribute.OneOf) > 0 && n.attribute.Kind == ir.TypeList && n.attribute.ElementType == ir.TypeString {
+	if len(n.attribute.OneOf) > 0 && n.attribute.Type == ir.TypeList && n.attribute.ElementType == ir.TypeString {
 		quoted := make([]string, len(n.attribute.OneOf))
 		for i, v := range n.attribute.OneOf {
 			quoted[i] = strconv.Quote(v)
@@ -272,7 +272,7 @@ func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 		})
 	}
 	isID := n.attribute.Name == "id" && n.attribute.ComputedOptionalRequired == ir.Computed &&
-		n.attribute.Kind == ir.TypeString && n.attribute.Nested == nil
+		n.attribute.Type == ir.TypeString && n.attribute.NestedAttributes == nil
 	// A computed-optional attribute is one the practitioner may set and the
 	// server fills when they do not. Unpinned it re-plans as unknown on every
 	// run, which is a permanent diff on a resource nothing has changed.
@@ -335,7 +335,7 @@ func attributeDescription(a ir.Attribute, keptFromPlan bool) string {
 	if a.RequiresReplace {
 		parts = append(parts, "Changing this attribute forces replacement.")
 	}
-	if a.SilentlyIgnoredOnUpdate {
+	if a.IgnoredOnUpdate {
 		parts = append(parts, "The API ignores this attribute on update.")
 	}
 	return strings.Join(parts, " ")
@@ -387,7 +387,7 @@ func newModelNamer(typePrefix string, nodes []node) *modelNamer {
 	var survey func(parent string, nodes []node)
 	survey = func(parent string, nodes []node) {
 		for _, n := range nodes {
-			if n.attribute.Nested == nil {
+			if n.attribute.NestedAttributes == nil {
 				continue
 			}
 			path := n.attribute.Name
@@ -476,7 +476,7 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 		}
 
 		for _, n := range nodes {
-			if n.attribute.Nested == nil {
+			if n.attribute.NestedAttributes == nil {
 				continue
 			}
 			nested := childPath(path, n)
@@ -498,11 +498,11 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 // back into, through the AttrTypes function beside it.
 func fieldType(n node) string {
 	switch {
-	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
+	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeList:
 		return "types.List"
-	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeMap:
+	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeMap:
 		return "types.Map"
-	case n.attribute.Nested != nil:
+	case n.attribute.NestedAttributes != nil:
 		return "types.Object"
 	default:
 		return schemaTypeOf(n).ValueType
@@ -513,11 +513,11 @@ func fieldType(n node) string {
 // object or list value must be given to be built or nulled.
 func attrTypeExpr(namer *modelNamer, path string, n node) string {
 	switch {
-	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
+	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeList:
 		return "types.ListType{ElemType: " + nestedObjectType(namer, path) + "}"
-	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeMap:
+	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeMap:
 		return "types.MapType{ElemType: " + nestedObjectType(namer, path) + "}"
-	case n.attribute.Nested != nil:
+	case n.attribute.NestedAttributes != nil:
 		return nestedObjectType(namer, path)
 	default:
 		resolved := schemaTypeOf(n)

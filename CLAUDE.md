@@ -73,9 +73,10 @@ A test is named `TestUnit_<Area>_<Behaviour>` or
   pilot vendor name in non-test source, and no tracked file over 1 MiB.
 - **Never commit generated pilot output or binaries.** Generated provider trees
   live in provider repos; this repo holds only the machinery and its fixtures.
-- **Exit codes are 0, 1 and 2** — success, a verb that ran and refused, and an
-  invocation that was misspelt. The table in `docs/contract.md` is the
-  contract, and a new code is appended rather than renumbering one.
+- **Exit codes are 0, 1 and 2** — success, a verb that ran and stopped on an
+  exclusion, and an invocation that was misspelt. The table in
+  `docs/contract.md` is the contract, and a new code is appended rather than
+  renumbering one.
 - **Vendor OpenAPI specs are committed and embedded.** The third-party
   documents the tests parse live in `internal/vendor_openapi_specs`, taken as
   the vendor published them. They are test input and nothing else: never
@@ -103,7 +104,7 @@ A test is named `TestUnit_<Area>_<Behaviour>` or
   // all for the provider.
 
   // Yes — what, then why.
-  // Refuses one entity rather than the run: an unrenderable shape is a
+  // Excludes one entity rather than the run: an unrenderable shape is a
   // fact about that entity, and the rest still generate.
   ```
 
@@ -124,7 +125,7 @@ change:
   description with no key both fail that test, so the schema and its reference
   cannot drift apart.
 - `docs/emittance_tracker.md` is the only place counts of what the toolkit
-  emits and refuses may live. A count is a fact about one toolkit commit
+  emits and excludes may live. A count is a fact about one toolkit commit
   against one pinned document; stating one in a readme, a comment or another
   doc puts it somewhere it cannot be re-measured, where it goes stale
   invisibly.

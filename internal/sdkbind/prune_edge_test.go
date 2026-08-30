@@ -73,7 +73,7 @@ func TestPruneKiotaShapes(t *testing.T) {
 
 // TestLoadSDKRefusesBrokenTree reports a tree that does not type-check
 // as a load error carrying the tool's own reason.
-func TestLoadSDKRefusesBrokenTree(t *testing.T) {
+func TestUnit_LoadSDK_RefusesABrokenTree(t *testing.T) {
 	_, err := loadSDK(testdataDir(t, "brokensdk"))
 	if err == nil {
 		t.Fatal("loadSDK accepted a tree that does not type-check")
@@ -91,9 +91,9 @@ func TestPruneLookupDatasource(t *testing.T) {
 		Datasources: []ir.Datasource{{
 			Names: names("tags", "tags"),
 			Operations: ir.Operations{
-				Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+				Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			},
-			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+			Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("id", "id", ir.TypeString, ir.Required),
 				attribute("name", "name", ir.TypeString, ir.Computed),
 			}},
@@ -123,14 +123,14 @@ func TestPruneKiotaListResource(t *testing.T) {
 			{
 				Names:         names("tags", "tags"),
 				ListOperation: *operation(ir.OperationList, "GET", "/tags", ""),
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 			{
 				Names:         names("widgets", "widgets"),
 				ListOperation: *operation(ir.OperationList, "GET", "/widgets", ""),
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
@@ -159,9 +159,9 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 		Datasources: []ir.Datasource{{
 			Names: names("widgets", "widgets"),
 			Operations: ir.Operations{
-				Read: operation(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
+				Read: operation(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.URLPathParameter{Name: "widgetId", Type: ir.TypeString}),
 			},
-			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+			Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("id", "id", ir.TypeString, ir.Required),
 			}},
 			LookupByKey:  true,
@@ -190,7 +190,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 	}}
 	items := attribute("items", "items", ir.TypeList, ir.Computed)
 	items.ElementType = ir.TypeObject
-	items.Nested = itemTree
+	items.NestedAttributes = itemTree
 
 	t.Run("the envelope key names the getter", func(t *testing.T) {
 		m := &ir.Model{
@@ -198,7 +198,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 			Datasources: []ir.Datasource{{
 				Names:      names("gizmos", "gizmos"),
 				Operations: ir.Operations{List: operation(ir.OperationList, "GET", "/gizmos", "")},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("filter_type", "filter_type", ir.TypeString, ir.Required),
 					attribute("filter_value", "filter_value", ir.TypeString, ir.Optional),
 					items,
@@ -227,7 +227,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 			ListResources: []ir.ListResource{{
 				Names:         names("gizmos", "gizmos"),
 				ListOperation: *operation(ir.OperationList, "GET", "/gizmos", ""),
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			}},
@@ -253,7 +253,7 @@ func TestPruneKiotaAmbiguousWrapper(t *testing.T) {
 		ListResources: []ir.ListResource{{
 			Names:         names("blobs", "blobs"),
 			ListOperation: *operation(ir.OperationList, "GET", "/blobs", ""),
-			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+			Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("name", "name", ir.TypeString, ir.Computed),
 			}},
 			// No envelope key, and the envelope carries two slice getters.
@@ -276,7 +276,7 @@ func TestPruneActionRemovals(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		Actions: []ir.Action{{
 			Names:           names("tags_assign", "tags"),
-			InvokeOperation: *operation(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			InvokeOperation: *operation(ir.OperationAction, "POST", "/tags/{tagId}/assign", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 			// No request schema: the drafted call passes (ctx, nil) where
 			// the SDK's Post takes three arguments.
 		}},
@@ -300,9 +300,9 @@ func TestPruneUnconstructibleBody(t *testing.T) {
 			Names: names("orphans", "orphans"),
 			Operations: ir.Operations{
 				Create: operation(ir.OperationCreate, "POST", "/orphans", ""),
-				Read:   operation(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.Parameter{Name: "orphanId", Type: ir.TypeString}),
+				Read:   operation(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.URLPathParameter{Name: "orphanId", Type: ir.TypeString}),
 			},
-			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+			Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("name", "name", ir.TypeString, ir.Required),
 			}},
 		}},
@@ -327,9 +327,9 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 				Names: names("tags", "tags"),
 				Operations: ir.Operations{
 					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
-					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("legacy", "legacy", ir.TypeString, ir.Optional),
 				}},
 			}},
@@ -351,9 +351,9 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 				Names: names("tags", "tags"),
 				Operations: ir.Operations{
 					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
-					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.URLPathParameter{Name: "tagId", Type: ir.TypeString}),
 				},
-				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("id", "id", ir.TypeString, ir.Computed),
 				}},
 			}},
@@ -397,7 +397,7 @@ func TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes(t *testing.T) {
 		{"byte slice", ir.TypeString, "", types.NewSlice(types.Typ[types.Byte]), "FromBytesBase64", "ToBytesBase64", "[]byte"},
 	} {
 		fb := FieldBinding{
-			Attr: "x", Wire: "x", Kind: testCase.kind, ElementType: testCase.element,
+			Attr: "x", Wire: "x", Type: testCase.kind, ElementType: testCase.element,
 			Access: FieldAccess{Get: "GetX", Set: "SetX"},
 		}
 		p := &pruner{}
@@ -434,7 +434,7 @@ func TestUnit_IsKiotaDateOnly_MatchesOnThePackagePath(t *testing.T) {
 func TestUnit_SettleScalar_BridgesUUID(t *testing.T) {
 	uuidType := structNamed("github.com/google/uuid", "uuid", "UUID")
 
-	scalar := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeString, Access: FieldAccess{Get: "GetX", Set: "SetX"}}
+	scalar := FieldBinding{Attr: "x", Wire: "x", Type: ir.TypeString, Access: FieldAccess{Get: "GetX", Set: "SetX"}}
 	if why := (&pruner{}).settleScalar(&scalar, types.NewPointer(uuidType)); why.refused() {
 		t.Fatalf("a uuid scalar was refused: %s", why.Reason)
 	}
@@ -443,7 +443,7 @@ func TestUnit_SettleScalar_BridgesUUID(t *testing.T) {
 			scalar.Access.ConvertGet, scalar.Access.ConvertSet)
 	}
 
-	list := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeList, ElementType: ir.TypeString,
+	list := FieldBinding{Attr: "x", Wire: "x", Type: ir.TypeList, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetX", Set: "SetX"}}
 	if why := (&pruner{}).settleScalar(&list, types.NewSlice(uuidType)); why.refused() {
 		t.Fatalf("a uuid slice was refused: %s", why.Reason)
@@ -479,7 +479,7 @@ func TestUnit_SettleScalar_MapThroughAdditionalData(t *testing.T) {
 		types.NewTuple(types.NewVar(0, nil, "", types.NewMap(types.Typ[types.String], types.NewInterfaceType(nil, nil)))), false)
 	named.AddMethod(types.NewFunc(0, goPackage, "GetAdditionalData", sig))
 
-	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
+	fb := FieldBinding{Attr: "headers", Wire: "headers", Type: ir.TypeMap, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetHeaders"}}
 	if why := (&pruner{}).settleScalar(&fb, named); why.refused() {
 		t.Fatalf("a map carried through additionalData was refused: %s", why.Reason)
@@ -492,13 +492,13 @@ func TestUnit_SettleScalar_MapThroughAdditionalData(t *testing.T) {
 	}
 }
 
-// TestUnit_SettleScalar_MapWithoutABagIsRefused proves a map attribute whose
+// TestUnit_SettleScalar_MapWithoutABagIsExcluded proves a map attribute whose
 // SDK type carries neither a Go map nor an additionalData bag still names
 // itself in the reason rather than settling to something that will not
 // compile.
-func TestUnit_SettleScalar_MapWithoutABagIsRefused(t *testing.T) {
+func TestUnit_SettleScalar_MapWithoutABagIsExcluded(t *testing.T) {
 	named := structNamed("example.com/sdk/models", "models", "Opaque")
-	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
+	fb := FieldBinding{Attr: "headers", Wire: "headers", Type: ir.TypeMap, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetHeaders"}}
 
 	why := (&pruner{}).settleScalar(&fb, named)
@@ -514,7 +514,7 @@ func TestUnit_SettleScalar_MapWithoutABagIsRefused(t *testing.T) {
 // reads and writes as different scalar types keeps both directions, each
 // bridged against its own type.
 func TestUnit_SettleEachDirection_BridgesAScalarPair(t *testing.T) {
-	fb := FieldBinding{Attr: "count", Wire: "count", Kind: ir.TypeInt64,
+	fb := FieldBinding{Attr: "count", Wire: "count", Type: ir.TypeInt64,
 		Access: FieldAccess{Get: "GetCount", Set: "SetCount"}}
 
 	why := (&pruner{}).settleEachDirection(&fb,
@@ -533,12 +533,12 @@ func TestUnit_SettleEachDirection_BridgesAScalarPair(t *testing.T) {
 	}
 }
 
-// TestUnit_SettleEachDirection_RefusesWhatTheCatalogCannotCarry proves a
+// TestUnit_SettleEachDirection_ExcludesWhatTheCatalogCannotCarry proves a
 // pair one side of which has no bridge is still refused, naming both types
 // so the pair can be read from the report.
-func TestUnit_SettleEachDirection_RefusesWhatTheCatalogCannotCarry(t *testing.T) {
+func TestUnit_SettleEachDirection_ExcludesWhatTheCatalogCannotCarry(t *testing.T) {
 	opaque := structNamed("example.com/sdk/models", "models", "Opaque")
-	fb := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeString,
+	fb := FieldBinding{Attr: "x", Wire: "x", Type: ir.TypeString,
 		Access: FieldAccess{Get: "GetX", Set: "SetX"}}
 
 	why := (&pruner{}).settleEachDirection(&fb,
@@ -569,7 +569,7 @@ func TestUnit_SettleEachDirection_CarriesTheWriteConstructor(t *testing.T) {
 		return named
 	}
 
-	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
+	fb := FieldBinding{Attr: "headers", Wire: "headers", Type: ir.TypeMap, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetHeaders", Set: "SetHeaders"}}
 
 	// An empty loader is enough: writeModelFromNamed falls through to the

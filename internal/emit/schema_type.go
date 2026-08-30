@@ -141,21 +141,21 @@ func frameworkElementType(kind ir.AttributeType) string {
 // element kind says.
 func schemaTypeOf(n node) schemaType {
 	switch {
-	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
+	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeList:
 		return newSchemaType("ListNestedAttribute", "", "List")
-	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeMap:
+	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeMap:
 		return newSchemaType("MapNestedAttribute", "", "Map")
-	case n.attribute.Nested != nil:
+	case n.attribute.NestedAttributes != nil:
 		return newSchemaType("SingleNestedAttribute", "", "Object")
-	case n.attribute.Kind == ir.TypeList:
+	case n.attribute.Type == ir.TypeList:
 		resolved := newSchemaType("ListAttribute", "types.List", "List")
 		resolved.ElementType = frameworkElementType(n.attribute.ElementType)
 		return resolved
-	case n.attribute.Kind == ir.TypeMap:
+	case n.attribute.Type == ir.TypeMap:
 		resolved := newSchemaType("MapAttribute", "types.Map", "Map")
 		resolved.ElementType = frameworkElementType(n.attribute.ElementType)
 		return resolved
 	default:
-		return scalarSchemaType(n.attribute.Kind)
+		return scalarSchemaType(n.attribute.Type)
 	}
 }

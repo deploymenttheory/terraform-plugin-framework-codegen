@@ -282,7 +282,7 @@ func buildVariantModel(tree *ir.AttributeTree) variantModel {
 		}
 		for _, variant := range vc.Variants {
 			m.values[variant.Value] = true
-			for _, f := range variant.Valid {
+			for _, f := range variant.AttributesValidWhenEqual {
 				own(f, variant.Value)
 			}
 		}
@@ -294,9 +294,9 @@ func buildVariantModel(tree *ir.AttributeTree) variantModel {
 		if cv.Property != m.discriminator {
 			continue
 		}
-		m.values[cv.Equals] = true
-		for _, f := range cv.Valid {
-			own(f, cv.Equals)
+		m.values[cv.WhenPropertyEquals] = true
+		for _, f := range cv.AttributesValidWhenEqual {
+			own(f, cv.WhenPropertyEquals)
 		}
 	}
 	for _, cr := range tree.ConditionalRequirements {
@@ -306,13 +306,13 @@ func buildVariantModel(tree *ir.AttributeTree) variantModel {
 		if cr.Property != m.discriminator {
 			continue
 		}
-		m.values[cr.Equals] = true
-		if m.requiredFor[cr.Equals] == nil {
-			m.requiredFor[cr.Equals] = map[string]bool{}
+		m.values[cr.WhenPropertyEquals] = true
+		if m.requiredFor[cr.WhenPropertyEquals] == nil {
+			m.requiredFor[cr.WhenPropertyEquals] = map[string]bool{}
 		}
 		for _, f := range cr.Required {
-			own(f, cr.Equals)
-			m.requiredFor[cr.Equals][f] = true
+			own(f, cr.WhenPropertyEquals)
+			m.requiredFor[cr.WhenPropertyEquals][f] = true
 		}
 	}
 	return m
@@ -382,7 +382,7 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 		v := Entry{
 			Name:                     a.Name,
 			Wire:                     a.WireName,
-			Kind:                     a.Kind,
+			Kind:                     a.Type,
 			ElementType:              a.ElementType,
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
 			Normalised:               a.Normalisation != "",
@@ -390,17 +390,17 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			Maximum:                  a.Maximum,
 		}
 		switch {
-		case a.Nested != nil:
-			nested, nestedSkips := deriveTree(a.Nested, at)
+		case a.NestedAttributes != nil:
+			nested, nestedSkips := deriveTree(a.NestedAttributes, at)
 			v.Nested = nested
 			skips = append(skips, nestedSkips...)
-		case a.Kind == ir.TypeList, a.Kind == ir.TypeMap:
+		case a.Type == ir.TypeList, a.Type == ir.TypeMap:
 			// A collection's fixture value is one member's, so the member
 			// kind decides it. Taking the collection's own kind lands every
 			// member in the string arm, whatever the document declared.
 			v.Scalar, v.synthesised = scalarFor(a.ElementType, a, at)
 		default:
-			v.Scalar, v.synthesised = scalarFor(a.Kind, a, at)
+			v.Scalar, v.synthesised = scalarFor(a.Type, a, at)
 		}
 		values = append(values, v)
 	}

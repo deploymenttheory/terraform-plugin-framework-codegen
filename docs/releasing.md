@@ -22,7 +22,7 @@ leaves every `v1` caller untouched.
 - **Provider repos** pin an exact release tag in config
   (`generator.version: v1.2.3`). The `setup-tfpfgen` action downloads that
   release's binary for the runner, verifies it against the release's
-  checksums file, and refuses a binary that does not report the requested
+  checksums file, and does not accept a binary that does not report the requested
   version. Branches are never accepted.
 - **Caller workflows** reference this repo's reusable workflows and actions
   at the moving major tag, e.g. `@v1`. Compatible releases reach them when
@@ -31,4 +31,4 @@ leaves every `v1` caller untouched.
 
 Note the stamped version has no leading `v`: `tfpfgen version` for tag
 `v0.1.0` prints `0.1.0`. A source build prints `dev`, which a pinned
-pipeline treats as a refusal.
+pipeline treats as a failure.

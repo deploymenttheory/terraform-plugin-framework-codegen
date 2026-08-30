@@ -99,11 +99,11 @@ func reconciliationLess(a, z Reconciliation) bool {
 	}
 }
 
-// TestUnit_Prune_RefusalsOnOneModelShareOneCause is the point of a cause. A
+// TestUnit_Prune_ExclusionsOnOneModelShareOneCause is the point of a cause. A
 // model that carries none of an entity's fields refuses every one of them,
 // and reported without a cause that is one finding per attribute — leaving a
 // reader to notice for themselves that they are one fact.
-func TestUnit_Prune_RefusalsOnOneModelShareOneCause(t *testing.T) {
+func TestUnit_Prune_ExclusionsOnOneModelShareOneCause(t *testing.T) {
 	_, removed := prunedKiota(t)
 
 	byCause := map[ir.Cause][]string{}

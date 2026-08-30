@@ -12,7 +12,7 @@ import (
 // thingTree derives the main fixture's resource tree once per test.
 func thingTree(t *testing.T) *AttributeTree {
 	t.Helper()
-	return resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing").Schema
+	return resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing").Attributes
 }
 
 func TestUnit_Attributes_TypeMapping(t *testing.T) {
@@ -29,42 +29,42 @@ func TestUnit_Attributes_TypeMapping(t *testing.T) {
 		{"rules", TypeList},
 		{"settings", TypeObject},
 	} {
-		if a := attribute(t, tree, testCase.name); a.Kind != testCase.kind {
-			t.Errorf("%s: kind = %q, want %q", testCase.name, a.Kind, testCase.kind)
+		if a := attribute(t, tree, testCase.name); a.Type != testCase.kind {
+			t.Errorf("%s: kind = %q, want %q", testCase.name, a.Type, testCase.kind)
 		}
 	}
 
 	labels := attribute(t, tree, "labels")
-	if labels.ElementType != TypeString || labels.Nested != nil {
+	if labels.ElementType != TypeString || labels.NestedAttributes != nil {
 		t.Errorf("labels = %+v, want a list of strings", labels)
 	}
 	rules := attribute(t, tree, "rules")
-	if rules.ElementType != TypeObject || rules.Nested == nil {
+	if rules.ElementType != TypeObject || rules.NestedAttributes == nil {
 		t.Fatalf("rules = %+v, want a list of objects", rules)
 	}
 	// rules is server-filled, so its members are computed as well, the
 	// required one included: terraform core reads a non-computed member
 	// holding a value as one the configuration set, and clears the whole
 	// attribute when the configuration omits it.
-	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != ComputedOptional {
+	if kind := attribute(t, rules.NestedAttributes, "kind"); kind.ComputedOptionalRequired != ComputedOptional {
 		t.Errorf("kind inside rules = %+v, want computed-optional under a server-filled parent", kind)
 	}
 	// Nested attributes take the same presence rule as top-level ones, and
 	// this response describes the create schema wholesale.
-	if limit := attribute(t, rules.Nested, "limit"); limit.ComputedOptionalRequired != ComputedOptional ||
-		limit.Kind != TypeInt64 {
+	if limit := attribute(t, rules.NestedAttributes, "limit"); limit.ComputedOptionalRequired != ComputedOptional ||
+		limit.Type != TypeInt64 {
 		t.Errorf("limit inside rules = %+v", limit)
 	}
 	settings := attribute(t, tree, "settings")
-	if settings.Nested == nil {
+	if settings.NestedAttributes == nil {
 		t.Fatalf("settings has no nested tree")
 	}
-	if retries := attribute(t, settings.Nested, "retries"); retries.Kind != TypeInt64 {
+	if retries := attribute(t, settings.NestedAttributes, "retries"); retries.Type != TypeInt64 {
 		t.Errorf("retries = %+v", retries)
 	}
 }
 
-func TestUnit_Attributes_ShapelessObjectIsRefused(t *testing.T) {
+func TestUnit_Attributes_AnObjectWithoutPropertiesOrAdditionalPropertiesIsExcluded(t *testing.T) {
 	extras := attribute(t, thingTree(t), "extras")
 	if !extras.Unsupported {
 		t.Fatalf("an object with no declared shape derived a type: %+v", extras)
@@ -72,8 +72,8 @@ func TestUnit_Attributes_ShapelessObjectIsRefused(t *testing.T) {
 	if !strings.Contains(extras.UnsupportedReason, "no declared shape") {
 		t.Errorf("reason = %q", extras.UnsupportedReason)
 	}
-	if extras.Kind != "" {
-		t.Errorf("an unsupported attribute still claims kind %q", extras.Kind)
+	if extras.Type != "" {
+		t.Errorf("an unsupported attribute still claims kind %q", extras.Type)
 	}
 }
 
@@ -113,7 +113,7 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 
 		if testCase.wantReason != "" {
 			if !got.Unsupported {
-				t.Errorf("%s: derived kind %q, want a refusal", testCase.name, got.Kind)
+				t.Errorf("%s: derived kind %q, want a refusal", testCase.name, got.Type)
 				continue
 			}
 			if !strings.Contains(got.UnsupportedReason, testCase.wantReason) {
@@ -125,9 +125,9 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 			t.Errorf("%s: refused with %q", testCase.name, got.UnsupportedReason)
 			continue
 		}
-		if got.Kind != testCase.wantKind || got.ElementType != testCase.wantElement {
+		if got.Type != testCase.wantKind || got.ElementType != testCase.wantElement {
 			t.Errorf("%s: kind/element = %q/%q, want %q/%q",
-				testCase.name, got.Kind, got.ElementType, testCase.wantKind, testCase.wantElement)
+				testCase.name, got.Type, got.ElementType, testCase.wantKind, testCase.wantElement)
 		}
 	}
 }
@@ -195,7 +195,7 @@ func TestUnit_Attributes_Enums(t *testing.T) {
 
 func TestUnit_Attributes_ConditionalRequirement(t *testing.T) {
 	tree := thingTree(t)
-	want := []ConditionalRequirement{{Property: "mode", Equals: "custom", Required: []string{"proxy_host"}}}
+	want := []ConditionalRequirement{{Property: "mode", WhenPropertyEquals: "custom", Required: []string{"proxy_host"}}}
 	if !reflect.DeepEqual(tree.ConditionalRequirements, want) {
 		t.Errorf("conditional requirements = %+v, want %+v", tree.ConditionalRequirements, want)
 	}
@@ -324,7 +324,7 @@ components:
 
 func TestUnit_Attributes_ConditionalValidity(t *testing.T) {
 	tree := thingTree(t)
-	want := []ConditionalValidity{{Property: "mode", Equals: "standard", Valid: []string{"quantity"}}}
+	want := []ConditionalValidity{{Property: "mode", WhenPropertyEquals: "standard", AttributesValidWhenEqual: []string{"quantity"}}}
 	if !reflect.DeepEqual(tree.ConditionalValidities, want) {
 		t.Errorf("conditional validities = %+v, want %+v", tree.ConditionalValidities, want)
 	}
@@ -350,9 +350,9 @@ func TestUnit_Attributes_ValidConfigurations(t *testing.T) {
 	tree := thingTree(t)
 	want := []ValidConfiguration{{
 		Discriminator: "mode",
-		Variants: []ConfigVariant{
-			{Value: "custom", Valid: []string{"proxy_host"}},
-			{Value: "standard", Valid: []string{"quantity"}},
+		Variants: []ValidConfigurationVariant{
+			{Value: "custom", AttributesValidWhenEqual: []string{"proxy_host"}},
+			{Value: "standard", AttributesValidWhenEqual: []string{"quantity"}},
 		},
 	}}
 	if !reflect.DeepEqual(tree.ValidConfigurations, want) {
@@ -361,7 +361,7 @@ func TestUnit_Attributes_ValidConfigurations(t *testing.T) {
 }
 
 func TestUnit_Attributes_SilentlyIgnoredOnUpdate(t *testing.T) {
-	if a := attribute(t, thingTree(t), "notes"); !a.SilentlyIgnoredOnUpdate {
+	if a := attribute(t, thingTree(t), "notes"); !a.IgnoredOnUpdate {
 		t.Errorf("x-tfpfgen-ignored-on-update not carried: %+v", a)
 	}
 }
@@ -428,21 +428,21 @@ components:
         text: {type: string}
 `
 	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "code")
-	id := resource.Schema.Attributes[0]
+	id := resource.Attributes.Attributes[0]
 	if id.Name != "id" || id.ComputedOptionalRequired != Computed {
 		t.Fatalf("first attribute = %+v, want the synthesized computed id", id)
 	}
 	if id.WireName != "codeNumber" {
 		t.Errorf("id maps from %q, want the item path parameter", id.WireName)
 	}
-	if id.Kind != TypeInt64 {
-		t.Errorf("id kind = %q, want the parameter's integer", id.Kind)
+	if id.Type != TypeInt64 {
+		t.Errorf("id kind = %q, want the parameter's integer", id.Type)
 	}
 }
 
 // Shapes derivation refuses to guess at: unions, missing types, arrays
 // without a usable element.
-func TestUnit_Attributes_RefusedShapes(t *testing.T) {
+func TestUnit_Attributes_ExcludedShapes(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
@@ -496,9 +496,9 @@ components:
 		"grid":    `array of "array"`,
 		"blobs":   "free-form",
 	} {
-		derived := attribute(t, resource.Schema, name)
+		derived := attribute(t, resource.Attributes, name)
 		if !derived.Unsupported {
-			t.Errorf("%s: derived %q instead of refusing", name, derived.Kind)
+			t.Errorf("%s: derived %q instead of refusing", name, derived.Type)
 			continue
 		}
 		if !strings.Contains(derived.UnsupportedReason, wantReason) {
@@ -549,20 +549,20 @@ components:
             extra: {type: integer}
 `
 	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "part")
-	if a := attribute(t, resource.Schema, "core"); a.ComputedOptionalRequired != Required {
+	if a := attribute(t, resource.Attributes, "core"); a.ComputedOptionalRequired != Required {
 		t.Errorf("core = %+v, want the branch's required to hold", a)
 	}
-	if a := attribute(t, resource.Schema, "extra"); a.Kind != TypeInt64 {
+	if a := attribute(t, resource.Attributes, "extra"); a.Type != TypeInt64 {
 		t.Errorf("extra = %+v", a)
 	}
 }
 
 func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 	tree := &AttributeTree{Attributes: []Attribute{
-		{Name: "id", WireName: "id", Kind: TypeString, ComputedOptionalRequired: Computed},
-		{Name: "name", WireName: "name", Kind: TypeString, ComputedOptionalRequired: Required},
+		{Name: "id", WireName: "id", Type: TypeString, ComputedOptionalRequired: Computed},
+		{Name: "name", WireName: "name", Type: TypeString, ComputedOptionalRequired: Required},
 	}}
-	ensureParentParameters(tree, []Parameter{
+	ensureParentParameters(tree, []URLPathParameter{
 		{Name: "owner", Type: TypeString},
 		{Name: "repo", Type: TypeString},
 	}, "")
@@ -589,9 +589,9 @@ func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing.T) {
 	// The document is a better authority on its own field than the URL is.
 	tree := &AttributeTree{Attributes: []Attribute{
-		{Name: "owner", WireName: "owner", Kind: TypeString, ComputedOptionalRequired: Optional},
+		{Name: "owner", WireName: "owner", Type: TypeString, ComputedOptionalRequired: Optional},
 	}}
-	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}}, "")
+	ensureParentParameters(tree, []URLPathParameter{{Name: "owner", Type: TypeString}}, "")
 
 	if len(tree.Attributes) != 1 {
 		t.Fatalf("a declared parent must not be added twice, got %d", len(tree.Attributes))
@@ -602,7 +602,7 @@ func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing
 }
 
 func TestUnit_ParentParameters_DropsTheItemKey(t *testing.T) {
-	parameters := []Parameter{{Name: "owner"}, {Name: "repo"}, {Name: "ruleset_id"}}
+	parameters := []URLPathParameter{{Name: "owner"}, {Name: "repo"}, {Name: "ruleset_id"}}
 	got := parentParameters(parameters)
 	if len(got) != 2 || got[0].Name != "owner" || got[1].Name != "repo" {
 		t.Fatalf("want owner and repo, got %+v", got)
@@ -759,13 +759,13 @@ func TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects(t *testing.T) 
 
 	tree := buildAttributeTree(create, create, update, false)
 	server := attribute(t, tree, "server")
-	if server.Nested == nil {
+	if server.NestedAttributes == nil {
 		t.Fatal("server must derive a nested tree")
 	}
-	if a := attribute(t, server.Nested, "tenant_id"); !a.RequiresReplace {
+	if a := attribute(t, server.NestedAttributes, "tenant_id"); !a.RequiresReplace {
 		t.Error("server.tenant_id is absent from the nested update schema, so it must force replacement")
 	}
-	if a := attribute(t, server.Nested, "host"); a.RequiresReplace {
+	if a := attribute(t, server.NestedAttributes, "host"); a.RequiresReplace {
 		t.Error("server.host is declared by the nested update schema, so it must not force replacement")
 	}
 }

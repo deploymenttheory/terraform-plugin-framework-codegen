@@ -33,9 +33,9 @@ func emittanceModel() *ir.Model {
 func TestUnit_RenderEmittance_ConsequencesOfOneFactAreOneEntry(t *testing.T) {
 	shared := &ir.Cause{Code: "noAccessor", Subject: "models.Envelopeable"}
 	refusals := []Unsupported{
-		{Kind: "datasource", Entity: "preload", Attribute: "asset_tag", Tag: "Inventory Preload",
+		{TerraformBlockType: "datasource", Entity: "preload", Attribute: "asset_tag", Tag: "Inventory Preload",
 			Cause: shared, Stage: StageBinding, Reason: "models.Envelopeable carries no GetAssetTag"},
-		{Kind: "datasource", Entity: "preload", Attribute: "serial_number", Tag: "Inventory Preload",
+		{TerraformBlockType: "datasource", Entity: "preload", Attribute: "serial_number", Tag: "Inventory Preload",
 			Cause: shared, Stage: StageBinding, Reason: "models.Envelopeable carries no GetSerialNumber"},
 	}
 
@@ -94,10 +94,10 @@ func TestUnit_RenderEmittance_AnEntityThatBecameNothingIsStillUnderItsTag(t *tes
 	t.Fatal("the tag is missing from the report")
 }
 
-// TestUnit_RenderEmittance_ARefusalNamingNoDerivedEntityIsNotFiled keeps the
+// TestUnit_RenderEmittance_AnExclusionNamingNoDerivedEntityIsNotFiled keeps the
 // page honest. Inventing a tag for a refusal whose entity the run never
 // derived would file it somewhere a reader cannot check.
-func TestUnit_RenderEmittance_ARefusalNamingNoDerivedEntityIsNotFiled(t *testing.T) {
+func TestUnit_RenderEmittance_AnExclusionNamingNoDerivedEntityIsNotFiled(t *testing.T) {
 	refusals := []Unsupported{{
 		Entity: "never_derived", Stage: StageBinding,
 		Cause: &ir.Cause{Code: "noAccessor"}, Reason: "the SDK carries no such thing",
@@ -121,7 +121,7 @@ func TestUnit_RenderEmittance_ARefusalNamingNoDerivedEntityIsNotFiled(t *testing
 func TestUnit_RenderEmittance_IsAFunctionOfItsInput(t *testing.T) {
 	e := Emittance{Provider: "acme", Document: EmittanceDocument{Source: "https://example.invalid/api.json"}}
 	refusals := []Unsupported{{
-		Kind: "datasource", Entity: "preload", Attribute: "asset_tag", Tag: "Inventory Preload",
+		TerraformBlockType: "datasource", Entity: "preload", Attribute: "asset_tag", Tag: "Inventory Preload",
 		Cause: &ir.Cause{Code: "noAccessor", Subject: "models.Envelopeable"},
 		Stage: StageBinding, Reason: "no getter",
 	}}

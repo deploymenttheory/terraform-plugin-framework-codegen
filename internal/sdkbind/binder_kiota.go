@@ -114,7 +114,7 @@ func (kiotaBinder) access(a ir.Attribute, mode accessMode) FieldAccess {
 		fa.Set = "Set" + base
 	}
 
-	switch a.Kind {
+	switch a.Type {
 	case ir.TypeString:
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "*string", "FromPtrString", "ToPtrString"
 	case ir.TypeBool:
@@ -124,13 +124,13 @@ func (kiotaBinder) access(a ir.Attribute, mode accessMode) FieldAccess {
 	case ir.TypeFloat64:
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "*float64", "FromPtrFloat64", "ToPtrFloat64"
 	case ir.TypeList:
-		if a.Nested == nil {
+		if a.NestedAttributes == nil {
 			fa.SDKType = "[]" + strings.TrimPrefix(goTypeOf(a.ElementType), "*")
 			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeMap:
-		if a.Nested == nil {
+		if a.NestedAttributes == nil {
 			fa.SDKType = "map[string]" + strings.TrimPrefix(goTypeOf(a.ElementType), "*")
 			shape := exportedName(string(a.ElementType)) + "Map"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape

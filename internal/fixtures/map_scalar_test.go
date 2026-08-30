@@ -14,10 +14,10 @@ import (
 func mapScalarTree() *ir.AttributeTree {
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "labels", WireName: "labels", Kind: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
-			{Name: "limits", WireName: "limits", Kind: ir.TypeMap, ElementType: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
-			{Name: "weights", WireName: "weights", Kind: ir.TypeMap, ElementType: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
-			{Name: "flags", WireName: "flags", Kind: ir.TypeMap, ElementType: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "labels", WireName: "labels", Type: ir.TypeMap, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "limits", WireName: "limits", Type: ir.TypeMap, ElementType: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+			{Name: "weights", WireName: "weights", Type: ir.TypeMap, ElementType: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
+			{Name: "flags", WireName: "flags", Type: ir.TypeMap, ElementType: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
 		},
 	}
 }

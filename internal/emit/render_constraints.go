@@ -25,13 +25,13 @@ const validatorPackageRoot = "github.com/hashicorp/terraform-plugin-framework-va
 // Nothing here registers an import; each expression carries the packages it
 // references, and validatorLines is the single place those are honoured.
 func constraintValidators(n node) []code.CustomValidator {
-	kind := n.attribute.Kind
+	kind := n.attribute.Type
 	switch {
 	case kind == ir.TypeList || kind == ir.TypeMap:
 		// A size bound applies to the collection whether its elements are
 		// scalars or objects, so this is deliberately not gated on Nested.
 		return sizeValidators(n)
-	case n.attribute.Nested != nil:
+	case n.attribute.NestedAttributes != nil:
 		// An object declaring a length or a range is declaring it about
 		// something this attribute does not hold.
 		return nil
@@ -76,7 +76,7 @@ func numericValidators(n node) []code.CustomValidator {
 	format := func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 	minimum, maximum := n.attribute.Minimum, n.attribute.Maximum
 
-	if n.attribute.Kind == ir.TypeInt64 {
+	if n.attribute.Type == ir.TypeInt64 {
 		goPackage = "int64validator"
 		format = func(v float64) string { return strconv.FormatInt(int64(v), 10) }
 		// A fractional bound on an integer attribute describes a value the
@@ -95,7 +95,7 @@ func numericValidators(n node) []code.CustomValidator {
 // sizeValidators is the declared member-count range of a list or a map.
 func sizeValidators(n node) []code.CustomValidator {
 	goPackage := "listvalidator"
-	if n.attribute.Kind == ir.TypeMap {
+	if n.attribute.Type == ir.TypeMap {
 		goPackage = "mapvalidator"
 	}
 	if call, ok := boundCall("Size", "Size", n.attribute.MinItems, n.attribute.MaxItems); ok {

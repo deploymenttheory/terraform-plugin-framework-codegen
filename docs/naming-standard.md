@@ -92,7 +92,7 @@ alike. The glossary already required this inside
 Three exceptions, and no others:
 
 1. **Acronyms in the acronym table** (`internal/intermediate_representation/naming.go`)
-   — `API`, `HTTP`, `SDK`, `ID`, `URL`, `JSON`, `YAML`, `RPS`, `SHA`. Cased
+   — the table is the record of the set, and this document does not repeat it. Cased
    Go-idiomatically: uppercase whole in Pascal (`APIKey`), lowered whole when
    leading in camel (`apiKey`, `id`). Additions to the table go to the owner.
 2. **Names an external contract fixes** — kiota's `GetPasswordEscaped`, cobra's
@@ -146,7 +146,7 @@ nothing else.
 | Surface | Convention |
 |---|---|
 | Go identifier | `PascalCase` exported, `camelCase` unexported |
-| JSON field, observation kind, step kind, outcome | `camelCase` |
+| JSON field, observation kind, step kind, outcome | `camelCase`, matching the OpenAPI document's own keys |
 | `x-tfpfgen-*` key, config key, file name, directory | `kebab-case` for keys and directories, `snake_case` for config keys |
 | Terraform attribute | `snake_case` |
 
@@ -251,7 +251,7 @@ not a proposal.
 | `envelope` (both senses) | R3 | `x-tfpfgen-list-wrapper` + `x-tfpfgen-list-pagination`; `ErrorBodyShape` |
 | `orphan` (three senses) | R3, R5 | `UndeletedObjects`, `UnproducedFilesOf`, `widget` |
 | `shape` as an identifier | R1, R5 | `handle*`, `has*Operations`, `listResponseFormat` split in two |
-| `json:"element_kind"` | retired | `json:"element_type"` |
+| `json:"element_kind"` | retired | `json:"elementType"` |
 | `x-tfpfgen-read-after-write` | R6 | `x-tfpfgen-read-after-write` — the kind is `readAfterWrite` |
 | `oag*` | R4 | `openAPIGenerator*` |
 | `MapRemoteStateToTerraform` | asymmetric | `MapRemoteStateToResource`, pairing with `MapRemoteStateToDatasource` |

@@ -393,7 +393,7 @@ func TestUnit_Prune_RepairsAnIndexerTheGeneratorSpeltDifferently(t *testing.T) {
 	}
 }
 
-func TestUnit_Prune_RefusesAnAmbiguousIndexer(t *testing.T) {
+func TestUnit_Prune_ExcludesAnAmbiguousIndexer(t *testing.T) {
 	// Two indexers is a guess, and a guess is what this must never make.
 	seg := &Segment{Name: "ByThingId", Call: true, Args: []string{"id"}}
 	p := &pruner{}

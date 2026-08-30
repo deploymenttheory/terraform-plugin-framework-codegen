@@ -343,11 +343,11 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 	}
 	cannot := func(shape string) refusal {
 		return because(CauseUnbridgeableType, shape,
-			"the SDK carries it as %s, which cannot be bridged to a %s attribute", shape, fb.Kind)
+			"the SDK carries it as %s, which cannot be bridged to a %s attribute", shape, fb.Type)
 	}
 
 	// A slice of scalars or enumerations.
-	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Kind == ir.TypeList {
+	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Type == ir.TypeList {
 		element := slice.Elem()
 		if basic, ok := element.Underlying().(*types.Basic); ok {
 			if named, isNamed := element.(*types.Named); isNamed {
@@ -381,7 +381,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 	// untyped additionalData bag, so the map is reached through that rather
 	// than through a Go map. The bag is map[string]any, so the element
 	// conversion asserts each value's type at runtime.
-	if fb.Kind == ir.TypeMap {
+	if fb.Type == ir.TypeMap {
 		if named, ok := t.(*types.Named); ok {
 			if _, hasGet := methodOn(named, "GetAdditionalData"); hasGet {
 				title := exportedName(string(fb.ElementType))
@@ -405,7 +405,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 
 	// A map of scalars the SDK does carry as a Go map. Only a string key can
 	// address a terraform map, and only a scalar value has a catalog bridge.
-	if mapType, ok := t.Underlying().(*types.Map); ok && fb.Kind == ir.TypeMap {
+	if mapType, ok := t.Underlying().(*types.Map); ok && fb.Type == ir.TypeMap {
 		if basic, isBasic := mapType.Key().Underlying().(*types.Basic); !isBasic || basic.Kind() != types.String {
 			return cannot(shortType(t))
 		}
@@ -420,7 +420,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 
 	// OpenAPI's `format: byte` is base64, which derives a string attribute
 	// rather than a list of numbers, so the bridge is base64 too.
-	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Kind == ir.TypeString {
+	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Type == ir.TypeString {
 		if basic, isBasic := slice.Elem().Underlying().(*types.Basic); isBasic && basic.Kind() == types.Byte {
 			settle("[]byte", "FromBytesBase64", "ToBytesBase64", "")
 			return refusal{}
@@ -448,7 +448,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 
 	if named, ok := current.(*types.Named); ok {
 		if parse, isEnum := p.enumParse(named); isEnum {
-			if fb.Kind != ir.TypeString {
+			if fb.Type != ir.TypeString {
 				return cannot(shortType(t))
 			}
 			get, set := convert("Enum")
@@ -456,7 +456,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 			return refusal{}
 		}
 		if isStdTime(named) {
-			if fb.Kind != ir.TypeString {
+			if fb.Type != ir.TypeString {
 				return cannot(shortType(t))
 			}
 			get, set := convert("Time")
@@ -466,7 +466,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 		// kiota mints its own date-only type rather than using time.Time
 		// for a `format: date` field.
 		if isKiotaDateOnly(named) {
-			if fb.Kind != ir.TypeString {
+			if fb.Type != ir.TypeString {
 				return cannot(shortType(t))
 			}
 			get, set := convert("DateOnly")
@@ -476,7 +476,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 		// A uuid is a string to a practitioner. Parsing one back can fail,
 		// which the write bridge reports rather than guessing at.
 		if isGoogleUUID(named) {
-			if fb.Kind != ir.TypeString {
+			if fb.Type != ir.TypeString {
 				return cannot(shortType(t))
 			}
 			get, set := convert("UUID")
@@ -487,7 +487,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 	}
 
 	if basic, ok := current.(*types.Basic); ok {
-		if !kindCompatible(fb.Kind, basic) {
+		if !kindCompatible(fb.Type, basic) {
 			return cannot(shortType(t))
 		}
 		get, set := convert(exportedName(basic.Name()))

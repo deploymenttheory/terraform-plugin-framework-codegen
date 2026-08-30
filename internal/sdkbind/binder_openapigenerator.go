@@ -111,7 +111,7 @@ func (openAPIGeneratorBinder) access(a ir.Attribute, mode accessMode) FieldAcces
 		fa.Set = "Set" + base
 	}
 
-	switch a.Kind {
+	switch a.Type {
 	case ir.TypeString:
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "string", "FromString", "ToString"
 	case ir.TypeBool:
@@ -121,13 +121,13 @@ func (openAPIGeneratorBinder) access(a ir.Attribute, mode accessMode) FieldAcces
 	case ir.TypeFloat64:
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "float64", "FromFloat64", "ToFloat64"
 	case ir.TypeList:
-		if a.Nested == nil {
+		if a.NestedAttributes == nil {
 			fa.SDKType = "[]" + goTypeOf(a.ElementType)
 			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeMap:
-		if a.Nested == nil {
+		if a.NestedAttributes == nil {
 			fa.SDKType = "map[string]" + goTypeOf(a.ElementType)
 			shape := exportedName(string(a.ElementType)) + "Map"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape

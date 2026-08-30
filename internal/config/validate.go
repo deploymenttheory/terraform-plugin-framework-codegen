@@ -47,7 +47,7 @@ func (c *Config) problems() []string {
 	case c.Generator.Version == "":
 		report("generator.version: required")
 	case !releaseTag.MatchString(c.Generator.Version):
-		report("generator.version: %q is not an exact release tag (vX.Y.Z); branches are refused", c.Generator.Version)
+		report("generator.version: %q is not an exact release tag (vX.Y.Z); branches are not accepted", c.Generator.Version)
 	}
 
 	switch c.Spec.DocumentURL {

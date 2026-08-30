@@ -22,7 +22,7 @@ The schema is owned by `internal/config`; this page is generated from it, so eve
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `generator.version` | string | — | Exact toolkit release tag (vX.Y.Z) the pipeline installs; branch names are refused. |
+| `generator.version` | string | — | Exact toolkit release tag (vX.Y.Z) the pipeline installs; branch names are not accepted. |
 
 ## `spec`
 

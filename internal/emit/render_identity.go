@@ -44,25 +44,25 @@ var identitySchemaTypes = map[ir.AttributeType]string{
 // Empty when the resource carries no id, which is the one attribute an
 // identity cannot do without.
 func resourceIdentity(r *ir.Resource) []identityAttribute {
-	if r.Schema == nil {
+	if r.Attributes == nil {
 		return nil
 	}
 	addressing := identityAddressing(r.Operations.Read, r.Operations.Create, r.Operations.Delete)
 
 	var out []identityAttribute
 	var carriesID bool
-	for _, attribute := range r.Schema.Attributes {
-		if attribute.Nested != nil || attribute.Unsupported {
+	for _, attribute := range r.Attributes.Attributes {
+		if attribute.NestedAttributes != nil || attribute.Unsupported {
 			continue
 		}
 		if attribute.Name != idAttributeName && !addressing[attribute.Name] {
 			continue
 		}
-		schemaType, ok := identitySchemaTypes[attribute.Kind]
+		schemaType, ok := identitySchemaTypes[attribute.Type]
 		if !ok {
 			continue
 		}
-		kind := attribute.Kind
+		kind := attribute.Type
 		if attribute.Name == idAttributeName {
 			carriesID = true
 			// The id is a string in the identity whatever the API keys its

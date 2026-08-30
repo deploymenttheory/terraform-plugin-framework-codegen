@@ -3,12 +3,12 @@
 package {{ .Package }}
 
 {{ .CRUDImports }}
-{{ if .HasEC }}
-// eventualConsistency is how long a read may lag a write, as the document
+{{ if .HasReadAfterWriteDelay }}
+// readAfterWriteDelay is how long a read may lag a write, as the document
 // declares it. The predicate below keeps the read-after-write loop
 // retrying inside the operation timeout while a lagging read still
 // answers "gone".
-const eventualConsistency = {{ .ECDuration }}
+const readAfterWriteDelay = {{ .ReadAfterWriteDelay }}
 
 // consistencyPredicate treats a state the read removed as "not consistent
 // yet" rather than "does not exist": within the retry window a 404 is
@@ -69,7 +69,7 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 
 	readReq := resource.ReadRequest{State: resp.State, ProviderMeta: req.ProviderMeta}
 	opts := crud.ReadWithRetryOptions{Operation: errors.OperationCreate, ResourceTypeName: ResourceName}
-{{- if .HasEC }}
+{{- if .HasReadAfterWriteDelay }}
 	opts.ConsistencyPredicate = consistencyPredicate
 {{- end }}
 	if retryErr := crud.ReadWithRetry(ctx, r.Read, readReq, crud.CreateResponseContainer{Response: resp}, opts); retryErr != nil {
@@ -179,7 +179,7 @@ func (r *{{ .Type }}) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	readReq := resource.ReadRequest{State: resp.State, ProviderMeta: req.ProviderMeta}
 	opts := crud.ReadWithRetryOptions{Operation: errors.OperationUpdate, ResourceTypeName: ResourceName}
-{{- if .HasEC }}
+{{- if .HasReadAfterWriteDelay }}
 	opts.ConsistencyPredicate = consistencyPredicate
 {{- end }}
 	if retryErr := crud.ReadWithRetry(ctx, r.Read, readReq, crud.UpdateResponseContainer{Response: resp}, opts); retryErr != nil {

@@ -1,7 +1,7 @@
 # Emittance tracker
 
 What the toolkit currently emits from each pilot document, and what it
-refuses. One measurement per row, taken by running the generator rather than
+excludes. One measurement per row, taken by running the generator rather than
 estimated.
 
 A count here is a fact about a particular toolkit commit against a particular
@@ -18,8 +18,8 @@ were measured against, so a stale row is visible as a stale row.
 - **Resources, data sources, list resources and actions** are the entities that
   survived derivation, binding and emission — what the generated provider
   actually registers, not what the document might have supported.
-- **Refusals** is the `unsupported.json` total, split by the stage that refused:
-  `derivation`, `binding`, `emission`. A refusal is one entity or one attribute
+- **Exclusions** is the `unsupported.json` total, split by the stage that excluded:
+  `derivation`, `binding`, `emission`. An exclusion is one entity or one attribute
   the toolkit declined to emit, each carrying the reason.
 - **Builds** means the generate verb's postcheck passed in that tree: `go mod
   tidy`, `go build`, `go vet`.
@@ -36,7 +36,7 @@ under `tfpfgen provider verify`.
 | ThousandEyes | 1912 | 35 | 95 | 30 | 51 | yes |
 | Total | 10269 | 170 | 629 | 98 | 229 | |
 
-Refusals, by the stage that refused:
+Exclusions, by the stage that excluded:
 
 | Document | Total | Derivation | Binding | Emission |
 |---|---|---|---|---|
@@ -45,23 +45,23 @@ Refusals, by the stage that refused:
 | ThousandEyes | 343 | 88 | 251 | 4 |
 | Total | 1507 | 460 | 1011 | 36 |
 
-A refusal total is not a score, and this one rose while the toolkit refused
+An exclusion total is not a score, and this one rose while the toolkit excluded
 less. Unions now derive as one attribute per variant, which brings each
-variant's own fields into the tree: GitHub's derivation refusals fall by 60 as
-the unions clear, and its binding refusals rise by 130 as the fields those
+variant's own fields into the tree: GitHub's derivation exclusions fall by 60 as
+the unions clear, and its binding exclusions rise by 130 as the fields those
 variants carry are each resolved against the SDK and some deleted. More schema
 is served, so more of it is individually accounted for.
 
-Union refusals, which is the number this measures against, fall from 90 to 13
+Union exclusions, which is the number this measures against, fall from 90 to 13
 — all 13 in GitHub, 11 for a branch referencing no component and 2 for a union
 in a writable position.
 
-Binding refuses most of what is refused, and that is the expected shape: it is
+Binding excludes most of what is excluded, and that is the expected shape: it is
 the only stage that resolves a drafted mapping against the SDK that was
 actually generated, so it is where a document's ambition meets what the
 backend could carry.
 
-Eleven of the emission refusals are one shape: a list element whose key the
+Eleven of the emission exclusions are one shape: a list element whose key the
 document spells its own way, where no rule derives that spelling from the path
 — `/roles/{id}` beside an element carrying `roleId`, `/users/{id}` beside
 `uid`. Each names its candidates in its reason. They need the field named as
@@ -95,7 +95,7 @@ In a provider repo with a committed revised spec and a generated SDK:
 tfpfgen provider generate
 ```
 
-The verb prints the entity counts and the refusal split as its last two lines,
+The verb prints the entity counts and the exclusion split as its last two lines,
 and runs the postcheck. `tfpfgen provider verify` regenerates into a temporary
 tree and byte-compares, which is what proves a committed tree still matches the
 toolkit that claims to produce it.

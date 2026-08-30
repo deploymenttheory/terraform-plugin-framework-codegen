@@ -153,9 +153,9 @@ func (e *serviceRenderer) dependencyBlock(dependency *ir.Resource, depth int, li
 		return "", false
 	}
 	e.dependencyTypes = append(e.dependencyTypes, dependency.Names.TerraformType)
-	nodes := e.joinTree(bindingKindResource, dependency.Names.Key, dependency.Schema, pb.Fields, addressingNames(dependency.Schema,
+	nodes := e.joinTree(bindingKindResource, dependency.Names.Key, dependency.Attributes, pb.Fields, addressingNames(dependency.Attributes,
 		dependency.Operations.Read, dependency.Operations.Create, dependency.Operations.Update, dependency.Operations.Delete))
-	spec := deriveFixtures(dependency.Schema, nodes)
+	spec := deriveFixtures(dependency.Attributes, nodes)
 	// A replayed body is already the smallest accepted create and renders
 	// whole; a derived fixture still selects the required attributes.
 	minimal, form := spec, fixtures.ConfigMinimal
@@ -183,7 +183,7 @@ func (e *serviceRenderer) dependencyBlock(dependency *ir.Resource, depth int, li
 // the immediate parent: the last parameter above the item key, or the last
 // parameter of a singleton, whose path names no item of its own.
 func parentAttribute(r *ir.Resource) string {
-	if r.Operations.Read == nil || r.Schema == nil {
+	if r.Operations.Read == nil || r.Attributes == nil {
 		return ""
 	}
 	parameters := r.Operations.Read.PathParameters
@@ -197,8 +197,8 @@ func parentAttribute(r *ir.Resource) string {
 		return ""
 	}
 	last := parameters[len(parameters)-1]
-	for _, a := range r.Schema.Attributes {
-		if a.Nested != nil || a.Name == idAttributeName {
+	for _, a := range r.Attributes.Attributes {
+		if a.NestedAttributes != nil || a.Name == idAttributeName {
 			continue
 		}
 		if a.WireName == last.Name || a.Name == ir.TerraformName(last.Name) {

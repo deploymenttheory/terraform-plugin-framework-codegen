@@ -4,7 +4,7 @@ Every domain term in this toolkit was individually approved by the
 repository owner. `docs/naming-standard.md` is the rule set a name has to
 pass before it is proposed for this table. A term not in this table may not be introduced — present
 options to the owner first, record the decision here, then use it. The
-retired terms may not reappear: *cassette*, *blueprint*, *doctor*, *corpus*,
+retired terms may not reappear: *cassette*, *blueprint*, *doctor*, *corpus*, *authority* (the computed-optional route; now **SchemaAttributeTypeDetermination**), *refuse* as the code verb for setting an entity or attribute aside (now **exclude**), *shapelessObject* (now `objectWithoutPropertiesOrAdditionalProperties`),
 *refinement*, `Op`/`Ops`, `Param`/`Params`/`PathParams`, `TypeKind`,
 `ElementKind`, `APIVersionDir`, `Presence*`, `optional-computed`,
 `TF_<PROVIDER>_*`, and the correction-branch spelling
@@ -20,7 +20,7 @@ single recorded exception.
 |---|---|
 | **audit** | The credentialed stage that exercises a live API to learn its true behaviour — minimum and maximum valid configuration, field dependencies, value-conditional rules. `tfpfgen audit run`. The only stage that touches a network. |
 | **observation** | One recorded finding of an audit: what the live API actually accepted or rejected, with a redacted request/response excerpt as proof. Committed per entity in `audit/observations/<entity>.observations.json`, stamped with the spec hash it was observed against. Deliberately not replayable. |
-| **audit summary** | How far a run got with each entity: its status, the reason it stopped, and the redacted refusal behind that reason, committed at `audit/summary.json` beside the observations and the request bodies. An observation says what a run learned about one property and a request body what a create looked like when it worked; neither says why an entity produced nothing, and an entity blocked by a refusal nobody watched for otherwise leaves no trace to act on. Written whatever the run did, so a run where every entity blocked still records why. The aggregate counts it also carries are a fact about one run against one document — `docs/emittance_tracker.md` remains the only place a count of what the toolkit emits or refuses may live. |
+| **audit summary** | How far a run got with each entity: its status, the reason it stopped, and the redacted refusal behind that reason, committed at `audit/summary.json` beside the observations and the request bodies. An observation says what a run learned about one property and a request body what a create looked like when it worked; neither says why an entity produced nothing, and an entity blocked by a refusal nobody watched for otherwise leaves no trace to act on. Written whatever the run did, so a run where every entity blocked still records why. The aggregate counts it also carries are a fact about one run against one document — `docs/emittance_tracker.md` remains the only place a count of what the toolkit emits or excludes may live. |
 | **request bodies** | The create request bodies a run got the API to accept, committed per entity in `audit/request_bodies/<entity>.request_bodies.json` with the status each was answered and the response it was answered with. An observation says something about one property; these say what a whole create looked like when it worked, which is the one thing a generated acceptance test cannot derive — the document describes what should be accepted, and only a run knows what was. Acceptance fixtures replay these values rather than deriving them again. Named for the request half deliberately: the response is carried as evidence of what the API echoed, and it is the request that a configuration has to reproduce. |
 | **correction** | One committed correction to the imported OpenAPI document: RFC 6902 operations plus a required justification and an optional evidence pointer to an observation. Lives in `spec/corrections/`; proposed ones await a human in `spec/corrections/proposed/`; rejected ones leave a marker in `spec/corrections/rejected/`. Kinds listed in config `audit.auto_accept` skip `proposed/` and land accepted directly, named with an `auto-NNN-` prefix. A correction is **proposed**, then **accepted** (merged), **rejected** (closed, leaving a marker that suppresses re-proposal permanently) or **withdrawn** (closed by a later run that no longer proposes it, recording nothing, so the observation can be proposed again). |
 | **revise** | To fold observations into proposed corrections and apply accepted ones — `tfpfgen spec revise`. Its two halves are `Propose` and `WriteRevision`. The spec is revised based on audit observations; the output is the revised spec (`spec/revised.yaml`), the single source of truth for all generation. |
@@ -41,14 +41,25 @@ single recorded exception.
 | **intermediate representation** | The ephemeral, never-committed derivation (`internal/intermediate_representation`) recomputed from the revised spec and config on every generation run; its model vocabulary (Model, Resource, Datasource, ListResource, Action, AttributeTree, ComputedOptionalRequired, Operation, Names) is approved. Every identifier in the package is fully worded — no abbreviated type, field, function, parameter or local. `Operation`/`Operations` replace the earlier `Op`/`Ops`, `AttributeType` replaces `TypeKind`, `Parameter`/`PathParameters` replace `Param`/`PathParams`, and `APIVersionDirectory` replaces `APIVersionDir`. `OneOf` is the one deliberate exception: it is named for the `stringvalidator.OneOf` it generates, and generated things are spelt the way HashiCorp spells them. `Datasource` likewise stays one word here, per the fixed spelling below. |
 | **ComputedOptionalRequired** | How an attribute participates in a plan, and the four values it takes: `required`, `optional`, `computed`, `computed_optional`. The name and the values are [terraform-plugin-codegen-spec](https://github.com/hashicorp/terraform-plugin-codegen-spec)'s (`schema.ComputedOptionalRequired`), adopted so the toolkit and the specification that could describe its output call the same fact by the same name. It replaces the earlier `Presence` / `PresenceRequired` / `PresenceOptional` / `PresenceComputed` / `PresenceOptionalComputed`, and the value `optional-computed`; those spellings are retired. |
 | **ElementType** | The type within a list — the spec's `schema.ElementType`. Replaces `ElementKind`, which is retired. Distinct from `sdkbind`'s own `ElementType`, which is a finished Go type expression for an SDK collection element rather than a terraform attribute type. |
+| **NestedAttributes** | The child attribute tree an object attribute carries, or the object at the bottom of a list or map of objects: `Attribute.NestedAttributes`. Replaces the bare adjective `Nested`, which is retired as a field name. |
+| **Attributes** | The `AttributeTree` a resource, datasource, list resource or action carries: `Resource.Attributes`, `Datasource.Attributes`, `ListResource.Attributes` and `.AddressingAttributes`, `Action.RequestAttributes`. The earlier field name `Schema` is retired for these: `schema` means the OpenAPI schema (`specmodel.Schema`) and nothing else. |
+| **Type** | The terraform attribute type of an attribute or a path parameter: `Attribute.Type`, `URLPathParameter.Type`, `QueryParameter.Type`, all `AttributeType`. `Attribute.Kind` is retired; `Kind` is left to `OperationKind` (an operation's lifecycle role) and to `specmodel`'s entity kinds. |
+| **URLPathParameter** | One parameter of a URL path template, with its name and terraform type: `Operation.PathParameters []URLPathParameter`. Replaces the bare `Parameter`, which said neither which parameter nor of what. |
+| **SchemaAttributeTypeDetermination** | Which declaration decided that an attribute is computed-optional, recorded so an operator can find the route and correct it: `serverDefault` (the audit measured it), `responseRequired` (the response schema requires it), `requestDefault` (the request property declares a default), `responseProperty` (the response schema merely describes it). `Attribute.SchemaAttributeTypeDetermination`; the constants are `SchemaAttributeTypeDetermination<Route>`. Replaces the unrecorded root word `Authority`, which is retired. |
+| **ReadAfterWriteDelay** | The longest read-after-write lag the document declares across an entity's lifecycle, as a duration: `Resource.ReadAfterWriteDelay`, the template field `HasReadAfterWriteDelay`, and the emitted constant `readAfterWriteDelay`. One spelling for the fact the observation kind `readAfterWrite` records; the earlier `EventualConsistency` / `HasEC` / `ECDuration` are retired. |
+| **TerraformBlockType** | Which kind of terraform block an entity was, or would have become — `resource`, `datasource`, `list_resource` or `action` — on an `UnsupportedEntity` and in `unsupported.json` as `terraformBlockType`. Replaces the bare `Kind` there. |
+| **exclude** | What the toolkit does when it sets an entity or an attribute aside rather than generating it, at any stage — configuration, classification, derivation, binding or emission. The code verb is `exclude` (`exclude()`, `excludeReservedRootNames()`, `excludedAttributes()`), the model fields are `ExcludedBy*`, the cause is `excludedByConfiguration`, and the committed record is `unsupported.json`. `refuse` is retired for this sense; it remains the audit's word for an API answering a request with a 4xx (`refusal`, `uncorrectableRefusal`, the refusal **grammar**), which is a different fact. |
+| **IsDatasourceFilterArgument** | The bool marking a datasource argument that selects which listed objects come back rather than describing one (`Attribute.IsDatasourceFilterArgument`); it binds to no SDK field. Replaces the bare `Filter`. |
+| **ValidConfigurationVariant** | One discriminator value of a **validConfiguration** with the attribute names valid under it (`Value`, `AttributesValidWhenEqual`). Replaces the abbreviated `ConfigVariant`. |
+| **WhenPropertyEquals** / **AttributesValidWhenEqual** | On a `ConditionalRequirement` or `ConditionalValidity`: the value the gate property must equal, and the attribute names that are required or valid when it does. Replace the bare `Equals` and `Valid`. |
 | **code.Import** | One source-code import an emitted expression needs: `{Alias, Path}`, the spec's `code.Import` mirrored in `internal/code` rather than depended upon, because a mirrored struct costs nothing and a module costs a dependency. |
 | **SchemaDefinition** | A finished code expression, carried together with the `code.Import`s it needs — the spec's spelling for the same thing `CLAUDE.md` already demands of every value a template consumes. `code.CustomValidator` and `code.CustomPlanModifier` are the two carriers: an expression declares the packages it references on the value it returns, so a validator or plan modifier can never be rendered into a file whose import block forgot it. |
 | **binding** | The dialect-neutral mapping from one intermediate-representation entity onto the generated SDK's surface (`internal/sdkbind`): finished call expressions, accessor names, model types. Drafted by a per-backend binder, resolved against the real SDK with go/types. Its vocabulary (Bindings, Call, FieldAccess, Segment) is approved. |
 | **prune** | To resolve drafted bindings against the generated SDK and delete whatever the SDK cannot carry, recording the SDK's reason for each deletion. A spelling is repaired only where the SDK admits exactly one answer — never invented, never widened. |
 | **provider-core** | The shared plumbing the toolkit emits into every generated provider: the client, crud retry, error semantics, the conversion catalog, schema helpers, and the test harness. An emitted copy, not a shared library — every file is manifest-covered and regenerated wholesale. Templates live in `internal/templates/provider-core`. |
 | **emit** | The render-and-write layer (`internal/emit`): it turns the provider-core and service templates plus finished context values into provider files and reports what it wrote as manifest entries. Its emission vocabulary is approved: `RenderServices` renders every entity's service files and answers a `ServiceFiles` (the files plus a `Registry` of registration lines); `Register` writes one slot's `Registrations` into a registry file at its sentinels; `RegistrySlots` is the fixed slot order. |
-| **emittance tracker** | `docs/emittance_tracker.md`, the one place counts of what the toolkit emits are kept: provider tree files, entities by kind, and refusals by the stage that refused, per pilot document. A count is a fact about one toolkit commit against one pinned document, so every row records both. Stating such a count anywhere else — a readme, a comment, a doc — is what this file exists to stop: elsewhere it cannot be re-measured and goes stale invisibly. |
-| **fixtures** | The single derivation of one entity's test fixture values (`internal/fixtures`), rendered twice — HCL and wire JSON — from one result so the two can never disagree. Its vocabulary is approved: a `Fixture` carries `Entries` (one `Entry` per supported attribute) and `Omissions` (one `Omission` per refused attribute, with its reason); a `Form` (`ConfigMinimal`, `ConfigMaximal`, `ResponseMinimal`, `ResponseMaximal`) selects which entries a rendering carries; `NamePrefix` (`tfpfgen-test-`) marks every synthesised name-bearing string. |
+| **emittance tracker** | `docs/emittance_tracker.md`, the one place counts of what the toolkit emits are kept: provider tree files, entities by kind, and exclusions by the stage that excluded, per pilot document. A count is a fact about one toolkit commit against one pinned document, so every row records both. Stating such a count anywhere else — a readme, a comment, a doc — is what this file exists to stop: elsewhere it cannot be re-measured and goes stale invisibly. |
+| **fixtures** | The single derivation of one entity's test fixture values (`internal/fixtures`), rendered twice — HCL and wire JSON — from one result so the two can never disagree. Its vocabulary is approved: a `Fixture` carries `Entries` (one `Entry` per supported attribute) and `Omissions` (one `Omission` per excluded attribute, with its reason); a `Form` (`ConfigMinimal`, `ConfigMaximal`, `ResponseMinimal`, `ResponseMaximal`) selects which entries a rendering carries; `NamePrefix` (`tfpfgen-test-`) marks every synthesised name-bearing string. |
 | **step kind** | One audit derivation rule's output, named for what the step does. The set is closed, twelve strong, spelled identically in Go (`Step*`) and in plan JSON: `createMinimal`, `readWithRetry`, `readConsecutive`, `updateField`, `deleteWithConfirmation`, `createMaximal`, `omitRequired`, `undocumentedEnumValue`, `undeclaredSpecField`, `createPerEnumValue`, `read`, `cleanupDelete`. |
 | **outcome** | How far the audit got with one claim. The set is closed, four strong, spelled identically in Go (`Outcome*`) and in observation JSON: `confirmed`, `inconclusive`, `blocked`, `timeoutExhausted`. Despite its name's emphasis on time, `timeoutExhausted` covers every exhausted run budget alike — request, live-object and time. |
 | **claim** | One thing the audit believes about an API before the live run settles it: read off the document's structure or mined from a field description, carried with its **provenance**. `strategy.Claim`; its kinds are spelled exactly as the **observation** kinds they become, so a claim and the finding it turns into share a name. A confirmed claim is an observation; an unconfirmed one is `inconclusive`. |
@@ -59,7 +70,7 @@ single recorded exception.
 | **gate** | The field whose value decides which other fields an API accepts — a required enum, an optional enum or a boolean, ranked in that order. Also, separately, the English verb: a check that refuses passage (the drift gate, the coverage gate). Both senses are approved; they are different parts of speech and no reader confuses them. |
 | **edge** | One conditional rule between fields, of the kinds `validWhen`, `validConfiguration`, `dependsOn` and `mutuallyExclusive`. Counted on the audit summary as `edgesConfirmed` and `edgesInconclusive`. |
 | **the prefix pass** | The half of **cleanup** that sweeps every reachable collection deleting objects whose names carry the run's prefix, as opposed to the half that deletes by id from an **activity ledger**. Counted separately on the cleanup summary because something getting past a ledger is worth distinguishing. |
-| **preflight** | A cheap check run before an expensive thing, which refuses early. One idea at three stages: `config validate` before anything credentialed runs, the audit's tenant check before its first create, and the release job before publishing. |
+| **preflight** | A cheap check run before an expensive thing, which stops early. One idea at three stages: `config validate` before anything credentialed runs, the audit's tenant check before its first create, and the release job before publishing. |
 | **grammar** | The fixed sentence form a refusal takes, so a parser can pull the offending field out of it with one expression. One contract described from both ends: the **stub** API emits it, the executor parses it. |
 | **stub** | A hand-written stand-in for a real component, used as test input. Covers the **test API server**, `sdkgen`'s fake generator binaries, and the curated fixture's hand-written SDKs. |
 | **prenormalise** | The five rewrites every SDK generation applies to a copy of the revised document before the backend runs: strip schema defaults, collapse single-member anonymous `allOf`, widen byte-array collections, reduce unions, drop unacceptable error content. Each answers a standing generator behaviour rather than one document's mistake, so they are built in rather than committed as corrections. Output at `spec/revised.prenormalised.yaml`, never committed. |
@@ -146,7 +157,7 @@ single recorded exception.
   now. Terraform matches the two by type name and refuses to load a
   provider whose list resource names no resource, so one is derived
   exactly where an entity is both a resource and enumerable, and a
-  resource the bindings or emission refuse takes its list resource with
+  resource the bindings or emission exclude takes its list resource with
   it. The earlier meaning — a list-only entity, enumerable but not
   addressable — is retired: no resource can ever match such an entity, so
   it could not be a list resource at all. Those entities are datasources.
@@ -200,7 +211,7 @@ single recorded exception.
   per branch. A variant takes its name from the component the branch
   references and keeps that component's spelling as its wire name, which is
   what makes the drafted accessor land on the one the SDK generated. A branch
-  referencing no component refuses the whole union rather than half of it.
+  referencing no component excludes the whole union rather than half of it.
   Variants are computed wherever nothing writes the union; a writable union is
   not served yet, because `Optional + Computed` cannot express mutual
   exclusion — see `docs/mapping.md` row 13.
@@ -312,30 +323,30 @@ single recorded exception.
   other generated file: manifest-covered, byte-compared by `provider
   verify`, and carrying no timestamp and no count of anything outside the
   run, because either would fail that gate on every run. It is a view of the
-  same records `unsupported.json` holds, never a second place a refusal is
+  same records `unsupported.json` holds, never a second place an exclusion is
   recorded.
 - **unsupported.json** — the committed record of everything generation
-  refused, at the provider repo root: `{format_version, unsupported: [{kind,
+  excluded, at the provider repo root: `{formatVersion, unsupported: [{terraformBlockType,
   entity, attribute, service, tag, stage, reason}]}`. The subject is fields
-  rather than one rendered sentence, so a reader grouping refusals never
+  rather than one rendered sentence, so a reader grouping exclusions never
   parses prose to do it. `entity` is the entity key and `attribute` its
-  dotted path beneath it, empty when the whole entity was refused. `kind` is
+  dotted path beneath it, empty when the whole entity was excluded. `terraformBlockType` is
   `resource | datasource | list_resource | action`, empty for an entity
-  refused before it became any of them. `service` and `tag` are where it
+  excluded before it became any of them. `service` and `tag` are where it
   belongs — the service area derived from its path, and the group the
   document places it in — carried so an entity that became nothing can still
   be grouped with the ones that did. `cause` is the fact behind
-  the refusal — a code from a closed set per stage, and the subject it is
+  the exclusion — a code from a closed set per stage, and the subject it is
   about, such as the SDK type that carries none of an entity's fields. Two
-  refusals belong to one cause when both match, so consequences of one fact
+  exclusions belong to one cause when both match, so consequences of one fact
   group by an exact comparison rather than by a guess at which prose reasons
   mean the same thing. `stage` is the closed set `configuration |
   classification | derivation | binding | emission`, naming which decision
-  refused it. The first three are separate because their remedies are: an
+  excluded it. The first three are separate because their remedies are: an
   entry the operator wrote, a shape the document does not offer, and an
   attribute the derivation will not guess at. Derived
   content like any other: manifest-covered and byte-compared by `provider
   verify`. Generation never fails on it — one entity must not take the whole
-  provider with it — the point is that a refusal appearing or disappearing
+  provider with it — the point is that an exclusion appearing or disappearing
   is a line in a generation pull request rather than a line in a CI log
   nobody reads.

@@ -15,9 +15,9 @@ func scopedListResource(t *testing.T) *ServiceFiles {
 	t.Helper()
 	m, b := fictionalModel(), fictionalBindings()
 	m.ListResources[0].ListOperation.PathTemplate = "/v7/tenants/{tenantId}/audit-events"
-	m.ListResources[0].ListOperation.PathParameters = []ir.Parameter{{Name: "tenantId", Type: ir.TypeString}}
-	m.ListResources[0].AddressingSchema = &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "tenant_id", WireName: "tenantId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+	m.ListResources[0].ListOperation.PathParameters = []ir.URLPathParameter{{Name: "tenantId", Type: ir.TypeString}}
+	m.ListResources[0].AddressingAttributes = &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "tenant_id", WireName: "tenantId", Type: ir.TypeString, ComputedOptionalRequired: ir.Required},
 	}}
 	b.ListResources["http_server"].List.Parameters = []sdkbind.CallParameter{
 		{Local: "tenantId", GoType: "string", Wire: "tenantId"}}
@@ -169,9 +169,9 @@ func TestUnit_ListResource_PublishesAnIdentityKeyedTheAPIsWay(t *testing.T) {
 		t.Fatalf("the fictional list resource moved: %q", lr.Names.Key)
 	}
 	// The element carries the key as the API words it, not as "id".
-	for i := range lr.Schema.Attributes {
-		if lr.Schema.Attributes[i].Name == "id" {
-			lr.Schema.Attributes[i].WireName = "httpServerId"
+	for i := range lr.Attributes.Attributes {
+		if lr.Attributes.Attributes[i].Name == "id" {
+			lr.Attributes.Attributes[i].WireName = "httpServerId"
 		}
 	}
 	lb := b.ListResources["http_server"]
@@ -201,18 +201,18 @@ func TestUnit_ListResource_PublishesAnIdentityKeyedTheAPIsWay(t *testing.T) {
 // The refusal an element with no key at all still earns has to say what it
 // looked for and what the element does carry, or the only way to write the
 // correction is to read the toolkit.
-func TestUnit_ListResource_RefusalNamesWhatTheElementCarries(t *testing.T) {
+func TestUnit_ListResource_ExclusionNamesWhatTheElementCarries(t *testing.T) {
 	m, b := fictionalModel(), fictionalBindings()
 
 	lr := &m.ListResources[0]
-	kept := make([]ir.Attribute, 0, len(lr.Schema.Attributes))
-	for _, a := range lr.Schema.Attributes {
+	kept := make([]ir.Attribute, 0, len(lr.Attributes.Attributes))
+	for _, a := range lr.Attributes.Attributes {
 		if a.Name == "id" {
 			a.Name, a.WireName = "server_uid", "serverUid"
 		}
 		kept = append(kept, a)
 	}
-	lr.Schema.Attributes = kept
+	lr.Attributes.Attributes = kept
 	lb := b.ListResources["http_server"]
 	fields := make([]sdkbind.FieldBinding, 0, len(lb.Fields))
 	for _, f := range lb.Fields {

@@ -148,7 +148,7 @@ var explanations = map[string]Explanation{
 		Means: "The OpenAPI 3 specification says this object may carry any properties, without saying what their values look like. There is nothing to give the Terraform attribute a type.",
 		Fix:   "A correction can declare the value type, or the API vendor can add it to the specification.",
 	},
-	ir.CauseShapelessObject: {
+	ir.CauseObjectWithoutPropertiesOrAdditionalProperties: {
 		Title: "An object with no fields described",
 		Means: "The OpenAPI 3 specification says this is an object and then describes nothing inside it, so there is no attribute to generate.",
 		Fix:   "A correction can describe the object's fields, or the API vendor can add them to the specification.",

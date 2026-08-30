@@ -27,7 +27,7 @@ func ensureID(tree *AttributeTree, keyParameter string, keyAttributeType Attribu
 	tree.Attributes = append([]Attribute{{
 		Name:                     "id",
 		WireName:                 wireName,
-		Kind:                     kind,
+		Type:                     kind,
 		ComputedOptionalRequired: Computed,
 	}}, tree.Attributes...)
 }
@@ -51,7 +51,7 @@ func ensureID(tree *AttributeTree, keyParameter string, keyAttributeType Attribu
 // — `template_id` for the template whose settings these are — and keeps
 // the parameter's spelling as its wire name, which is how a call finds it.
 // With no parent entity to name it after, it is left to emission to refuse.
-func ensureParentParameters(tree *AttributeTree, parents []Parameter, parentEntity string) {
+func ensureParentParameters(tree *AttributeTree, parents []URLPathParameter, parentEntity string) {
 	if tree == nil || len(parents) == 0 {
 		return
 	}
@@ -84,7 +84,7 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter, parentEnti
 		addedAttributes = append(addedAttributes, Attribute{
 			Name:                     name,
 			WireName:                 parent.Name,
-			Kind:                     kind,
+			Type:                     kind,
 			ComputedOptionalRequired: Required,
 			// Addressing is not editable: an object does not move to another
 			// parent in place, and every API that admits the move spells it
@@ -121,28 +121,28 @@ func ensureFilterAttributes(tree, item *AttributeTree) {
 
 	addedAttributes := make([]Attribute, 0, len(item.Attributes))
 	for _, attribute := range item.Attributes {
-		if attribute.Nested != nil || declaredNames[attribute.Name] {
+		if attribute.NestedAttributes != nil || declaredNames[attribute.Name] {
 			continue
 		}
-		switch attribute.Kind {
+		switch attribute.Type {
 		case TypeString, TypeBool, TypeInt64, TypeFloat64:
 		default:
 			continue
 		}
 		declaredNames[attribute.Name] = true
 		addedAttributes = append(addedAttributes, Attribute{
-			Name:                     attribute.Name,
-			WireName:                 attribute.WireName,
-			Description:              attribute.Description,
-			Kind:                     attribute.Kind,
-			ComputedOptionalRequired: Optional,
-			Filter:                   true,
+			Name:                       attribute.Name,
+			WireName:                   attribute.WireName,
+			Description:                attribute.Description,
+			Type:                       attribute.Type,
+			ComputedOptionalRequired:   Optional,
+			IsDatasourceFilterArgument: true,
 		})
 	}
 	tree.Attributes = append(tree.Attributes, addedAttributes...)
 }
 
-// addressingSchema is a collection path's addressing attributes as a tree of
+// addressingAttributes is a collection path's addressing attributes as a tree of
 // their own, for a list resource to declare as the configuration of its list
 // block. Nil when the path takes no parameters.
 //
@@ -150,7 +150,7 @@ func ensureFilterAttributes(tree, item *AttributeTree) {
 // there is no id to absorb the last one. None carries RequiresReplace — a
 // list block declares a query, and a query has no plan for a modifier to act
 // on.
-func addressingSchema(parameters []Parameter) *AttributeTree {
+func addressingAttributes(parameters []URLPathParameter) *AttributeTree {
 	if len(parameters) == 0 {
 		return nil
 	}
@@ -164,7 +164,7 @@ func addressingSchema(parameters []Parameter) *AttributeTree {
 
 // parentParameters is an operation's path parameters above the item key: all
 // of them but the last, which addresses the object itself and becomes the id.
-func parentParameters(parameters []Parameter) []Parameter {
+func parentParameters(parameters []URLPathParameter) []URLPathParameter {
 	if len(parameters) < 2 {
 		return nil
 	}
@@ -189,7 +189,7 @@ func requireKey(tree *AttributeTree, keyParameter string, keyAttributeType Attri
 	tree.Attributes = append([]Attribute{{
 		Name:                     name,
 		WireName:                 keyParameter,
-		Kind:                     kind,
+		Type:                     kind,
 		ComputedOptionalRequired: Required,
 	}}, tree.Attributes...)
 }

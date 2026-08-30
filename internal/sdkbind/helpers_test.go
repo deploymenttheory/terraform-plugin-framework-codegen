@@ -55,14 +55,14 @@ func TestGoTypeOf(t *testing.T) {
 func TestDatasourceElementTree(t *testing.T) {
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{attribute("name", "name", ir.TypeString, ir.Computed)}}
 	items := attribute("items", "items", ir.TypeList, ir.Computed)
-	items.Nested = itemTree
+	items.NestedAttributes = itemTree
 
-	lookup := ir.Datasource{LookupByKey: true, Schema: itemTree}
+	lookup := ir.Datasource{LookupByKey: true, Attributes: itemTree}
 	if got := datasourceElementTree(lookup); got != itemTree {
 		t.Error("lookup datasource should bind its whole schema")
 	}
 
-	companion := ir.Datasource{Schema: &ir.AttributeTree{Attributes: []ir.Attribute{items}}}
+	companion := ir.Datasource{Attributes: &ir.AttributeTree{Attributes: []ir.Attribute{items}}}
 	if got := datasourceElementTree(companion); got != itemTree {
 		t.Error("companion datasource should bind the items element")
 	}
@@ -71,7 +71,7 @@ func TestDatasourceElementTree(t *testing.T) {
 		t.Error("nil schema should stay nil")
 	}
 
-	odd := ir.Datasource{Schema: itemTree}
+	odd := ir.Datasource{Attributes: itemTree}
 	if got := datasourceElementTree(odd); got != itemTree {
 		t.Error("a tree without items falls back to itself")
 	}

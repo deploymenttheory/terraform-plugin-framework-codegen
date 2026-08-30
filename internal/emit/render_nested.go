@@ -37,7 +37,7 @@ func constructNested(namer *modelNamer, path string, n node, source, destination
 		deref = "*"
 	}
 
-	if n.attribute.Kind == ir.TypeList {
+	if n.attribute.Type == ir.TypeList {
 		listVar := lowerCamel(n.attribute.Name) + "List" + depthSuffix(depth)
 		indexVar := "index" + depthSuffix(depth)
 		elemVar := lowerCamel(n.attribute.Name) + "Element" + depthSuffix(depth)
@@ -73,7 +73,7 @@ func constructNested(namer *modelNamer, path string, n node, source, destination
 		return b.String(), true, nil
 	}
 
-	if n.attribute.Kind == ir.TypeMap {
+	if n.attribute.Type == ir.TypeMap {
 		mapVar := lowerCamel(n.attribute.Name) + "Map" + depthSuffix(depth)
 		keyVar := "key" + depthSuffix(depth)
 		elemVar := lowerCamel(n.attribute.Name) + "Element" + depthSuffix(depth)
@@ -146,7 +146,7 @@ func stateNested(namer *modelNamer, path string, n node, source, destination str
 	field := destination + "." + ir.GoName(n.attribute.Name)
 	modelType := namer.name(path)
 
-	if n.attribute.Kind == ir.TypeList {
+	if n.attribute.Type == ir.TypeList {
 		elementsVar := "elements" + depthSuffix(depth)
 		indexVar := "index" + depthSuffix(depth)
 		listVar := lowerCamel(n.attribute.Name) + "List" + depthSuffix(depth)
@@ -177,7 +177,7 @@ func stateNested(namer *modelNamer, path string, n node, source, destination str
 		return b.String(), nil
 	}
 
-	if n.attribute.Kind == ir.TypeMap {
+	if n.attribute.Type == ir.TypeMap {
 		entriesVar := "entries" + depthSuffix(depth)
 		keyVar := "key" + depthSuffix(depth)
 		mapVar := lowerCamel(n.attribute.Name) + "Map" + depthSuffix(depth)

@@ -27,47 +27,47 @@ func TestUnit_ConstraintValidators_RenderTheDeclaredBounds(t *testing.T) {
 	}{
 		{
 			"a string with both length bounds",
-			ir.Attribute{Name: "n", Kind: ir.TypeString, MinLength: i64(8), MaxLength: i64(64)},
+			ir.Attribute{Name: "n", Type: ir.TypeString, MinLength: i64(8), MaxLength: i64(64)},
 			"stringvalidator.UTF8LengthBetween(8, 64)",
 		},
 		{
 			"a string with only a minimum length",
-			ir.Attribute{Name: "n", Kind: ir.TypeString, MinLength: i64(8)},
+			ir.Attribute{Name: "n", Type: ir.TypeString, MinLength: i64(8)},
 			"stringvalidator.UTF8LengthAtLeast(8)",
 		},
 		{
 			"a string with only a maximum length",
-			ir.Attribute{Name: "n", Kind: ir.TypeString, MaxLength: i64(64)},
+			ir.Attribute{Name: "n", Type: ir.TypeString, MaxLength: i64(64)},
 			"stringvalidator.UTF8LengthAtMost(64)",
 		},
 		{
 			"an integer range",
-			ir.Attribute{Name: "n", Kind: ir.TypeInt64, Minimum: f64(1), Maximum: f64(10)},
+			ir.Attribute{Name: "n", Type: ir.TypeInt64, Minimum: f64(1), Maximum: f64(10)},
 			"int64validator.Between(1, 10)",
 		},
 		{
 			"an integer with only a maximum",
-			ir.Attribute{Name: "n", Kind: ir.TypeInt64, Maximum: f64(10)},
+			ir.Attribute{Name: "n", Type: ir.TypeInt64, Maximum: f64(10)},
 			"int64validator.AtMost(10)",
 		},
 		{
 			"a float range keeps its fraction",
-			ir.Attribute{Name: "n", Kind: ir.TypeFloat64, Minimum: f64(0.5), Maximum: f64(99.5)},
+			ir.Attribute{Name: "n", Type: ir.TypeFloat64, Minimum: f64(0.5), Maximum: f64(99.5)},
 			"float64validator.Between(0.5, 99.5)",
 		},
 		{
 			"a list size range",
-			ir.Attribute{Name: "n", Kind: ir.TypeList, ElementType: ir.TypeString, MinItems: i64(1), MaxItems: i64(5)},
+			ir.Attribute{Name: "n", Type: ir.TypeList, ElementType: ir.TypeString, MinItems: i64(1), MaxItems: i64(5)},
 			"listvalidator.SizeBetween(1, 5)",
 		},
 		{
 			"a map size floor",
-			ir.Attribute{Name: "n", Kind: ir.TypeMap, ElementType: ir.TypeString, MinItems: i64(1)},
+			ir.Attribute{Name: "n", Type: ir.TypeMap, ElementType: ir.TypeString, MinItems: i64(1)},
 			"mapvalidator.SizeAtLeast(1)",
 		},
 		{
 			"a pattern becomes a compiled match",
-			ir.Attribute{Name: "n", Kind: ir.TypeString, Pattern: `^[a-z]+$`},
+			ir.Attribute{Name: "n", Type: ir.TypeString, Pattern: `^[a-z]+$`},
 			"stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z]+$`), \"must match ^[a-z]+$\")",
 		},
 	} {
@@ -83,7 +83,7 @@ func TestUnit_ConstraintValidators_RenderTheDeclaredBounds(t *testing.T) {
 // package initialisation, where go build cannot see it.
 func TestUnit_ConstraintValidators_SkipAPatternRE2CannotCompile(t *testing.T) {
 	declaration := constraintDeclaration(ir.Attribute{
-		Name: "n", Kind: ir.TypeString, Pattern: `^(?=.*[A-Z]).{8,}$`,
+		Name: "n", Type: ir.TypeString, Pattern: `^(?=.*[A-Z]).{8,}$`,
 	})
 	if strings.Contains(declaration, "RegexMatches") {
 		t.Errorf("a pattern RE2 cannot compile was emitted anyway:\n%s", declaration)
@@ -92,7 +92,7 @@ func TestUnit_ConstraintValidators_SkipAPatternRE2CannotCompile(t *testing.T) {
 	// The rest of the attribute still stands: one unrenderable pattern is a
 	// fact about the pattern, not about the length bound beside it.
 	both := constraintDeclaration(ir.Attribute{
-		Name: "n", Kind: ir.TypeString, Pattern: `^(?=.*[A-Z]).{8,}$`, MaxLength: i64(64),
+		Name: "n", Type: ir.TypeString, Pattern: `^(?=.*[A-Z]).{8,}$`, MaxLength: i64(64),
 	})
 	if !strings.Contains(both, "stringvalidator.UTF8LengthAtMost(64)") {
 		t.Errorf("an unrenderable pattern took the length bound with it:\n%s", both)
@@ -104,7 +104,7 @@ func TestUnit_ConstraintValidators_SkipAPatternRE2CannotCompile(t *testing.T) {
 // which would silently move the boundary.
 func TestUnit_ConstraintValidators_DropAFractionalBoundOnAnInteger(t *testing.T) {
 	declaration := constraintDeclaration(ir.Attribute{
-		Name: "n", Kind: ir.TypeInt64, Minimum: f64(1.5), Maximum: f64(10),
+		Name: "n", Type: ir.TypeInt64, Minimum: f64(1.5), Maximum: f64(10),
 	})
 	if strings.Contains(declaration, "1.5") || strings.Contains(declaration, "Between") {
 		t.Errorf("a fractional minimum survived onto an integer attribute:\n%s", declaration)
@@ -120,18 +120,18 @@ func TestUnit_ConstraintValidators_DropAFractionalBoundOnAnInteger(t *testing.T)
 // applies, because the list is the thing being sized.
 func TestUnit_ConstraintValidators_LeaveANestedObjectAlone(t *testing.T) {
 	nested := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "inner", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+		{Name: "inner", Type: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 
 	object := constraintDeclaration(ir.Attribute{
-		Name: "n", Kind: ir.TypeObject, Nested: nested, MaxLength: i64(64), Maximum: f64(10),
+		Name: "n", Type: ir.TypeObject, NestedAttributes: nested, MaxLength: i64(64), Maximum: f64(10),
 	})
 	if strings.Contains(object, "Validators:") {
 		t.Errorf("a bound was applied to an object:\n%s", object)
 	}
 
 	list := constraintDeclaration(ir.Attribute{
-		Name: "n", Kind: ir.TypeList, Nested: nested, MaxItems: i64(5),
+		Name: "n", Type: ir.TypeList, NestedAttributes: nested, MaxItems: i64(5),
 	})
 	if !strings.Contains(list, "listvalidator.SizeAtMost(5)") {
 		t.Errorf("a nested list was not sized:\n%s", list)
@@ -144,7 +144,7 @@ func TestUnit_ConstraintValidators_LeaveANestedObjectAlone(t *testing.T) {
 func TestUnit_ConstraintValidators_DeclareTheirOwnImports(t *testing.T) {
 	sb := &schemaBuilder{kind: schemaResource, imports: newImportSet("example.com/m")}
 	sb.attributeDeclaration(node{attribute: ir.Attribute{
-		Name: "n", Kind: ir.TypeString, MaxLength: i64(64), Pattern: `^[a-z]+$`,
+		Name: "n", Type: ir.TypeString, MaxLength: i64(64), Pattern: `^[a-z]+$`,
 	}}, 0)
 
 	rendered := sb.imports.render()
@@ -161,7 +161,7 @@ func TestUnit_ConstraintValidators_DeclareTheirOwnImports(t *testing.T) {
 
 func TestUnit_Validators_AListOfEnumeratedStringsValidatesEachMember(t *testing.T) {
 	sb := &schemaBuilder{kind: schemaResource}
-	n := node{attribute: ir.Attribute{Name: "modules", Kind: ir.TypeList, ElementType: ir.TypeString, OneOf: []string{"default", "extended"}}}
+	n := node{attribute: ir.Attribute{Name: "modules", Type: ir.TypeList, ElementType: ir.TypeString, OneOf: []string{"default", "extended"}}}
 	got := sb.validators(n, 1)
 	if len(got) != 1 || got[0].SchemaDefinition != `listvalidator.ValueStringsAre(stringvalidator.OneOf("default", "extended"))` {
 		t.Fatalf("validators = %+v, want the member validator", got)
@@ -195,10 +195,10 @@ func TestUnit_CheckLines_AddressMapsByKeyAndReferencesByPresence(t *testing.T) {
 
 func TestUnit_StateLines_ANormalisedStringKeepsTheConfiguredSpelling(t *testing.T) {
 	nodes := []node{
-		{attribute: ir.Attribute{Name: "server", Kind: ir.TypeString, Normalisation: "extended"},
-			fb: &sdkbind.FieldBinding{Attr: "server", Wire: "server", Kind: ir.TypeString, Access: kiotaAccess("Server", "*string", "FromPtrString", "ToPtrString", "")}},
-		{attribute: ir.Attribute{Name: "name", Kind: ir.TypeString},
-			fb: &sdkbind.FieldBinding{Attr: "name", Wire: "name", Kind: ir.TypeString, Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}},
+		{attribute: ir.Attribute{Name: "server", Type: ir.TypeString, Normalisation: "extended"},
+			fb: &sdkbind.FieldBinding{Attr: "server", Wire: "server", Type: ir.TypeString, Access: kiotaAccess("Server", "*string", "FromPtrString", "ToPtrString", "")}},
+		{attribute: ir.Attribute{Name: "name", Type: ir.TypeString},
+			fb: &sdkbind.FieldBinding{Attr: "name", Wire: "name", Type: ir.TypeString, Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}},
 	}
 	got, err := stateLines(nodes, "Thing", "data")
 	if err != nil {
@@ -215,8 +215,8 @@ func TestUnit_StateLines_ANormalisedStringKeepsTheConfiguredSpelling(t *testing.
 func TestUnit_ParameterNode_TheFirstAttributeCarryingTheWireNameAnswers(t *testing.T) {
 	// A parent spelled id sits ahead of the resource's own id.
 	nodes := []node{
-		{attribute: ir.Attribute{Name: "template_id", WireName: "id", Kind: ir.TypeString}},
-		{attribute: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "template_id", WireName: "id", Type: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "id", WireName: "id", Type: ir.TypeString}},
 	}
 	got, err := parameterNode(sdkbind.CallParameter{Wire: "id"}, nodes, true)
 	if err != nil || got.attribute.Name != "template_id" {
@@ -225,8 +225,8 @@ func TestUnit_ParameterNode_TheFirstAttributeCarryingTheWireNameAnswers(t *testi
 	// An object's key the document also declares as a property is answered
 	// by the id, which the create and the import fill.
 	nodes = []node{
-		{attribute: ir.Attribute{Name: "id", WireName: "testId", Kind: ir.TypeString}},
-		{attribute: ir.Attribute{Name: "test_id", WireName: "testId", Kind: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "id", WireName: "testId", Type: ir.TypeString}},
+		{attribute: ir.Attribute{Name: "test_id", WireName: "testId", Type: ir.TypeString}},
 	}
 	got, err = parameterNode(sdkbind.CallParameter{Wire: "testId"}, nodes, true)
 	if err != nil || got.attribute.Name != "id" {

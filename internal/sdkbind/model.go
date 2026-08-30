@@ -38,13 +38,13 @@ import (
 type SDKInfo struct {
 	// ImportPath is the SDK's root package import path — the package the
 	// client type lives in.
-	ImportPath string `json:"import_path"`
+	ImportPath string `json:"importPath"`
 	// ModelsImportPath is where model types live: a kiota SDK keeps them
 	// in a models subpackage, an openapi-generator SDK keeps everything
 	// flat in the root package.
-	ModelsImportPath string `json:"models_import_path"`
+	ModelsImportPath string `json:"modelsImportPath"`
 	// ClientTypeName is the client struct's type name, e.g. "APIClient".
-	ClientTypeName string `json:"client_type_name"`
+	ClientTypeName string `json:"clientTypeName"`
 }
 
 // InfoFor computes the SDKInfo for the configured backend and the import
@@ -92,7 +92,7 @@ type Bindings struct {
 	SDK           SDKInfo                         `json:"sdk"`
 	Resources     map[string]*ResourceBinding     `json:"resources,omitempty"`
 	Datasources   map[string]*DatasourceBinding   `json:"datasources,omitempty"`
-	ListResources map[string]*ListResourceBinding `json:"list_resources,omitempty"`
+	ListResources map[string]*ListResourceBinding `json:"listResources,omitempty"`
 	Actions       map[string]*ActionBinding       `json:"actions,omitempty"`
 	// Removed records everything Prune deleted, with the SDK's reason.
 	Removed []Removal `json:"removed,omitempty"`
@@ -109,7 +109,7 @@ type Bindings struct {
 	// model of an inline request body. The emitter reads it to import what
 	// a rendered expression names; without it the generated file would
 	// reference a package it never imported.
-	OperationPackages map[string]string `json:"operation_packages,omitempty"`
+	OperationPackages map[string]string `json:"operationPackages,omitempty"`
 }
 
 // recordPackage notes that a type expression qualified with name resolves
@@ -140,15 +140,15 @@ type ResourceBinding struct {
 	//
 	// Without it the id is known only to the response the create discards,
 	// and the settling read addresses the object by an empty string.
-	CreateIDAccess string `json:"create_id_access,omitempty"`
+	CreateIDAccess string `json:"createIDAccess,omitempty"`
 	// ReadModel is the finished type expression fields are read from,
 	// e.g. "models.Tagable" or "sdk.Tag".
-	ReadModel string `json:"read_model,omitempty"`
+	ReadModel string `json:"readModel,omitempty"`
 	// WriteModel is the concrete type the request body is built as.
-	WriteModel string `json:"write_model,omitempty"`
+	WriteModel string `json:"writeModel,omitempty"`
 	// WriteConstructor is the finished expression that yields a new,
 	// settable body value, e.g. "models.NewTag()".
-	WriteConstructor string `json:"write_constructor,omitempty"`
+	WriteConstructor string `json:"writeConstructor,omitempty"`
 	// Fields mirrors the schema attribute order.
 	Fields []FieldBinding `json:"fields,omitempty"`
 	// UpdateWriteModel, UpdateWriteConstructor and UpdateFields are the
@@ -159,9 +159,9 @@ type ResourceBinding struct {
 	// do — an update that omits what cannot change, or adds a version the
 	// create has no use for. The generated SDK types them separately, so
 	// passing the create body to the update does not compile.
-	UpdateWriteModel       string         `json:"update_write_model,omitempty"`
-	UpdateWriteConstructor string         `json:"update_write_constructor,omitempty"`
-	UpdateFields           []FieldBinding `json:"update_fields,omitempty"`
+	UpdateWriteModel       string         `json:"updateWriteModel,omitempty"`
+	UpdateWriteConstructor string         `json:"updateWriteConstructor,omitempty"`
+	UpdateFields           []FieldBinding `json:"updateFields,omitempty"`
 }
 
 // DatasourceBinding carries a datasource's read (and, for a companion
@@ -172,19 +172,19 @@ type DatasourceBinding struct {
 	List *Call  `json:"list,omitempty"`
 	// ReadModel is the by-key read's payload type, empty for a companion
 	// that only lists.
-	ReadModel string `json:"read_model,omitempty"`
+	ReadModel string `json:"readModel,omitempty"`
 	// ElementType is one list element's finished type expression.
-	ElementType string `json:"element_type,omitempty"`
+	ElementType string `json:"elementType,omitempty"`
 	// CollectionAccess is the rendered access from the list call's result
 	// to its element slice: a method call like "GetValue()" or "GetTags()",
 	// a field name like "Items", or empty when the result is the slice
 	// itself.
-	CollectionAccess string `json:"collection_access,omitempty"`
+	CollectionAccess string `json:"collectionAccess,omitempty"`
 	// ListWrapperKey is the observed wire key the list response wraps its item
 	// array under (the IR's ListEnvelopeKey), empty for a bare array. Prune
 	// reads it to pick the wrapper's getter or field by name rather than
 	// guessing among several slices.
-	ListWrapperKey string `json:"envelope_key,omitempty"`
+	ListWrapperKey string `json:"listWrapperKey,omitempty"`
 	// Fields are the element's field accesses, read direction only.
 	Fields []FieldBinding `json:"fields,omitempty"`
 }
@@ -193,11 +193,11 @@ type DatasourceBinding struct {
 type ListResourceBinding struct {
 	Key              string `json:"key"`
 	List             *Call  `json:"list,omitempty"`
-	ElementType      string `json:"element_type,omitempty"`
-	CollectionAccess string `json:"collection_access,omitempty"`
+	ElementType      string `json:"elementType,omitempty"`
+	CollectionAccess string `json:"collectionAccess,omitempty"`
 	// EnvelopeKey is the observed list-envelope wire key; see
 	// DatasourceBinding.EnvelopeKey.
-	EnvelopeKey string         `json:"envelope_key,omitempty"`
+	EnvelopeKey string         `json:"envelopeKey,omitempty"`
 	Fields      []FieldBinding `json:"fields,omitempty"`
 }
 
@@ -205,8 +205,8 @@ type ListResourceBinding struct {
 type ActionBinding struct {
 	Key              string `json:"key"`
 	Invoke           *Call  `json:"invoke,omitempty"`
-	WriteModel       string `json:"write_model,omitempty"`
-	WriteConstructor string `json:"write_constructor,omitempty"`
+	WriteModel       string `json:"writeModel,omitempty"`
+	WriteConstructor string `json:"writeConstructor,omitempty"`
 	// Fields are the request tree's accesses, write direction only.
 	Fields []FieldBinding `json:"fields,omitempty"`
 }
@@ -233,17 +233,17 @@ type Call struct {
 	Parameters []CallParameter `json:"parameters,omitempty"`
 	// ResponseType is the finished Go type expression of the success
 	// payload, empty when the call yields none.
-	ResponseType string `json:"response_type,omitempty"`
+	ResponseType string `json:"responseType,omitempty"`
 	// RequestType is the finished type expression the body travels as,
 	// empty when the call takes none.
-	RequestType string `json:"request_type,omitempty"`
+	RequestType string `json:"requestType,omitempty"`
 	// Results are the call's result types in order, error included, so
 	// the emitter renders the right assignment shape.
 	Results []string `json:"results,omitempty"`
 	// QueryParameters are the required query parameters the operation
 	// sends as constants, carried from the intermediate representation so
 	// pruning can settle them onto the SDK's request configuration type.
-	QueryParameters []ir.QueryParameter `json:"query_parameters,omitempty"`
+	QueryParameters []ir.QueryParameter `json:"queryParameters,omitempty"`
 }
 
 // Segment is one hop of a call: a field selection or a method call.
@@ -260,7 +260,7 @@ type CallParameter struct {
 	// Local is the Go identifier the expression uses.
 	Local string `json:"local"`
 	// GoType is the finished type the emitter declares it with.
-	GoType string `json:"go_type"`
+	GoType string `json:"goType"`
 	// Wire is the path parameter's wire name, for tracing.
 	Wire string `json:"wire"`
 }
@@ -292,19 +292,19 @@ type FieldBinding struct {
 	// speaks.
 	Attr string `json:"attr"`
 	Wire string `json:"wire"`
-	// Kind and ElementType mirror the attribute's terraform kinds, so
+	// Type and ElementType mirror the attribute's terraform kinds, so
 	// pruning and the emitter know the framework side without
 	// re-deriving it.
-	Kind        ir.AttributeType `json:"kind,omitempty"`
-	ElementType ir.AttributeType `json:"element_type,omitempty"`
+	Type        ir.AttributeType `json:"type,omitempty"`
+	ElementType ir.AttributeType `json:"elementType,omitempty"`
 	// Access is the rendered accessor and conversion set.
 	Access FieldAccess `json:"access"`
 	// NestedModel is the SDK type one nested object is read as;
 	// NestedWriteModel and NestedConstructor are its write-side twin.
 	// All empty for a scalar.
-	NestedModel       string `json:"nested_model,omitempty"`
-	NestedWriteModel  string `json:"nested_write_model,omitempty"`
-	NestedConstructor string `json:"nested_constructor,omitempty"`
+	NestedModel       string `json:"nestedModel,omitempty"`
+	NestedWriteModel  string `json:"nestedWriteModel,omitempty"`
+	NestedConstructor string `json:"nestedConstructor,omitempty"`
 	// Nested are the child field bindings of an object attribute or a
 	// list of objects.
 	Nested []FieldBinding `json:"nested,omitempty"`
@@ -314,7 +314,7 @@ type FieldBinding struct {
 	// to, or the document declares it write-only. Set on the root attribute,
 	// whose whole subtree is then never read back — a member that cannot be
 	// read makes the object it sits in one the response cannot rebuild.
-	KeptFromPlan bool `json:"kept_from_plan,omitempty"`
+	KeptFromPlan bool `json:"keptFromPlan,omitempty"`
 }
 
 // FieldAccess is how generated code reads and writes one field. Every
@@ -332,25 +332,25 @@ type FieldAccess struct {
 	// "*string", "int32", "[]string", "*models.Tag_kind". Where the getter
 	// and the setter disagree it is the getter's, because state mapping is
 	// what most consumers read it for.
-	SDKType string `json:"sdk_type,omitempty"`
+	SDKType string `json:"sdkType,omitempty"`
 	// SDKWriteType is the type the setter takes, set only where it differs
 	// from SDKType. Construction builds a value of this type; using SDKType
 	// there types the value for the read side and does not compile.
-	SDKWriteType string `json:"sdk_write_type,omitempty"`
+	SDKWriteType string `json:"sdkWriteType,omitempty"`
 	// ConvertGet and ConvertSet name the convert functions bridging each
 	// direction, e.g. "FromPtrString" / "ToPtrString".
-	ConvertGet string `json:"convert_get,omitempty"`
-	ConvertSet string `json:"convert_set,omitempty"`
+	ConvertGet string `json:"convertGet,omitempty"`
+	ConvertSet string `json:"convertSet,omitempty"`
 	// ParseFunc is a generated enumeration's parse companion, finished
 	// with its package qualifier, e.g. "models.ParseTag_kind"; empty for
 	// anything that is not an enumeration.
-	ParseFunc string `json:"parse_func,omitempty"`
+	ParseFunc string `json:"parseFunc,omitempty"`
 	// NestedNilable reports whether a nested-object accessor's return can be
 	// nil — a pointer, an interface (every kiota model is one) or another
 	// reference type — so the state mapping guards the read before it
 	// dereferences. False for a value-typed nested accessor, which cannot be
 	// nil. Meaningful only on a nested-object field.
-	NestedNilable bool `json:"nested_nilable,omitempty"`
+	NestedNilable bool `json:"nestedNilable,omitempty"`
 }
 
 // Removal is one thing pruning deleted, with the SDK's reason.
