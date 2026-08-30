@@ -141,7 +141,7 @@ func TestUnit_ProviderGenerate_PrintIRDumpsJSONAndGeneratesNothing(t *testing.T)
 	if err := json.Unmarshal(stdout.Bytes(), &decoded); err != nil {
 		t.Fatalf("--print-ir did not print JSON: %v", err)
 	}
-	if decoded.Provider.Name != "orbital" {
+	if decoded.Provider.Name != "fixture" {
 		t.Errorf("dumped provider = %q", decoded.Provider.Name)
 	}
 	if _, err := os.Stat(filepath.Join(root, "go.mod")); !os.IsNotExist(err) {

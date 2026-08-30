@@ -76,9 +76,8 @@ func curatedRepo(t *testing.T, dialect string) (string, Options) {
 // TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree drives the whole
 // offline chain for both dialects and holds the result to the fixture's
 // known shape: three resources, a companion datasource for each plus the
-// lookup-by-key permit, the list-only transit, the reboot action — and
-// nothing pruned, because the stub SDKs carry everything the document
-// promises.
+// key-addressed one and the list-only one, the custom action, and nothing
+// pruned, because the stub SDKs carry everything the document promises.
 func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 	for _, dialect := range curatedDialects {
 		t.Run(dialect, func(t *testing.T) {
@@ -89,7 +88,7 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				t.Fatalf("Run: %v", err)
 			}
 
-			// transit is enumerable and not addressable, so it is a
+			// the list-only datasource is enumerable and not addressable, so it is a
 			// datasource; the three resources are all enumerable, so each
 			// carries a list resource of its own terraform type.
 			if res.Resources != 3 || res.Datasources != 5 || res.ListResources != 3 || res.Actions != 1 {
@@ -121,13 +120,13 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				"main.go",
 				"manifest.json",
 				"internal/provider/provider.go",
-				"internal/services/resources/modules/v1/module/resource.go",
-				"internal/services/resources/beacons/v1/beacon/resource.go",
-				"internal/services/resources/docks/v1/dock/resource.go",
-				"internal/services/datasources/permits/v1/permit/datasource.go",
-				"internal/services/datasources/transits/v1/transit/datasource.go",
-				"internal/services/list-resources/modules/v1/module/list_resource.go",
-				"internal/services/actions/modules/v1/modules_reboot/action.go",
+				"internal/services/resources/patch_updated_resources/v1/patch_updated_resource/resource.go",
+				"internal/services/resources/replace_only_resources/v1/replace_only_resource/resource.go",
+				"internal/services/resources/put_updated_resources/v1/put_updated_resource/resource.go",
+				"internal/services/datasources/key_addressed_datasources/v1/key_addressed_datasource/datasource.go",
+				"internal/services/datasources/list_only_datasources/v1/list_only_datasource/datasource.go",
+				"internal/services/list-resources/patch_updated_resources/v1/patch_updated_resource/list_resource.go",
+				"internal/services/actions/patch_updated_resources/v1/patch_updated_resources_custom_action/action.go",
 			} {
 				if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
 					t.Errorf("the generated tree lacks %s: %v", path, err)
@@ -138,13 +137,13 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, want := range []string{"NewModuleResource,", "NewBeaconResource,", "NewDockResource,"} {
+			for _, want := range []string{"NewPatchUpdatedResourceResource,", "NewReplaceOnlyResourceResource,", "NewPutUpdatedResourceResource,"} {
 				if !strings.Contains(string(registry), want) {
 					t.Errorf("resources.go carries no registered %s", want)
 				}
 			}
 
-			assertBeaconListWrapper(t, root)
+			assertDeclaredListWrapper(t, root)
 
 			rep, err := Verify(context.Background(), opts)
 			if err != nil {
@@ -157,33 +156,33 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 	}
 }
 
-// assertBeaconListWrapper holds the generated beacon datasource to the
+// assertDeclaredListWrapper holds the generated datasource to the
 // wrapper the fixture's x-tfpfgen-list-wrapper declares. The document's own
 // list response is a bare array, so a schema-derived wrapper would be empty:
 // every wrapper below exists only because the extension carried the audit's
 // finding all the way through derivation into the emitted list code.
-func assertBeaconListWrapper(t *testing.T, root string) {
+func assertDeclaredListWrapper(t *testing.T, root string) {
 	t.Helper()
 	read := func(parts ...string) string {
 		raw, err := os.ReadFile(filepath.Join(append([]string{root}, parts...)...))
 		if err != nil {
-			t.Fatalf("reading the generated beacon list code: %v", err)
+			t.Fatalf("reading the generated list code: %v", err)
 		}
 		return string(raw)
 	}
 
-	ds := filepath.Join("internal", "services", "datasources", "beacons", "v1", "beacon")
+	ds := filepath.Join("internal", "services", "datasources", "replace_only_resources", "v1", "replace_only_resource")
 	if got := read(ds, "mocks", "responders.go"); !strings.Contains(got,
-		`map[string]any{"beacons": []map[string]any{object()}}`) {
-		t.Errorf("the beacon datasource list mock ignores the declared list wrapper:\n%s", got)
+		`map[string]any{"replaceOnlyResources": []map[string]any{object()}}`) {
+		t.Errorf("the datasource list mock ignores the declared list wrapper:\n%s", got)
 	}
-	if got := read(ds, "tests", "responses", "datasource.json"); !strings.Contains(got, `"beacons": [`) {
-		t.Errorf("the beacon datasource list fixture ignores the declared list wrapper:\n%s", got)
+	if got := read(ds, "tests", "responses", "datasource.json"); !strings.Contains(got, `"replaceOnlyResources": [`) {
+		t.Errorf("the datasource list fixture ignores the declared list wrapper:\n%s", got)
 	}
-	res := filepath.Join("internal", "services", "resources", "beacons", "v1", "beacon")
+	res := filepath.Join("internal", "services", "resources", "replace_only_resources", "v1", "replace_only_resource")
 	if got := read(res, "mocks", "responders.go"); !strings.Contains(got,
-		`map[string]any{"beacons": items}`) {
-		t.Errorf("the beacon resource list mock ignores the declared list wrapper:\n%s", got)
+		`map[string]any{"replaceOnlyResources": items}`) {
+		t.Errorf("the resource list mock ignores the declared list wrapper:\n%s", got)
 	}
 }
 

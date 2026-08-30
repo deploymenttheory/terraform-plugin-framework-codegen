@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/example-org/terraform-provider-orbital/internal/sdk/models"
+	"github.com/example-org/terraform-provider-fixture/internal/sdk/models"
 )
 
 // errStub is what every stub call answers; nothing ever invokes one.
@@ -26,151 +26,165 @@ func NewAPIClient(adapter any) *APIClient {
 	return &APIClient{}
 }
 
-// Modules reaches the /modules collection.
-func (c *APIClient) Modules() *ModulesRequestBuilder { return &ModulesRequestBuilder{} }
+// PatchUpdatedResources reaches the /patchUpdatedResources collection.
+func (c *APIClient) PatchUpdatedResources() *PatchUpdatedResourcesRequestBuilder {
+	return &PatchUpdatedResourcesRequestBuilder{}
+}
 
-// Beacons reaches the /beacons collection.
-func (c *APIClient) Beacons() *BeaconsRequestBuilder { return &BeaconsRequestBuilder{} }
+// ReplaceOnlyResources reaches the /replaceOnlyResources collection.
+func (c *APIClient) ReplaceOnlyResources() *ReplaceOnlyResourcesRequestBuilder {
+	return &ReplaceOnlyResourcesRequestBuilder{}
+}
 
-// Docks reaches the /docks collection.
-func (c *APIClient) Docks() *DocksRequestBuilder { return &DocksRequestBuilder{} }
+// PutUpdatedResources reaches the /putUpdatedResources collection.
+func (c *APIClient) PutUpdatedResources() *PutUpdatedResourcesRequestBuilder {
+	return &PutUpdatedResourcesRequestBuilder{}
+}
 
-// Permits reaches the /permits collection.
-func (c *APIClient) Permits() *PermitsRequestBuilder { return &PermitsRequestBuilder{} }
+// KeyAddressedDatasources reaches the /keyAddressedDatasources collection.
+func (c *APIClient) KeyAddressedDatasources() *KeyAddressedDatasourcesRequestBuilder {
+	return &KeyAddressedDatasourcesRequestBuilder{}
+}
 
-// Transits reaches the /transits collection.
-func (c *APIClient) Transits() *TransitsRequestBuilder { return &TransitsRequestBuilder{} }
+// ListOnlyDatasources reaches the /listOnlyDatasources collection.
+func (c *APIClient) ListOnlyDatasources() *ListOnlyDatasourcesRequestBuilder {
+	return &ListOnlyDatasourcesRequestBuilder{}
+}
 
-// ModulesRequestBuilder is the module collection builder.
-type ModulesRequestBuilder struct{}
+// PatchUpdatedResourcesRequestBuilder is the patchUpdatedResource collection builder.
+type PatchUpdatedResourcesRequestBuilder struct{}
 
-// Post creates one module.
-func (b *ModulesRequestBuilder) Post(_ context.Context, body models.Moduleable, _ any) (models.Moduleable, error) {
+// Post creates one patchUpdatedResource.
+func (b *PatchUpdatedResourcesRequestBuilder) Post(_ context.Context, body models.PatchUpdatedResourceable, _ any) (models.PatchUpdatedResourceable, error) {
 	return body, errStub
 }
 
 // Get lists the collection.
-func (b *ModulesRequestBuilder) Get(_ context.Context, _ any) (models.ModuleCollectionResponseable, error) {
+func (b *PatchUpdatedResourcesRequestBuilder) Get(_ context.Context, _ any) (models.PatchUpdatedResourceCollectionResponseable, error) {
 	return nil, errStub
 }
 
-// ByModuleId reaches one module.
-func (b *ModulesRequestBuilder) ByModuleId(_ string) *ModuleItemRequestBuilder {
-	return &ModuleItemRequestBuilder{}
+// ByPatchUpdatedResourceId reaches one patchUpdatedResource.
+func (b *PatchUpdatedResourcesRequestBuilder) ByPatchUpdatedResourceId(_ string) *PatchUpdatedResourceItemRequestBuilder {
+	return &PatchUpdatedResourceItemRequestBuilder{}
 }
 
-// ModuleItemRequestBuilder is the module item builder.
-type ModuleItemRequestBuilder struct{}
+// PatchUpdatedResourceItemRequestBuilder is the patchUpdatedResource item builder.
+type PatchUpdatedResourceItemRequestBuilder struct{}
 
-// Get reads the module.
-func (b *ModuleItemRequestBuilder) Get(_ context.Context, _ any) (models.Moduleable, error) {
+// Get reads the patchUpdatedResource.
+func (b *PatchUpdatedResourceItemRequestBuilder) Get(_ context.Context, _ any) (models.PatchUpdatedResourceable, error) {
 	return nil, errStub
 }
 
-// Patch updates the module.
-func (b *ModuleItemRequestBuilder) Patch(_ context.Context, body models.Moduleable, _ any) (models.Moduleable, error) {
+// Patch updates the patchUpdatedResource.
+func (b *PatchUpdatedResourceItemRequestBuilder) Patch(_ context.Context, body models.PatchUpdatedResourceable, _ any) (models.PatchUpdatedResourceable, error) {
 	return body, errStub
 }
 
-// Delete removes the module.
-func (b *ModuleItemRequestBuilder) Delete(_ context.Context, _ any) error { return errStub }
-
-// Reboot reaches the reboot invocation.
-func (b *ModuleItemRequestBuilder) Reboot() *ModuleRebootRequestBuilder {
-	return &ModuleRebootRequestBuilder{}
-}
-
-// ModuleRebootRequestBuilder is the reboot invocation builder.
-type ModuleRebootRequestBuilder struct{}
-
-// Post invokes the reboot.
-func (b *ModuleRebootRequestBuilder) Post(_ context.Context, _ models.RebootRequestable, _ any) error {
+// Delete removes the patchUpdatedResource.
+func (b *PatchUpdatedResourceItemRequestBuilder) Delete(_ context.Context, _ any) error {
 	return errStub
 }
 
-// BeaconsRequestBuilder is the beacon collection builder.
-type BeaconsRequestBuilder struct{}
+// CustomAction reaches the customAction invocation.
+func (b *PatchUpdatedResourceItemRequestBuilder) CustomAction() *PatchUpdatedResourceCustomActionRequestBuilder {
+	return &PatchUpdatedResourceCustomActionRequestBuilder{}
+}
 
-// Post creates one beacon.
-func (b *BeaconsRequestBuilder) Post(_ context.Context, body models.Beaconable, _ any) (models.Beaconable, error) {
+// PatchUpdatedResourceCustomActionRequestBuilder is the customAction invocation builder.
+type PatchUpdatedResourceCustomActionRequestBuilder struct{}
+
+// Post invokes the customAction.
+func (b *PatchUpdatedResourceCustomActionRequestBuilder) Post(_ context.Context, _ models.CustomActionRequestable, _ any) error {
+	return errStub
+}
+
+// ReplaceOnlyResourcesRequestBuilder is the replaceOnlyResource collection builder.
+type ReplaceOnlyResourcesRequestBuilder struct{}
+
+// Post creates one replaceOnlyResource.
+func (b *ReplaceOnlyResourcesRequestBuilder) Post(_ context.Context, body models.ReplaceOnlyResourceable, _ any) (models.ReplaceOnlyResourceable, error) {
 	return body, errStub
 }
 
 // Get lists the collection.
-func (b *BeaconsRequestBuilder) Get(_ context.Context, _ any) (models.BeaconCollectionResponseable, error) {
+func (b *ReplaceOnlyResourcesRequestBuilder) Get(_ context.Context, _ any) (models.ReplaceOnlyResourceCollectionResponseable, error) {
 	return nil, errStub
 }
 
-// ByBeaconId reaches one beacon.
-func (b *BeaconsRequestBuilder) ByBeaconId(_ string) *BeaconItemRequestBuilder {
-	return &BeaconItemRequestBuilder{}
+// ByReplaceOnlyResourceId reaches one replaceOnlyResource.
+func (b *ReplaceOnlyResourcesRequestBuilder) ByReplaceOnlyResourceId(_ string) *ReplaceOnlyResourceItemRequestBuilder {
+	return &ReplaceOnlyResourceItemRequestBuilder{}
 }
 
-// BeaconItemRequestBuilder is the beacon item builder.
-type BeaconItemRequestBuilder struct{}
+// ReplaceOnlyResourceItemRequestBuilder is the replaceOnlyResource item builder.
+type ReplaceOnlyResourceItemRequestBuilder struct{}
 
-// Get reads the beacon.
-func (b *BeaconItemRequestBuilder) Get(_ context.Context, _ any) (models.Beaconable, error) {
+// Get reads the replaceOnlyResource.
+func (b *ReplaceOnlyResourceItemRequestBuilder) Get(_ context.Context, _ any) (models.ReplaceOnlyResourceable, error) {
 	return nil, errStub
 }
 
-// Delete removes the beacon.
-func (b *BeaconItemRequestBuilder) Delete(_ context.Context, _ any) error { return errStub }
+// Delete removes the replaceOnlyResource.
+func (b *ReplaceOnlyResourceItemRequestBuilder) Delete(_ context.Context, _ any) error {
+	return errStub
+}
 
-// DocksRequestBuilder is the dock collection builder.
-type DocksRequestBuilder struct{}
+// PutUpdatedResourcesRequestBuilder is the putUpdatedResource collection builder.
+type PutUpdatedResourcesRequestBuilder struct{}
 
-// Post creates one dock.
-func (b *DocksRequestBuilder) Post(_ context.Context, body models.Dockable, _ any) (models.Dockable, error) {
+// Post creates one putUpdatedResource.
+func (b *PutUpdatedResourcesRequestBuilder) Post(_ context.Context, body models.PutUpdatedResourceable, _ any) (models.PutUpdatedResourceable, error) {
 	return body, errStub
 }
 
 // Get lists the collection.
-func (b *DocksRequestBuilder) Get(_ context.Context, _ any) (models.DockCollectionResponseable, error) {
+func (b *PutUpdatedResourcesRequestBuilder) Get(_ context.Context, _ any) (models.PutUpdatedResourceCollectionResponseable, error) {
 	return nil, errStub
 }
 
-// ByDockId reaches one dock.
-func (b *DocksRequestBuilder) ByDockId(_ string) *DockItemRequestBuilder {
-	return &DockItemRequestBuilder{}
+// ByPutUpdatedResourceId reaches one putUpdatedResource.
+func (b *PutUpdatedResourcesRequestBuilder) ByPutUpdatedResourceId(_ string) *PutUpdatedResourceItemRequestBuilder {
+	return &PutUpdatedResourceItemRequestBuilder{}
 }
 
-// DockItemRequestBuilder is the dock item builder.
-type DockItemRequestBuilder struct{}
+// PutUpdatedResourceItemRequestBuilder is the putUpdatedResource item builder.
+type PutUpdatedResourceItemRequestBuilder struct{}
 
-// Get reads the dock.
-func (b *DockItemRequestBuilder) Get(_ context.Context, _ any) (models.Dockable, error) {
+// Get reads the putUpdatedResource.
+func (b *PutUpdatedResourceItemRequestBuilder) Get(_ context.Context, _ any) (models.PutUpdatedResourceable, error) {
 	return nil, errStub
 }
 
-// Put replaces the dock.
-func (b *DockItemRequestBuilder) Put(_ context.Context, body models.Dockable, _ any) (models.Dockable, error) {
+// Put replaces the putUpdatedResource.
+func (b *PutUpdatedResourceItemRequestBuilder) Put(_ context.Context, body models.PutUpdatedResourceable, _ any) (models.PutUpdatedResourceable, error) {
 	return body, errStub
 }
 
-// Delete removes the dock.
-func (b *DockItemRequestBuilder) Delete(_ context.Context, _ any) error { return errStub }
+// Delete removes the putUpdatedResource.
+func (b *PutUpdatedResourceItemRequestBuilder) Delete(_ context.Context, _ any) error { return errStub }
 
-// PermitsRequestBuilder is the permit collection builder.
-type PermitsRequestBuilder struct{}
+// KeyAddressedDatasourcesRequestBuilder is the keyAddressedDatasource collection builder.
+type KeyAddressedDatasourcesRequestBuilder struct{}
 
-// ByPermitCode reaches one permit.
-func (b *PermitsRequestBuilder) ByPermitCode(_ string) *PermitItemRequestBuilder {
-	return &PermitItemRequestBuilder{}
+// ByKeyAddressedDatasourceCode reaches one keyAddressedDatasource.
+func (b *KeyAddressedDatasourcesRequestBuilder) ByKeyAddressedDatasourceCode(_ string) *KeyAddressedDatasourceItemRequestBuilder {
+	return &KeyAddressedDatasourceItemRequestBuilder{}
 }
 
-// PermitItemRequestBuilder is the permit item builder.
-type PermitItemRequestBuilder struct{}
+// KeyAddressedDatasourceItemRequestBuilder is the keyAddressedDatasource item builder.
+type KeyAddressedDatasourceItemRequestBuilder struct{}
 
-// Get reads the permit.
-func (b *PermitItemRequestBuilder) Get(_ context.Context, _ any) (models.Permitable, error) {
+// Get reads the keyAddressedDatasource.
+func (b *KeyAddressedDatasourceItemRequestBuilder) Get(_ context.Context, _ any) (models.KeyAddressedDatasourceable, error) {
 	return nil, errStub
 }
 
-// TransitsRequestBuilder is the transit collection builder.
-type TransitsRequestBuilder struct{}
+// ListOnlyDatasourcesRequestBuilder is the listOnlyDatasource collection builder.
+type ListOnlyDatasourcesRequestBuilder struct{}
 
 // Get lists the collection.
-func (b *TransitsRequestBuilder) Get(_ context.Context, _ any) (models.TransitCollectionResponseable, error) {
+func (b *ListOnlyDatasourcesRequestBuilder) Get(_ context.Context, _ any) (models.ListOnlyDatasourceCollectionResponseable, error) {
 	return nil, errStub
 }

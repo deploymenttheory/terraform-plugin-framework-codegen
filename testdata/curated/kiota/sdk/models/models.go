@@ -6,453 +6,491 @@ package models
 
 import "errors"
 
-// ModuleKind is the generated enumeration for the module kind.
-type ModuleKind int
+// PatchUpdatedResourceEnumString is the generated enumeration for the patchUpdatedResource enumString.
+type PatchUpdatedResourceEnumString int
 
 // Enumeration members.
 const (
-	HABITAT_MODULEKIND ModuleKind = iota
-	LAB_MODULEKIND
+	OPTIONONE_PATCHUPDATEDRESOURCEENUMSTRING PatchUpdatedResourceEnumString = iota
+	OPTIONTWO_PATCHUPDATEDRESOURCEENUMSTRING
 )
 
 // String spells the member the way the API does.
-func (e ModuleKind) String() string {
-	return [...]string{"habitat", "lab"}[e]
+func (e PatchUpdatedResourceEnumString) String() string {
+	return [...]string{"optionOne", "optionTwo"}[e]
 }
 
-// ParseModuleKind parses the wire spelling, kiota-shaped.
-func ParseModuleKind(v string) (any, error) {
-	result := HABITAT_MODULEKIND
+// ParsePatchUpdatedResourceEnumString parses the wire spelling, kiota-shaped.
+func ParsePatchUpdatedResourceEnumString(v string) (any, error) {
+	result := OPTIONONE_PATCHUPDATEDRESOURCEENUMSTRING
 	switch v {
-	case "habitat":
-		result = HABITAT_MODULEKIND
-	case "lab":
-		result = LAB_MODULEKIND
+	case "optionOne":
+		result = OPTIONONE_PATCHUPDATEDRESOURCEENUMSTRING
+	case "optionTwo":
+		result = OPTIONTWO_PATCHUPDATEDRESOURCEENUMSTRING
 	default:
-		return nil, errors.New("unknown ModuleKind value: " + v)
+		return nil, errors.New("unknown PatchUpdatedResourceEnumString value: " + v)
 	}
 	return &result, nil
 }
 
-// Moduleable is the read-side module interface.
-type Moduleable interface {
+// PatchUpdatedResourceable is the read-side patchUpdatedResource interface.
+type PatchUpdatedResourceable interface {
 	GetId() *string
-	GetName() *string
-	GetKind() *ModuleKind
-	GetSerial() *string
-	GetOccupied() *bool
-	GetBerthCount() *int32
-	GetMassRatio() *float64
-	GetTags() []string
-	GetBerth() ModuleBerthable
-	GetHatches() []ModuleHatchable
-	GetPorts() map[string]ModulePortable
-	GetMapOfStrings() Module_mapOfStringsable
-	GetMapOfIntegers() Module_mapOfIntegersable
-	GetMapOfNumbers() Module_mapOfNumbersable
-	GetMapOfBooleans() Module_mapOfBooleansable
-	GetStatus() *string
+	GetRequiredString() *string
+	GetEnumString() *PatchUpdatedResourceEnumString
+	GetImmutableString() *string
+	GetBoolean() *bool
+	GetInteger() *int32
+	GetNumber() *float64
+	GetListOfStrings() []string
+	GetNestedObject() PatchUpdatedResourceNestedObjectable
+	GetListOfNestedObjects() []PatchUpdatedResourceListElementable
+	GetMapOfNestedObjects() map[string]PatchUpdatedResourceMapValueable
+	GetMapOfStrings() PatchUpdatedResource_mapOfStringsable
+	GetMapOfIntegers() PatchUpdatedResource_mapOfIntegersable
+	GetMapOfNumbers() PatchUpdatedResource_mapOfNumbersable
+	GetMapOfBooleans() PatchUpdatedResource_mapOfBooleansable
+	GetComputedString() *string
 }
 
-// Module is the concrete model the constructor yields.
-type Module struct {
-	ports         map[string]ModulePortable
-	id            *string
-	name          *string
-	kind          *ModuleKind
-	serial        *string
-	occupied      *bool
-	berthCount    *int32
-	massRatio     *float64
-	tags          []string
-	berth         ModuleBerthable
-	hatches       []ModuleHatchable
-	mapOfStrings  Module_mapOfStringsable
-	mapOfIntegers Module_mapOfIntegersable
-	mapOfNumbers  Module_mapOfNumbersable
-	mapOfBooleans Module_mapOfBooleansable
-	status        *string
+// PatchUpdatedResource is the concrete model the constructor yields.
+type PatchUpdatedResource struct {
+	id                  *string
+	requiredString      *string
+	enumString          *PatchUpdatedResourceEnumString
+	immutableString     *string
+	boolean             *bool
+	integer             *int32
+	number              *float64
+	listOfStrings       []string
+	nestedObject        PatchUpdatedResourceNestedObjectable
+	listOfNestedObjects []PatchUpdatedResourceListElementable
+	mapOfNestedObjects  map[string]PatchUpdatedResourceMapValueable
+	mapOfStrings        PatchUpdatedResource_mapOfStringsable
+	mapOfIntegers       PatchUpdatedResource_mapOfIntegersable
+	mapOfNumbers        PatchUpdatedResource_mapOfNumbersable
+	mapOfBooleans       PatchUpdatedResource_mapOfBooleansable
+	computedString      *string
 }
 
-// NewModule constructs a settable Module.
-func NewModule() *Module { return &Module{} }
+// NewPatchUpdatedResource constructs a settable PatchUpdatedResource.
+func NewPatchUpdatedResource() *PatchUpdatedResource { return &PatchUpdatedResource{} }
 
 // GetId reads the identifier.
-func (m *Module) GetId() *string { return m.id }
+func (m *PatchUpdatedResource) GetId() *string { return m.id }
 
-// GetName reads the name.
-func (m *Module) GetName() *string { return m.name }
+// GetRequiredString reads the requiredString.
+func (m *PatchUpdatedResource) GetRequiredString() *string { return m.requiredString }
 
-// SetName writes the name.
-func (m *Module) SetName(v *string) { m.name = v }
+// SetRequiredString writes the requiredString.
+func (m *PatchUpdatedResource) SetRequiredString(v *string) { m.requiredString = v }
 
-// GetKind reads the enumeration.
-func (m *Module) GetKind() *ModuleKind { return m.kind }
+// GetEnumString reads the enumeration.
+func (m *PatchUpdatedResource) GetEnumString() *PatchUpdatedResourceEnumString { return m.enumString }
 
-// SetKind writes the enumeration.
-func (m *Module) SetKind(v *ModuleKind) { m.kind = v }
+// SetEnumString writes the enumeration.
+func (m *PatchUpdatedResource) SetEnumString(v *PatchUpdatedResourceEnumString) { m.enumString = v }
 
-// GetSerial reads the create-only serial.
-func (m *Module) GetSerial() *string { return m.serial }
+// GetImmutableString reads the create-only string.
+func (m *PatchUpdatedResource) GetImmutableString() *string { return m.immutableString }
 
-// SetSerial writes the serial.
-func (m *Module) SetSerial(v *string) { m.serial = v }
+// SetImmutableString writes the immutableString.
+func (m *PatchUpdatedResource) SetImmutableString(v *string) { m.immutableString = v }
 
-// GetOccupied reads the flag.
-func (m *Module) GetOccupied() *bool { return m.occupied }
+// GetBoolean reads the flag.
+func (m *PatchUpdatedResource) GetBoolean() *bool { return m.boolean }
 
-// SetOccupied writes the flag.
-func (m *Module) SetOccupied(v *bool) { m.occupied = v }
+// SetBoolean writes the flag.
+func (m *PatchUpdatedResource) SetBoolean(v *bool) { m.boolean = v }
 
-// GetBerthCount reads a scalar the SDK carries narrower than the document.
-func (m *Module) GetBerthCount() *int32 { return m.berthCount }
+// GetInteger reads a scalar the SDK carries narrower than the document.
+func (m *PatchUpdatedResource) GetInteger() *int32 { return m.integer }
 
-// SetBerthCount writes the narrow scalar.
-func (m *Module) SetBerthCount(v *int32) { m.berthCount = v }
+// SetInteger writes the narrow scalar.
+func (m *PatchUpdatedResource) SetInteger(v *int32) { m.integer = v }
 
-// GetMassRatio reads the ratio.
-func (m *Module) GetMassRatio() *float64 { return m.massRatio }
+// GetNumber reads the ratio.
+func (m *PatchUpdatedResource) GetNumber() *float64 { return m.number }
 
-// SetMassRatio writes the ratio.
-func (m *Module) SetMassRatio(v *float64) { m.massRatio = v }
+// SetNumber writes the ratio.
+func (m *PatchUpdatedResource) SetNumber(v *float64) { m.number = v }
 
-// GetTags reads the scalar slice.
-func (m *Module) GetTags() []string { return m.tags }
+// GetListOfStrings reads the scalar slice.
+func (m *PatchUpdatedResource) GetListOfStrings() []string { return m.listOfStrings }
 
-// SetTags writes the scalar slice.
-func (m *Module) SetTags(v []string) { m.tags = v }
+// SetListOfStrings writes the scalar slice.
+func (m *PatchUpdatedResource) SetListOfStrings(v []string) { m.listOfStrings = v }
 
-// GetBerth reads the nested object.
-func (m *Module) GetBerth() ModuleBerthable { return m.berth }
+// GetNestedObject reads the nested object.
+func (m *PatchUpdatedResource) GetNestedObject() PatchUpdatedResourceNestedObjectable {
+	return m.nestedObject
+}
 
-// SetBerth writes the nested object.
-func (m *Module) SetBerth(v ModuleBerthable) { m.berth = v }
+// SetNestedObject writes the nested object.
+func (m *PatchUpdatedResource) SetNestedObject(v PatchUpdatedResourceNestedObjectable) {
+	m.nestedObject = v
+}
 
-// GetHatches reads the nested list.
-func (m *Module) GetHatches() []ModuleHatchable { return m.hatches }
+// GetListOfNestedObjects reads the nested list.
+func (m *PatchUpdatedResource) GetListOfNestedObjects() []PatchUpdatedResourceListElementable {
+	return m.listOfNestedObjects
+}
 
-// SetHatches writes the nested list.
-func (m *Module) SetHatches(v []ModuleHatchable) { m.hatches = v }
+// SetListOfNestedObjects writes the nested list.
+func (m *PatchUpdatedResource) SetListOfNestedObjects(v []PatchUpdatedResourceListElementable) {
+	m.listOfNestedObjects = v
+}
 
-// GetPorts reads the nested map.
-func (m *Module) GetPorts() map[string]ModulePortable { return m.ports }
+// GetMapOfNestedObjects reads the nested map.
+func (m *PatchUpdatedResource) GetMapOfNestedObjects() map[string]PatchUpdatedResourceMapValueable {
+	return m.mapOfNestedObjects
+}
 
-// SetPorts writes the nested map.
-func (m *Module) SetPorts(v map[string]ModulePortable) { m.ports = v }
+// SetMapOfNestedObjects writes the nested map.
+func (m *PatchUpdatedResource) SetMapOfNestedObjects(v map[string]PatchUpdatedResourceMapValueable) {
+	m.mapOfNestedObjects = v
+}
+
+// PatchUpdatedResourceMapValue is the map's value, read through its
+// interface the way a generated collection value is.
+type PatchUpdatedResourceMapValueable interface {
+	GetValueInteger() *int64
+	GetValueBoolean() *bool
+}
+
+// PatchUpdatedResourceMapValue is the concrete map value model.
+type PatchUpdatedResourceMapValue struct {
+	valueInteger *int64
+	valueBoolean *bool
+}
+
+// NewPatchUpdatedResourceMapValue constructs a settable value.
+func NewPatchUpdatedResourceMapValue() *PatchUpdatedResourceMapValue {
+	return &PatchUpdatedResourceMapValue{}
+}
+
+// GetValueInteger reads the integer.
+func (m *PatchUpdatedResourceMapValue) GetValueInteger() *int64 { return m.valueInteger }
+
+// SetValueInteger writes the integer.
+func (m *PatchUpdatedResourceMapValue) SetValueInteger(v *int64) { m.valueInteger = v }
+
+// GetValueBoolean reads the boolean.
+func (m *PatchUpdatedResourceMapValue) GetValueBoolean() *bool { return m.valueBoolean }
+
+// SetValueBoolean writes the boolean.
+func (m *PatchUpdatedResourceMapValue) SetValueBoolean(v *bool) { m.valueBoolean = v }
 
 // GetMapOfStrings reads the map-shaped object.
-func (m *Module) GetMapOfStrings() Module_mapOfStringsable { return m.mapOfStrings }
+func (m *PatchUpdatedResource) GetMapOfStrings() PatchUpdatedResource_mapOfStringsable {
+	return m.mapOfStrings
+}
 
 // SetMapOfStrings writes the map-shaped object.
-func (m *Module) SetMapOfStrings(v Module_mapOfStringsable) { m.mapOfStrings = v }
+func (m *PatchUpdatedResource) SetMapOfStrings(v PatchUpdatedResource_mapOfStringsable) {
+	m.mapOfStrings = v
+}
 
 // GetMapOfIntegers reads the map-shaped object.
-func (m *Module) GetMapOfIntegers() Module_mapOfIntegersable { return m.mapOfIntegers }
+func (m *PatchUpdatedResource) GetMapOfIntegers() PatchUpdatedResource_mapOfIntegersable {
+	return m.mapOfIntegers
+}
 
 // SetMapOfIntegers writes the map-shaped object.
-func (m *Module) SetMapOfIntegers(v Module_mapOfIntegersable) { m.mapOfIntegers = v }
+func (m *PatchUpdatedResource) SetMapOfIntegers(v PatchUpdatedResource_mapOfIntegersable) {
+	m.mapOfIntegers = v
+}
 
 // GetMapOfNumbers reads the map-shaped object.
-func (m *Module) GetMapOfNumbers() Module_mapOfNumbersable { return m.mapOfNumbers }
+func (m *PatchUpdatedResource) GetMapOfNumbers() PatchUpdatedResource_mapOfNumbersable {
+	return m.mapOfNumbers
+}
 
 // SetMapOfNumbers writes the map-shaped object.
-func (m *Module) SetMapOfNumbers(v Module_mapOfNumbersable) { m.mapOfNumbers = v }
+func (m *PatchUpdatedResource) SetMapOfNumbers(v PatchUpdatedResource_mapOfNumbersable) {
+	m.mapOfNumbers = v
+}
 
 // GetMapOfBooleans reads the map-shaped object.
-func (m *Module) GetMapOfBooleans() Module_mapOfBooleansable { return m.mapOfBooleans }
+func (m *PatchUpdatedResource) GetMapOfBooleans() PatchUpdatedResource_mapOfBooleansable {
+	return m.mapOfBooleans
+}
 
 // SetMapOfBooleans writes the map-shaped object.
-func (m *Module) SetMapOfBooleans(v Module_mapOfBooleansable) { m.mapOfBooleans = v }
-
-// GetStatus reads the server's assessment.
-func (m *Module) GetStatus() *string { return m.status }
-
-// ModuleBerthable is the read-side berth interface.
-type ModuleBerthable interface {
-	GetRing() *int64
-	GetSpin() *bool
+func (m *PatchUpdatedResource) SetMapOfBooleans(v PatchUpdatedResource_mapOfBooleansable) {
+	m.mapOfBooleans = v
 }
 
-// ModuleBerth is the concrete berth model.
-type ModuleBerth struct {
-	ring *int64
-	spin *bool
+// GetComputedString reads the value only the API sets.
+func (m *PatchUpdatedResource) GetComputedString() *string { return m.computedString }
+
+// PatchUpdatedResourceNestedObjectable is the read-side nestedObject interface.
+type PatchUpdatedResourceNestedObjectable interface {
+	GetNestedInteger() *int64
+	GetNestedBoolean() *bool
 }
 
-// NewModuleBerth constructs a settable ModuleBerth.
-func NewModuleBerth() *ModuleBerth { return &ModuleBerth{} }
-
-// GetRing reads the ring.
-func (m *ModuleBerth) GetRing() *int64 { return m.ring }
-
-// SetRing writes the ring.
-func (m *ModuleBerth) SetRing(v *int64) { m.ring = v }
-
-// GetSpin reads the flag.
-func (m *ModuleBerth) GetSpin() *bool { return m.spin }
-
-// SetSpin writes the flag.
-func (m *ModuleBerth) SetSpin(v *bool) { m.spin = v }
-
-// ModuleHatchable is the read-side hatch interface.
-type ModuleHatchable interface {
-	GetLabel() *string
-	GetWidth() *int64
+// PatchUpdatedResourceNestedObject is the concrete nestedObject model.
+type PatchUpdatedResourceNestedObject struct {
+	nestedInteger *int64
+	nestedBoolean *bool
 }
 
-// ModuleHatch is the concrete hatch model.
-type ModuleHatch struct {
-	label *string
-	width *int64
+// NewPatchUpdatedResourceNestedObject constructs a settable PatchUpdatedResourceNestedObject.
+func NewPatchUpdatedResourceNestedObject() *PatchUpdatedResourceNestedObject {
+	return &PatchUpdatedResourceNestedObject{}
 }
 
-// NewModuleHatch constructs a settable ModuleHatch.
-func NewModuleHatch() *ModuleHatch { return &ModuleHatch{} }
+// GetNestedInteger reads the nestedInteger.
+func (m *PatchUpdatedResourceNestedObject) GetNestedInteger() *int64 { return m.nestedInteger }
 
-// GetLabel reads the label.
-func (m *ModuleHatch) GetLabel() *string { return m.label }
+// SetNestedInteger writes the nestedInteger.
+func (m *PatchUpdatedResourceNestedObject) SetNestedInteger(v *int64) { m.nestedInteger = v }
 
-// SetLabel writes the label.
-func (m *ModuleHatch) SetLabel(v *string) { m.label = v }
+// GetNestedBoolean reads the flag.
+func (m *PatchUpdatedResourceNestedObject) GetNestedBoolean() *bool { return m.nestedBoolean }
 
-// GetWidth reads the width.
-func (m *ModuleHatch) GetWidth() *int64 { return m.width }
+// SetNestedBoolean writes the flag.
+func (m *PatchUpdatedResourceNestedObject) SetNestedBoolean(v *bool) { m.nestedBoolean = v }
 
-// SetWidth writes the width.
-func (m *ModuleHatch) SetWidth(v *int64) { m.width = v }
-
-// ModulePortable is the map's value, read through its interface the way a
-// generated collection value is.
-type ModulePortable interface {
-	GetBore() *int64
-	GetSealed() *bool
+// PatchUpdatedResourceListElementable is the read-side list element interface.
+type PatchUpdatedResourceListElementable interface {
+	GetElementString() *string
+	GetElementInteger() *int64
 }
 
-// ModulePort is the concrete port model.
-type ModulePort struct {
-	bore   *int64
-	sealed *bool
+// PatchUpdatedResourceListElement is the concrete list element model.
+type PatchUpdatedResourceListElement struct {
+	elementString  *string
+	elementInteger *int64
 }
 
-// NewModulePort constructs a settable ModulePort.
-func NewModulePort() *ModulePort { return &ModulePort{} }
-
-// GetBore reads the bore.
-func (m *ModulePort) GetBore() *int64 { return m.bore }
-
-// SetBore writes the bore.
-func (m *ModulePort) SetBore(v *int64) { m.bore = v }
-
-// GetSealed reads the sealed flag.
-func (m *ModulePort) GetSealed() *bool { return m.sealed }
-
-// SetSealed writes the sealed flag.
-func (m *ModulePort) SetSealed(v *bool) { m.sealed = v }
-
-// ModuleCollectionResponseable is the read-side collection envelope.
-type ModuleCollectionResponseable interface {
-	GetValue() []Moduleable
+// NewPatchUpdatedResourceListElement constructs a settable PatchUpdatedResourceListElement.
+func NewPatchUpdatedResourceListElement() *PatchUpdatedResourceListElement {
+	return &PatchUpdatedResourceListElement{}
 }
 
-// ModuleCollectionResponse is the concrete collection envelope.
-type ModuleCollectionResponse struct {
-	value []Moduleable
+// GetElementString reads the elementString.
+func (m *PatchUpdatedResourceListElement) GetElementString() *string { return m.elementString }
+
+// SetElementString writes the elementString.
+func (m *PatchUpdatedResourceListElement) SetElementString(v *string) { m.elementString = v }
+
+// GetElementInteger reads the elementInteger.
+func (m *PatchUpdatedResourceListElement) GetElementInteger() *int64 { return m.elementInteger }
+
+// SetElementInteger writes the elementInteger.
+func (m *PatchUpdatedResourceListElement) SetElementInteger(v *int64) { m.elementInteger = v }
+
+// PatchUpdatedResourceCollectionResponseable is the read-side collection envelope.
+type PatchUpdatedResourceCollectionResponseable interface {
+	GetValue() []PatchUpdatedResourceable
+}
+
+// PatchUpdatedResourceCollectionResponse is the concrete collection envelope.
+type PatchUpdatedResourceCollectionResponse struct {
+	value []PatchUpdatedResourceable
 }
 
 // GetValue reads the elements.
-func (m *ModuleCollectionResponse) GetValue() []Moduleable { return m.value }
+func (m *PatchUpdatedResourceCollectionResponse) GetValue() []PatchUpdatedResourceable {
+	return m.value
+}
 
 // SetValue writes the elements.
-func (m *ModuleCollectionResponse) SetValue(v []Moduleable) { m.value = v }
+func (m *PatchUpdatedResourceCollectionResponse) SetValue(v []PatchUpdatedResourceable) { m.value = v }
 
-// RebootRequestable is the read-side reboot body interface.
-type RebootRequestable interface {
-	GetMode() *string
-	GetForce() *bool
+// CustomActionRequestable is the read-side customAction body interface.
+type CustomActionRequestable interface {
+	GetRequiredString() *string
+	GetBoolean() *bool
 }
 
-// RebootRequest is the concrete reboot body.
-type RebootRequest struct {
-	mode  *string
-	force *bool
+// CustomActionRequest is the concrete customAction body.
+type CustomActionRequest struct {
+	requiredString *string
+	boolean        *bool
 }
 
-// NewRebootRequest constructs a settable RebootRequest.
-func NewRebootRequest() *RebootRequest { return &RebootRequest{} }
+// NewCustomActionRequest constructs a settable CustomActionRequest.
+func NewCustomActionRequest() *CustomActionRequest { return &CustomActionRequest{} }
 
-// GetMode reads the mode.
-func (m *RebootRequest) GetMode() *string { return m.mode }
+// GetRequiredString reads the requiredString.
+func (m *CustomActionRequest) GetRequiredString() *string { return m.requiredString }
 
-// SetMode writes the mode.
-func (m *RebootRequest) SetMode(v *string) { m.mode = v }
+// SetRequiredString writes the requiredString.
+func (m *CustomActionRequest) SetRequiredString(v *string) { m.requiredString = v }
 
-// GetForce reads the flag.
-func (m *RebootRequest) GetForce() *bool { return m.force }
+// GetBoolean reads the flag.
+func (m *CustomActionRequest) GetBoolean() *bool { return m.boolean }
 
-// SetForce writes the flag.
-func (m *RebootRequest) SetForce(v *bool) { m.force = v }
+// SetBoolean writes the flag.
+func (m *CustomActionRequest) SetBoolean(v *bool) { m.boolean = v }
 
-// Beaconable is the read-side beacon interface.
-type Beaconable interface {
+// ReplaceOnlyResourceable is the read-side replaceOnlyResource interface.
+type ReplaceOnlyResourceable interface {
 	GetId() *string
-	GetCallsign() *string
-	GetRangeKm() *int64
-	GetActive() *bool
+	GetRequiredString() *string
+	GetInteger() *int64
+	GetBoolean() *bool
 }
 
-// Beacon is the concrete beacon model.
-type Beacon struct {
-	id       *string
-	callsign *string
-	rangeKm  *int64
-	active   *bool
+// ReplaceOnlyResource is the concrete replaceOnlyResource model.
+type ReplaceOnlyResource struct {
+	id             *string
+	requiredString *string
+	integer        *int64
+	boolean        *bool
 }
 
-// NewBeacon constructs a settable Beacon.
-func NewBeacon() *Beacon { return &Beacon{} }
+// NewReplaceOnlyResource constructs a settable ReplaceOnlyResource.
+func NewReplaceOnlyResource() *ReplaceOnlyResource { return &ReplaceOnlyResource{} }
 
 // GetId reads the identifier.
-func (m *Beacon) GetId() *string { return m.id }
+func (m *ReplaceOnlyResource) GetId() *string { return m.id }
 
-// GetCallsign reads the callsign.
-func (m *Beacon) GetCallsign() *string { return m.callsign }
+// GetRequiredString reads the requiredString.
+func (m *ReplaceOnlyResource) GetRequiredString() *string { return m.requiredString }
 
-// SetCallsign writes the callsign.
-func (m *Beacon) SetCallsign(v *string) { m.callsign = v }
+// SetRequiredString writes the requiredString.
+func (m *ReplaceOnlyResource) SetRequiredString(v *string) { m.requiredString = v }
 
-// GetRangeKm reads the range.
-func (m *Beacon) GetRangeKm() *int64 { return m.rangeKm }
+// GetInteger reads the range.
+func (m *ReplaceOnlyResource) GetInteger() *int64 { return m.integer }
 
-// SetRangeKm writes the range.
-func (m *Beacon) SetRangeKm(v *int64) { m.rangeKm = v }
+// SetInteger writes the range.
+func (m *ReplaceOnlyResource) SetInteger(v *int64) { m.integer = v }
 
-// GetActive reads the flag.
-func (m *Beacon) GetActive() *bool { return m.active }
+// GetBoolean reads the flag.
+func (m *ReplaceOnlyResource) GetBoolean() *bool { return m.boolean }
 
-// SetActive writes the flag.
-func (m *Beacon) SetActive(v *bool) { m.active = v }
+// SetBoolean writes the flag.
+func (m *ReplaceOnlyResource) SetBoolean(v *bool) { m.boolean = v }
 
-// BeaconCollectionResponseable is the read-side collection envelope.
-type BeaconCollectionResponseable interface {
-	GetValue() []Beaconable
+// ReplaceOnlyResourceCollectionResponseable is the read-side collection envelope.
+type ReplaceOnlyResourceCollectionResponseable interface {
+	GetValue() []ReplaceOnlyResourceable
 }
 
-// BeaconCollectionResponse is the concrete collection envelope.
-type BeaconCollectionResponse struct {
-	value []Beaconable
+// ReplaceOnlyResourceCollectionResponse is the concrete collection envelope.
+type ReplaceOnlyResourceCollectionResponse struct {
+	value []ReplaceOnlyResourceable
 }
 
 // GetValue reads the elements.
-func (m *BeaconCollectionResponse) GetValue() []Beaconable { return m.value }
+func (m *ReplaceOnlyResourceCollectionResponse) GetValue() []ReplaceOnlyResourceable { return m.value }
 
-// Dockable is the read-side dock interface.
-type Dockable interface {
+// PutUpdatedResourceable is the read-side putUpdatedResource interface.
+type PutUpdatedResourceable interface {
 	GetId() *string
-	GetLabel() *string
-	GetShielded() *bool
+	GetRequiredString() *string
+	GetBoolean() *bool
 }
 
-// Dock is the concrete dock model.
-type Dock struct {
-	id       *string
-	label    *string
-	shielded *bool
+// PutUpdatedResource is the concrete putUpdatedResource model.
+type PutUpdatedResource struct {
+	id             *string
+	requiredString *string
+	boolean        *bool
 }
 
-// NewDock constructs a settable Dock.
-func NewDock() *Dock { return &Dock{} }
+// NewPutUpdatedResource constructs a settable PutUpdatedResource.
+func NewPutUpdatedResource() *PutUpdatedResource { return &PutUpdatedResource{} }
 
 // GetId reads the identifier.
-func (m *Dock) GetId() *string { return m.id }
+func (m *PutUpdatedResource) GetId() *string { return m.id }
 
-// GetLabel reads the label.
-func (m *Dock) GetLabel() *string { return m.label }
+// GetRequiredString reads the requiredString.
+func (m *PutUpdatedResource) GetRequiredString() *string { return m.requiredString }
 
-// SetLabel writes the label.
-func (m *Dock) SetLabel(v *string) { m.label = v }
+// SetRequiredString writes the requiredString.
+func (m *PutUpdatedResource) SetRequiredString(v *string) { m.requiredString = v }
 
-// GetShielded reads the flag.
-func (m *Dock) GetShielded() *bool { return m.shielded }
+// GetBoolean reads the flag.
+func (m *PutUpdatedResource) GetBoolean() *bool { return m.boolean }
 
-// SetShielded writes the flag.
-func (m *Dock) SetShielded(v *bool) { m.shielded = v }
+// SetBoolean writes the flag.
+func (m *PutUpdatedResource) SetBoolean(v *bool) { m.boolean = v }
 
-// DockCollectionResponseable is the read-side collection envelope.
-type DockCollectionResponseable interface {
-	GetValue() []Dockable
+// PutUpdatedResourceCollectionResponseable is the read-side collection envelope.
+type PutUpdatedResourceCollectionResponseable interface {
+	GetValue() []PutUpdatedResourceable
 }
 
-// DockCollectionResponse is the concrete collection envelope.
-type DockCollectionResponse struct {
-	value []Dockable
+// PutUpdatedResourceCollectionResponse is the concrete collection envelope.
+type PutUpdatedResourceCollectionResponse struct {
+	value []PutUpdatedResourceable
 }
 
 // GetValue reads the elements.
-func (m *DockCollectionResponse) GetValue() []Dockable { return m.value }
+func (m *PutUpdatedResourceCollectionResponse) GetValue() []PutUpdatedResourceable { return m.value }
 
-// Permitable is the read-side permit interface.
-type Permitable interface {
+// KeyAddressedDatasourceable is the read-side keyAddressedDatasource interface.
+type KeyAddressedDatasourceable interface {
 	GetId() *string
-	GetPermitCode() *string
-	GetHolder() *string
-	GetSeats() *int64
+	GetKeyAddressedDatasourceCode() *string
+	GetPlainString() *string
+	GetInteger() *int64
 }
 
-// Permit is the concrete permit model.
-type Permit struct {
-	id         *string
-	permitCode *string
-	holder     *string
-	seats      *int64
+// KeyAddressedDatasource is the concrete keyAddressedDatasource model.
+type KeyAddressedDatasource struct {
+	id                         *string
+	keyAddressedDatasourceCode *string
+	plainString                *string
+	integer                    *int64
 }
 
 // GetId reads the identifier.
-func (m *Permit) GetId() *string { return m.id }
+func (m *KeyAddressedDatasource) GetId() *string { return m.id }
 
-// GetPermitCode reads the code.
-func (m *Permit) GetPermitCode() *string { return m.permitCode }
-
-// GetHolder reads the holder.
-func (m *Permit) GetHolder() *string { return m.holder }
-
-// GetSeats reads the seat count.
-func (m *Permit) GetSeats() *int64 { return m.seats }
-
-// Transitable is the read-side transit interface.
-type Transitable interface {
-	GetId() *string
-	GetWindow() *string
-	GetCraft() *string
+// GetKeyAddressedDatasourceCode reads the code.
+func (m *KeyAddressedDatasource) GetKeyAddressedDatasourceCode() *string {
+	return m.keyAddressedDatasourceCode
 }
 
-// Transit is the concrete transit model.
-type Transit struct {
-	id     *string
-	window *string
-	craft  *string
+// GetPlainString reads the plainString.
+func (m *KeyAddressedDatasource) GetPlainString() *string { return m.plainString }
+
+// GetInteger reads the integer.
+func (m *KeyAddressedDatasource) GetInteger() *int64 { return m.integer }
+
+// ListOnlyDatasourceable is the read-side listOnlyDatasource interface.
+type ListOnlyDatasourceable interface {
+	GetId() *string
+	GetFirstString() *string
+	GetSecondString() *string
+}
+
+// ListOnlyDatasource is the concrete listOnlyDatasource model.
+type ListOnlyDatasource struct {
+	id           *string
+	firstString  *string
+	secondString *string
 }
 
 // GetId reads the identifier.
-func (m *Transit) GetId() *string { return m.id }
+func (m *ListOnlyDatasource) GetId() *string { return m.id }
 
-// GetWindow reads the window.
-func (m *Transit) GetWindow() *string { return m.window }
+// GetFirstString reads the firstString.
+func (m *ListOnlyDatasource) GetFirstString() *string { return m.firstString }
 
-// GetCraft reads the craft.
-func (m *Transit) GetCraft() *string { return m.craft }
+// GetSecondString reads the secondString.
+func (m *ListOnlyDatasource) GetSecondString() *string { return m.secondString }
 
-// TransitCollectionResponseable is the read-side collection envelope.
-type TransitCollectionResponseable interface {
-	GetValue() []Transitable
+// ListOnlyDatasourceCollectionResponseable is the read-side collection envelope.
+type ListOnlyDatasourceCollectionResponseable interface {
+	GetValue() []ListOnlyDatasourceable
 }
 
-// TransitCollectionResponse is the concrete collection envelope.
-type TransitCollectionResponse struct {
-	value []Transitable
+// ListOnlyDatasourceCollectionResponse is the concrete collection envelope.
+type ListOnlyDatasourceCollectionResponse struct {
+	value []ListOnlyDatasourceable
 }
 
 // GetValue reads the elements.
-func (m *TransitCollectionResponse) GetValue() []Transitable { return m.value }
+func (m *ListOnlyDatasourceCollectionResponse) GetValue() []ListOnlyDatasourceable { return m.value }
 
 // kiota emits no typed accessor for additionalProperties. A map-shaped
 // object generates as a model of its own whose only content is an untyped
@@ -460,86 +498,98 @@ func (m *TransitCollectionResponse) GetValue() []Transitable { return m.value }
 // these four carry map[string]string, map[string]int64, map[string]float64
 // and map[string]bool with no Go type saying so.
 
-// Module_mapOfStringsable is the read side of the mapOfStrings bag.
-type Module_mapOfStringsable interface {
+// PatchUpdatedResource_mapOfStringsable is the read side of the mapOfStrings bag.
+type PatchUpdatedResource_mapOfStringsable interface {
 	GetAdditionalData() map[string]any
 }
 
-// Module_mapOfStrings is the concrete mapOfStrings bag.
-type Module_mapOfStrings struct {
+// PatchUpdatedResource_mapOfStrings is the concrete mapOfStrings bag.
+type PatchUpdatedResource_mapOfStrings struct {
 	additionalData map[string]any
 }
 
-// NewModule_mapOfStrings constructs a settable Module_mapOfStrings.
-func NewModule_mapOfStrings() *Module_mapOfStrings {
-	return &Module_mapOfStrings{additionalData: map[string]any{}}
+// NewPatchUpdatedResource_mapOfStrings constructs a settable PatchUpdatedResource_mapOfStrings.
+func NewPatchUpdatedResource_mapOfStrings() *PatchUpdatedResource_mapOfStrings {
+	return &PatchUpdatedResource_mapOfStrings{additionalData: map[string]any{}}
 }
 
 // GetAdditionalData reads the bag.
-func (m *Module_mapOfStrings) GetAdditionalData() map[string]any { return m.additionalData }
+func (m *PatchUpdatedResource_mapOfStrings) GetAdditionalData() map[string]any {
+	return m.additionalData
+}
 
 // SetAdditionalData writes the bag.
-func (m *Module_mapOfStrings) SetAdditionalData(v map[string]any) { m.additionalData = v }
+func (m *PatchUpdatedResource_mapOfStrings) SetAdditionalData(v map[string]any) { m.additionalData = v }
 
-// Module_mapOfIntegersable is the read side of the mapOfIntegers bag.
-type Module_mapOfIntegersable interface {
+// PatchUpdatedResource_mapOfIntegersable is the read side of the mapOfIntegers bag.
+type PatchUpdatedResource_mapOfIntegersable interface {
 	GetAdditionalData() map[string]any
 }
 
-// Module_mapOfIntegers is the concrete mapOfIntegers bag.
-type Module_mapOfIntegers struct {
+// PatchUpdatedResource_mapOfIntegers is the concrete mapOfIntegers bag.
+type PatchUpdatedResource_mapOfIntegers struct {
 	additionalData map[string]any
 }
 
-// NewModule_mapOfIntegers constructs a settable Module_mapOfIntegers.
-func NewModule_mapOfIntegers() *Module_mapOfIntegers {
-	return &Module_mapOfIntegers{additionalData: map[string]any{}}
+// NewPatchUpdatedResource_mapOfIntegers constructs a settable PatchUpdatedResource_mapOfIntegers.
+func NewPatchUpdatedResource_mapOfIntegers() *PatchUpdatedResource_mapOfIntegers {
+	return &PatchUpdatedResource_mapOfIntegers{additionalData: map[string]any{}}
 }
 
 // GetAdditionalData reads the bag.
-func (m *Module_mapOfIntegers) GetAdditionalData() map[string]any { return m.additionalData }
+func (m *PatchUpdatedResource_mapOfIntegers) GetAdditionalData() map[string]any {
+	return m.additionalData
+}
 
 // SetAdditionalData writes the bag.
-func (m *Module_mapOfIntegers) SetAdditionalData(v map[string]any) { m.additionalData = v }
+func (m *PatchUpdatedResource_mapOfIntegers) SetAdditionalData(v map[string]any) {
+	m.additionalData = v
+}
 
-// Module_mapOfNumbersable is the read side of the mapOfNumbers bag.
-type Module_mapOfNumbersable interface {
+// PatchUpdatedResource_mapOfNumbersable is the read side of the mapOfNumbers bag.
+type PatchUpdatedResource_mapOfNumbersable interface {
 	GetAdditionalData() map[string]any
 }
 
-// Module_mapOfNumbers is the concrete mapOfNumbers bag.
-type Module_mapOfNumbers struct {
+// PatchUpdatedResource_mapOfNumbers is the concrete mapOfNumbers bag.
+type PatchUpdatedResource_mapOfNumbers struct {
 	additionalData map[string]any
 }
 
-// NewModule_mapOfNumbers constructs a settable Module_mapOfNumbers.
-func NewModule_mapOfNumbers() *Module_mapOfNumbers {
-	return &Module_mapOfNumbers{additionalData: map[string]any{}}
+// NewPatchUpdatedResource_mapOfNumbers constructs a settable PatchUpdatedResource_mapOfNumbers.
+func NewPatchUpdatedResource_mapOfNumbers() *PatchUpdatedResource_mapOfNumbers {
+	return &PatchUpdatedResource_mapOfNumbers{additionalData: map[string]any{}}
 }
 
 // GetAdditionalData reads the bag.
-func (m *Module_mapOfNumbers) GetAdditionalData() map[string]any { return m.additionalData }
+func (m *PatchUpdatedResource_mapOfNumbers) GetAdditionalData() map[string]any {
+	return m.additionalData
+}
 
 // SetAdditionalData writes the bag.
-func (m *Module_mapOfNumbers) SetAdditionalData(v map[string]any) { m.additionalData = v }
+func (m *PatchUpdatedResource_mapOfNumbers) SetAdditionalData(v map[string]any) { m.additionalData = v }
 
-// Module_mapOfBooleansable is the read side of the mapOfBooleans bag.
-type Module_mapOfBooleansable interface {
+// PatchUpdatedResource_mapOfBooleansable is the read side of the mapOfBooleans bag.
+type PatchUpdatedResource_mapOfBooleansable interface {
 	GetAdditionalData() map[string]any
 }
 
-// Module_mapOfBooleans is the concrete mapOfBooleans bag.
-type Module_mapOfBooleans struct {
+// PatchUpdatedResource_mapOfBooleans is the concrete mapOfBooleans bag.
+type PatchUpdatedResource_mapOfBooleans struct {
 	additionalData map[string]any
 }
 
-// NewModule_mapOfBooleans constructs a settable Module_mapOfBooleans.
-func NewModule_mapOfBooleans() *Module_mapOfBooleans {
-	return &Module_mapOfBooleans{additionalData: map[string]any{}}
+// NewPatchUpdatedResource_mapOfBooleans constructs a settable PatchUpdatedResource_mapOfBooleans.
+func NewPatchUpdatedResource_mapOfBooleans() *PatchUpdatedResource_mapOfBooleans {
+	return &PatchUpdatedResource_mapOfBooleans{additionalData: map[string]any{}}
 }
 
 // GetAdditionalData reads the bag.
-func (m *Module_mapOfBooleans) GetAdditionalData() map[string]any { return m.additionalData }
+func (m *PatchUpdatedResource_mapOfBooleans) GetAdditionalData() map[string]any {
+	return m.additionalData
+}
 
 // SetAdditionalData writes the bag.
-func (m *Module_mapOfBooleans) SetAdditionalData(v map[string]any) { m.additionalData = v }
+func (m *PatchUpdatedResource_mapOfBooleans) SetAdditionalData(v map[string]any) {
+	m.additionalData = v
+}
