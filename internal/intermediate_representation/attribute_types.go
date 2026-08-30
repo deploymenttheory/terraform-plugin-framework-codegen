@@ -105,16 +105,15 @@ func anonymousBranches(branches []*specmodel.Schema) int {
 // deriveMapType types an object that declares no properties. Only
 // additionalProperties carrying a schema names the value type, which is
 // what a map attribute needs; a bare boolean or nothing at all says the
-// object has no declared shape, and the refusal says which was seen.
+// object has no declared shape, and the exclusion says which was seen.
 //
-// A map of objects is derived the same way a list of objects is: the value
-// schema is folded from both sides of the create/read pair and becomes the
-// nested tree. terraform-plugin-framework has MapNestedAttribute for
-// exactly this, and a document that keys objects by a name the practitioner
-// chooses has no other shape to become.
+// The value is derived by deriveElement, which folds it from the three
+// sides of the create/read/update pair and recurses where the value is
+// itself a collection: a map of objects becomes a MapNestedAttribute, a map
+// of scalars a MapAttribute, and a map of lists or maps a MapAttribute whose
+// element type is composed to depth.
 func deriveMapType(attribute *Attribute, governingSchema resolvedSchema, create, read, update *specmodel.Schema) {
-	valueSchema := governingSchema.additionalProperties
-	if valueSchema == nil {
+	if governingSchema.additionalProperties == nil {
 		if governingSchema.additionalPropertiesDeclared {
 			exclude(attribute, Cause{Code: CauseUntypedAdditionalProperties}, "object whose additionalProperties is a bare boolean: it declares no value type to map")
 			return
@@ -122,83 +121,147 @@ func deriveMapType(attribute *Attribute, governingSchema resolvedSchema, create,
 		exclude(attribute, Cause{Code: CauseObjectWithoutPropertiesOrAdditionalProperties}, "object declaring neither properties nor additionalProperties: it has no declared shape")
 		return
 	}
-
-	resolvedValue := resolveSchema(valueSchema)
-	switch {
-	case resolvedValue.declaredType == "string":
-		attribute.Type, attribute.ElementType = TypeMap, TypeString
-	case resolvedValue.declaredType == "boolean":
-		attribute.Type, attribute.ElementType = TypeMap, TypeBool
-	case resolvedValue.declaredType == "integer":
-		attribute.Type, attribute.ElementType = TypeMap, TypeInt64
-	case resolvedValue.declaredType == "number":
-		attribute.Type, attribute.ElementType = TypeMap, TypeFloat64
-	case resolvedValue.declaredType == "object" || (resolvedValue.declaredType == "" && len(resolvedValue.properties) > 0):
-		if len(resolvedValue.properties) == 0 {
-			// A value that is itself a map has no properties and is not
-			// shapeless: its own additionalProperties says what it holds.
-			// terraform-plugin-framework carries this as a MapAttribute
-			// whose ElementType is a types.MapType; the derivation cannot
-			// yet describe an element that is itself a collection, so the
-			// refusal names that rather than blaming the document.
-			if resolvedValue.additionalProperties != nil {
-				exclude(attribute, Cause{Code: CauseMapOfMaps},
-					"map whose values are themselves maps: the derivation carries one element kind and cannot yet nest one")
-				return
-			}
-			exclude(attribute, Cause{Code: CauseMapOfObjects},
-				"map of objects the specification gives no properties: there are no attributes to map")
-			return
-		}
-		attribute.Type, attribute.ElementType = TypeMap, TypeObject
-		attribute.NestedAttributes = buildAttributeTree(
-			resolveSchema(create).additionalProperties,
-			resolveSchema(read).additionalProperties,
-			resolveSchema(update).additionalProperties,
-			false)
-	default:
-		exclude(attribute, Cause{Code: CauseUnsupportedMapValue, Subject: resolvedValue.declaredType},
-			fmt.Sprintf("map of %q values is not supported", resolvedValue.declaredType))
+	element, cause, reason := deriveElement(TypeMap,
+		resolveSchema(create).additionalProperties,
+		resolveSchema(read).additionalProperties,
+		resolveSchema(update).additionalProperties)
+	if cause.Code != "" {
+		exclude(attribute, cause, reason)
+		return
 	}
+	setCollectionElement(attribute, TypeMap, element)
 }
 
 // deriveListType types an array attribute from its element schema, seen
 // from both sides of the create/read fold.
 func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema) {
-	createItems, readItems, updateItems := resolveSchema(create).items, resolveSchema(read).items, resolveSchema(update).items
-	governingItems := createItems
-	if governingItems == nil {
-		governingItems = readItems
+	element, cause, reason := deriveElement(TypeList,
+		resolveSchema(create).items,
+		resolveSchema(read).items,
+		resolveSchema(update).items)
+	if cause.Code != "" {
+		exclude(attribute, cause, reason)
+		return
 	}
-	resolvedItems := resolveSchema(governingItems)
+	setCollectionElement(attribute, TypeList, element)
+}
+
+// collectionElement is what one collection level's element derives to:
+// every level beneath it down to the leaf, the tree of an object at the
+// bottom, and the closed set of a string at the bottom.
+type collectionElement struct {
+	levels           []AttributeType
+	nestedAttributes *AttributeTree
+	oneOf            []string
+}
+
+// deriveElement types the element one collection level holds, seen from the
+// three sides of the fold, and recurses where the element is itself a
+// collection. container is the type of the collection whose element this is:
+// a list and a map name an untypeable element under different causes, so a
+// reader of the report sees which of the two the document declared.
+func deriveElement(container AttributeType, create, read, update *specmodel.Schema) (collectionElement, Cause, string) {
+	governing := create
+	if governing == nil {
+		governing = read
+	}
+	resolved := resolveSchema(governing)
 	switch {
-	case resolvedItems.empty:
-		exclude(attribute, Cause{Code: CauseItemlessArray}, "array declares no items schema")
-	case resolvedItems.declaredType == "string":
-		attribute.Type, attribute.ElementType = TypeList, TypeString
-		// The element's closed set is the list's: each member the
+	case resolved.empty:
+		if container == TypeMap {
+			return collectionElement{}, Cause{Code: CauseUntypedAdditionalProperties}, "object whose additionalProperties declares no value schema"
+		}
+		return collectionElement{}, Cause{Code: CauseItemlessArray}, "array declares no items schema"
+	case resolved.declaredType == "string":
+		element := collectionElement{levels: []AttributeType{TypeString}}
+		// The element's closed set is the collection's: each member the
 		// practitioner writes is validated against it, and a fixture takes
 		// its member from it.
-		if len(resolvedItems.enum) > 0 {
-			attribute.OneOf = renderEnum(resolvedItems.enum)
+		if len(resolved.enum) > 0 {
+			element.oneOf = renderEnum(resolved.enum)
 		}
-	case resolvedItems.declaredType == "boolean":
-		attribute.Type, attribute.ElementType = TypeList, TypeBool
-	case resolvedItems.declaredType == "integer":
-		attribute.Type, attribute.ElementType = TypeList, TypeInt64
-	case resolvedItems.declaredType == "number":
-		attribute.Type, attribute.ElementType = TypeList, TypeFloat64
-	case resolvedItems.declaredType == "object" || (resolvedItems.declaredType == "" && len(resolvedItems.properties) > 0):
-		if len(resolvedItems.properties) == 0 {
-			exclude(attribute, Cause{Code: CauseFreeFormArrayElement}, "array of free-form objects: map support is out of scope")
-			return
+		return element, Cause{}, ""
+	case resolved.declaredType == "boolean":
+		return collectionElement{levels: []AttributeType{TypeBool}}, Cause{}, ""
+	case resolved.declaredType == "integer":
+		return collectionElement{levels: []AttributeType{TypeInt64}}, Cause{}, ""
+	case resolved.declaredType == "number":
+		return collectionElement{levels: []AttributeType{TypeFloat64}}, Cause{}, ""
+	case resolved.declaredType == "array":
+		inner, cause, reason := deriveElement(TypeList,
+			resolveSchema(create).items, resolveSchema(read).items, resolveSchema(update).items)
+		if cause.Code != "" {
+			return collectionElement{}, cause, reason
 		}
-		attribute.Type, attribute.ElementType = TypeList, TypeObject
-		attribute.NestedAttributes = buildAttributeTree(createItems, readItems, updateItems, false)
+		inner.levels = append([]AttributeType{TypeList}, inner.levels...)
+		return inner, Cause{}, ""
+	case resolved.declaredType == "object" || (resolved.declaredType == "" && len(resolved.properties) > 0):
+		if len(resolved.properties) > 0 {
+			return collectionElement{
+				levels:           []AttributeType{TypeObject},
+				nestedAttributes: buildAttributeTree(create, read, update, false),
+			}, Cause{}, ""
+		}
+		// An element that is itself a map has no properties and is not
+		// shapeless: its own additionalProperties says what it holds.
+		if resolved.additionalProperties != nil {
+			inner, cause, reason := deriveElement(TypeMap,
+				resolveSchema(create).additionalProperties,
+				resolveSchema(read).additionalProperties,
+				resolveSchema(update).additionalProperties)
+			if cause.Code != "" {
+				return collectionElement{}, cause, reason
+			}
+			inner.levels = append([]AttributeType{TypeMap}, inner.levels...)
+			return inner, Cause{}, ""
+		}
+		if resolved.additionalPropertiesDeclared {
+			return collectionElement{}, Cause{Code: CauseUntypedAdditionalProperties}, "object whose additionalProperties is a bare boolean: it declares no value type to map"
+		}
+		if container == TypeMap {
+			return collectionElement{}, Cause{Code: CauseMapOfObjects}, "map of objects the specification gives no properties: there are no attributes to map"
+		}
+		return collectionElement{}, Cause{Code: CauseFreeFormArrayElement}, "array of free-form objects: the specification gives the items neither properties nor additionalProperties"
 	default:
-		exclude(attribute, Cause{Code: CauseUnsupportedArrayElement, Subject: resolvedItems.declaredType},
-			fmt.Sprintf("array of %q elements is not supported", resolvedItems.declaredType))
+		if container == TypeMap {
+			return collectionElement{}, Cause{Code: CauseUnsupportedMapValue, Subject: resolved.declaredType},
+				fmt.Sprintf("map of %q values is not supported", resolved.declaredType)
+		}
+		return collectionElement{}, Cause{Code: CauseUnsupportedArrayElement, Subject: resolved.declaredType},
+			fmt.Sprintf("array of %q elements is not supported", resolved.declaredType)
 	}
+}
+
+// setCollectionElement records a derived element on a collection attribute,
+// spelling ElementType and NestedCollectionElementTypes from one answer so
+// the two cannot disagree: the leaf is the last level, and the levels are
+// carried only where there is more than one.
+//
+// A collection whose element is itself a collection is described in full
+// and then excluded here, because the emitter does not yet compose an
+// element type to depth. The exclusion names every level, so the report
+// says exactly what the document declared.
+func setCollectionElement(attribute *Attribute, collection AttributeType, element collectionElement) {
+	if len(element.levels) > 1 {
+		spelled := describeCollectionLevels(collection, element.levels)
+		exclude(attribute, Cause{Code: CauseNestedCollectionElement, Subject: spelled},
+			fmt.Sprintf("%s: a collection whose element is itself a collection, which the emitter cannot yet compose", spelled))
+		return
+	}
+	attribute.Type = collection
+	attribute.ElementType = element.levels[len(element.levels)-1]
+	attribute.NestedAttributes = element.nestedAttributes
+	attribute.OneOf = element.oneOf
+}
+
+// describeCollectionLevels spells a collection and its levels the way a
+// person would: "map of list of string".
+func describeCollectionLevels(collection AttributeType, levels []AttributeType) string {
+	spelled := string(collection)
+	for _, level := range levels {
+		spelled += " of " + string(level)
+	}
+	return spelled
 }
 
 // exclude marks an attribute unsupported with the reason a person reads.

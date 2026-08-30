@@ -580,7 +580,7 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 	}
 	deriveType(&attribute, governingSchema, childCreate, property.read, property.update)
 
-	if len(governingSchema.enum) > 0 && attribute.Type != TypeList && attribute.Type != TypeObject && !attribute.Unsupported {
+	if len(governingSchema.enum) > 0 && attribute.Type != TypeList && attribute.Type != TypeMap && attribute.Type != TypeObject && !attribute.Unsupported {
 		values := renderEnum(governingSchema.enum)
 		if open, _ := extensions.Values(); open {
 			attribute.AdvisoryValues = values
@@ -588,9 +588,9 @@ func buildAttribute(wireName string, property foldedProperty) (Attribute, attrib
 			attribute.OneOf = values
 		}
 	}
-	// A list's set came from its element; the property's own x-tfpfgen-values
+	// A collection's set came from its element; the property's own x-tfpfgen-values
 	// says whether that set is closed.
-	if open, _ := extensions.Values(); open && attribute.Type == TypeList && len(attribute.OneOf) > 0 {
+	if open, _ := extensions.Values(); open && (attribute.Type == TypeList || attribute.Type == TypeMap) && len(attribute.OneOf) > 0 {
 		attribute.AdvisoryValues, attribute.OneOf = attribute.OneOf, nil
 	}
 

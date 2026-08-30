@@ -72,7 +72,7 @@ const (
 	CauseUntypedAdditionalProperties                   = "untypedAdditionalProperties"
 	CauseObjectWithoutPropertiesOrAdditionalProperties = "objectWithoutPropertiesOrAdditionalProperties"
 	CauseMapOfObjects                                  = "mapOfObjects"
-	CauseMapOfMaps                                     = "mapOfMaps"
+	CauseNestedCollectionElement                       = "nestedCollectionElement"
 	CauseUnsupportedMapValue                           = "unsupportedMapValue"
 	CauseItemlessArray                                 = "itemlessArray"
 	CauseFreeFormArrayElement                          = "freeFormArrayElement"
@@ -424,11 +424,19 @@ type Attribute struct {
 	// inferred facts follow it.
 	Description string        `json:"description,omitempty"`
 	Type        AttributeType `json:"type,omitempty"`
-	// ElementType is the type within a list or map of scalars; a list or
-	// map of objects carries Nested instead.
+	// ElementType is the type a list or map ultimately holds: the scalar at
+	// the bottom, or object, in which case NestedAttributes carries its tree.
+	// It is the one level of a list of strings and the last level of a list
+	// of lists of strings.
 	ElementType AttributeType `json:"elementType,omitempty"`
-	// NestedAttributes is the child tree of an object attribute or a list of
-	// objects.
+	// NestedCollectionElementTypes spells every level beneath a collection
+	// whose element is itself a collection, outermost first and ending in
+	// the leaf: a list of lists of strings carries [list, string], a map of
+	// lists of objects [list, object]. Nil for a collection of scalars or of
+	// objects, whose one level ElementType already states.
+	NestedCollectionElementTypes []AttributeType `json:"nestedCollectionElementTypes,omitempty"`
+	// NestedAttributes is the child tree of an object attribute, or of the
+	// object at the bottom of a list or map at any depth.
 	NestedAttributes         *AttributeTree           `json:"nestedAttributes,omitempty"`
 	ComputedOptionalRequired ComputedOptionalRequired `json:"computedOptionalRequired"`
 	// SchemaAttributeTypeDetermination names which declaration decided this attribute's
@@ -532,5 +540,20 @@ func unsupportedEntity(names Names, collectionPath, kind string, cause Cause, re
 		Tag:                names.Tag,
 		Cause:              cause,
 		Reason:             reason,
+	}
+}
+
+// CollectionNestingDepth counts the collection levels wrapping an
+// attribute's element: 0 for a scalar or an object, 1 for a list of strings
+// or a map of objects, and the number of levels for a collection whose
+// element is itself a collection.
+func (attribute Attribute) CollectionNestingDepth() int {
+	switch {
+	case attribute.Type != TypeList && attribute.Type != TypeMap:
+		return 0
+	case len(attribute.NestedCollectionElementTypes) == 0:
+		return 1
+	default:
+		return len(attribute.NestedCollectionElementTypes)
 	}
 }
