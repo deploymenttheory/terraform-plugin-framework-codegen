@@ -61,7 +61,9 @@ var acronyms = map[string]string{
 	"oauth": "OAuth",
 	"os":    "OS",
 	"ram":   "RAM",
+	"rps":   "RPS",
 	"sdk":   "SDK",
+	"sha":   "SHA",
 	"smtp":  "SMTP",
 	"sql":   "SQL",
 	"ssh":   "SSH",
@@ -86,35 +88,35 @@ var versionSegment = regexp.MustCompile(`^v\d+$`)
 // the collection path the key was derived from.
 func deriveNames(provider, key, collectionPath, tag string) Names {
 	version, service := "", ""
-	first := true
+	atLeadingSegment := true
 	for _, segment := range strings.Split(strings.Trim(collectionPath, "/"), "/") {
 		if segment == "" || strings.HasPrefix(segment, "{") {
 			continue
 		}
-		if first && versionSegment.MatchString(strings.ToLower(segment)) {
+		if atLeadingSegment && versionSegment.MatchString(strings.ToLower(segment)) {
 			version = strings.ToLower(segment)
-			first = false
+			atLeadingSegment = false
 			continue
 		}
-		first = false
+		atLeadingSegment = false
 		if service == "" {
 			service = strings.ToLower(strings.ReplaceAll(segment, "-", "_"))
 		}
 	}
 
-	lowered := strings.ToLower(key)
+	loweredKey := strings.ToLower(key)
 	if version != "" {
-		lowered = strings.TrimPrefix(lowered, version+"_")
+		loweredKey = strings.TrimPrefix(loweredKey, version+"_")
 	}
 	if service == "" {
-		service = lowered
+		service = loweredKey
 	}
 	if version == "" {
 		version = "v1"
 	}
 
 	names := Names{Service: service, APIVersionDirectory: version, Tag: tag}
-	return names.withKey(provider, lowered)
+	return names.withKey(provider, loweredKey)
 }
 
 // withKey rebuilds every key-derived field of the naming block around a
@@ -149,47 +151,47 @@ func packageName(provider, key string) string {
 // identifier may carry, dropping the separators a provider name or an entity
 // key is allowed to use.
 func identifierWord(name string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(name) {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			b.WriteRune(r)
+	var builder strings.Builder
+	for _, character := range strings.ToLower(name) {
+		if unicode.IsLetter(character) || unicode.IsDigit(character) {
+			builder.WriteRune(character)
 		}
 	}
-	return b.String()
+	return builder.String()
 }
 
 // GoName is pascalCase for consumers outside the derivation: the emitter
 // spells model field names and type names from attribute keys, and it must
 // spell them exactly the way the derivation spells entity names — same
 // acronym table, same casing — or the two drift apart file by file.
-func GoName(snake string) string {
-	return pascalCase(snake)
+func GoName(snakeCaseName string) string {
+	return pascalCase(snakeCaseName)
 }
 
 // TerraformName is snakeCase for consumers outside the derivation: the emitter
 // derives terraform spellings for names the model does not carry
 // pre-spelled, such as an action's path parameters.
-func TerraformName(wire string) string {
-	return snakeCase(wire)
+func TerraformName(wireName string) string {
+	return snakeCase(wireName)
 }
 
 // pascalCase turns a snake_case key into its exported Go spelling. Parts
 // in the acronym table uppercase whole: "http_server" is "HTTPServer",
 // never "HttpServer".
 func pascalCase(key string) string {
-	var b strings.Builder
+	var builder strings.Builder
 	for _, part := range strings.Split(key, "_") {
 		if part == "" {
 			continue
 		}
-		if a, ok := acronyms[part]; ok {
-			b.WriteString(a)
+		if acronym, ok := acronyms[part]; ok {
+			builder.WriteString(acronym)
 			continue
 		}
-		b.WriteString(strings.ToUpper(part[:1]))
-		b.WriteString(part[1:])
+		builder.WriteString(strings.ToUpper(part[:1]))
+		builder.WriteString(part[1:])
 	}
-	return b.String()
+	return builder.String()
 }
 
 // camelCase turns a snake_case key into its unexported Go spelling: the
@@ -210,23 +212,23 @@ func camelCase(key string) string {
 // snakeCase turns a wire property name — camelCase, PascalCase, kebab-case
 // or dotted — into the terraform attribute spelling. Acronym runs keep
 // their shape: "IPAddress" becomes "ip_address", not "i_p_address".
-func snakeCase(s string) string {
-	var b strings.Builder
-	runes := []rune(s)
-	for i, rune := range runes {
+func snakeCase(wireName string) string {
+	var builder strings.Builder
+	runes := []rune(wireName)
+	for index, character := range runes {
 		switch {
-		case rune == '-' || rune == '.' || rune == ' ':
-			b.WriteRune('_')
-		case unicode.IsUpper(rune):
-			if i > 0 && boundaryBefore(runes, i) {
-				b.WriteRune('_')
+		case character == '-' || character == '.' || character == ' ':
+			builder.WriteRune('_')
+		case unicode.IsUpper(character):
+			if index > 0 && boundaryBefore(runes, index) {
+				builder.WriteRune('_')
 			}
-			b.WriteRune(unicode.ToLower(rune))
+			builder.WriteRune(unicode.ToLower(character))
 		default:
-			b.WriteRune(rune)
+			builder.WriteRune(character)
 		}
 	}
-	return leadWithALetter(b.String())
+	return leadWithALetter(builder.String())
 }
 
 // leadWithALetter trims what a terraform attribute name may not begin with.
@@ -250,10 +252,10 @@ func leadWithALetter(name string) string {
 // boundaryBefore reports whether a word boundary sits before the upper-case
 // rune at i: after a lower-case rune or digit, or where an acronym run ends
 // because a lower-case rune follows.
-func boundaryBefore(runes []rune, i int) bool {
-	previous := runes[i-1]
+func boundaryBefore(runes []rune, index int) bool {
+	previous := runes[index-1]
 	if unicode.IsLower(previous) || unicode.IsDigit(previous) {
 		return true
 	}
-	return unicode.IsUpper(previous) && i+1 < len(runes) && unicode.IsLower(runes[i+1])
+	return unicode.IsUpper(previous) && index+1 < len(runes) && unicode.IsLower(runes[index+1])
 }

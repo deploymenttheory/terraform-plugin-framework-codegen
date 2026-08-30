@@ -15,7 +15,7 @@ func thingTree(t *testing.T) *AttributeTree {
 	return resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing").Schema
 }
 
-func TestAttributes_TypeMapping(t *testing.T) {
+func TestUnit_Attributes_TypeMapping(t *testing.T) {
 	tree := thingTree(t)
 	for _, testCase := range []struct {
 		name string
@@ -64,7 +64,7 @@ func TestAttributes_TypeMapping(t *testing.T) {
 	}
 }
 
-func TestAttributes_ShapelessObjectIsRefused(t *testing.T) {
+func TestUnit_Attributes_ShapelessObjectIsRefused(t *testing.T) {
 	extras := attribute(t, thingTree(t), "extras")
 	if !extras.Unsupported {
 		t.Fatalf("an object with no declared shape derived a type: %+v", extras)
@@ -106,7 +106,7 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 			AdditionalProperties: &specmodel.Schema{Type: "string"}}, false), "", "", "values are themselves maps"},
 		{"array values", object(&specmodel.Schema{Type: "array"}, false), "", "", `map of "array" values`},
 	} {
-		tree := buildTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		tree := buildAttributeTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
 			{Name: "bag", Schema: testCase.schema},
 		}}, nil, nil, false)
 		got := attribute(t, tree, "bag")
@@ -132,7 +132,7 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 	}
 }
 
-func TestAttributes_ComputedOptionalRequired(t *testing.T) {
+func TestUnit_Attributes_ComputedOptionalRequired(t *testing.T) {
 	tree := thingTree(t)
 	for _, testCase := range []struct {
 		name string
@@ -163,7 +163,7 @@ func TestAttributes_ComputedOptionalRequired(t *testing.T) {
 	}
 }
 
-func TestAttributes_CreateOnlyRequiresReplace(t *testing.T) {
+func TestUnit_Attributes_CreateOnlyRequiresReplace(t *testing.T) {
 	tree := thingTree(t)
 	if a := attribute(t, tree, "region"); !a.RequiresReplace {
 		t.Errorf("x-tfpfgen-immutable did not set RequiresReplace")
@@ -173,7 +173,7 @@ func TestAttributes_CreateOnlyRequiresReplace(t *testing.T) {
 	}
 }
 
-func TestAttributes_Enums(t *testing.T) {
+func TestUnit_Attributes_Enums(t *testing.T) {
 	tree := thingTree(t)
 
 	mode := attribute(t, tree, "mode")
@@ -193,7 +193,7 @@ func TestAttributes_Enums(t *testing.T) {
 	}
 }
 
-func TestAttributes_ConditionalRequirement(t *testing.T) {
+func TestUnit_Attributes_ConditionalRequirement(t *testing.T) {
 	tree := thingTree(t)
 	want := []ConditionalRequirement{{Property: "mode", Equals: "custom", Required: []string{"proxy_host"}}}
 	if !reflect.DeepEqual(tree.ConditionalRequirements, want) {
@@ -204,20 +204,20 @@ func TestAttributes_ConditionalRequirement(t *testing.T) {
 // TestDerive_ListWrapperKey_BareArray: the main fixture's list is a bare
 // array, so the derived envelope key is empty — the mock emits a bare array,
 // not a wrapper.
-func TestDerive_ListWrapperKey_BareArray(t *testing.T) {
-	r := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
-	if r.ListWrapperKey != "" {
-		t.Errorf("bare-array list derived envelope key %q, want empty", r.ListWrapperKey)
+func TestUnit_Derive_ListWrapperKey_BareArray(t *testing.T) {
+	resource := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
+	if resource.ListWrapperKey != "" {
+		t.Errorf("bare-array list derived envelope key %q, want empty", resource.ListWrapperKey)
 	}
 }
 
 // TestDerive_ListWrapperKey_Wrapped: a list response wrapping its items
 // under a vendor key is read from the schema, not assumed to be "value".
-func TestDerive_ListWrapperKey_Wrapped(t *testing.T) {
+func TestUnit_Derive_ListWrapperKey_Wrapped(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
-  /gizmos:
+  /widgets:
     post:
       requestBody:
         content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}
@@ -232,10 +232,10 @@ paths:
                 type: object
                 properties:
                   nextPage: {type: string}
-                  gizmos:
+                  widgets:
                     type: array
                     items: {$ref: '#/components/schemas/Gizmo'}
-  /gizmos/{gizmoId}:
+  /widgets/{widgetId}:
     get:
       responses:
         "200": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
@@ -249,9 +249,9 @@ components:
         id: {type: string}
         label: {type: string}
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "gizmo")
-	if r.ListWrapperKey != "gizmos" {
-		t.Errorf("wrapped list derived envelope key %q, want %q", r.ListWrapperKey, "gizmos")
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "widget")
+	if resource.ListWrapperKey != "widgets" {
+		t.Errorf("wrapped list derived envelope key %q, want %q", resource.ListWrapperKey, "widgets")
 	}
 }
 
@@ -259,13 +259,13 @@ components:
 // carries x-tfpfgen-list-wrapper, the audit's observed wrapping is the
 // answer and the response schema is not consulted — the document's own list
 // schema being wrong is the whole reason the key exists.
-func TestDerive_ListWrapperKey_ExtensionBeatsTheSchema(t *testing.T) {
+func TestUnit_Derive_ListWrapperKey_ExtensionBeatsTheSchema(t *testing.T) {
 	// The document declares a wrapper keyed "items"; the live API was
 	// observed wrapping under "records".
 	const wrappedDoc = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
-  /gizmos:
+  /widgets:
     post:
       requestBody:
         content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}
@@ -283,7 +283,7 @@ paths:
                   items:
                     type: array
                     items: {$ref: '#/components/schemas/Gizmo'}
-  /gizmos/{gizmoId}:
+  /widgets/{widgetId}:
     get:
       responses:
         "200": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
@@ -310,19 +310,19 @@ components:
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			document := fmt.Sprintf(wrappedDoc, testCase.wrapper)
-			r := resourceByKey(t, mustDerive(t, document, testConfig()), "gizmo")
-			if r.ListWrapperKey != testCase.want {
-				t.Errorf("resource wrapper key = %q, want %q", r.ListWrapperKey, testCase.want)
+			resource := resourceByKey(t, mustDerive(t, document, testConfig()), "widget")
+			if resource.ListWrapperKey != testCase.want {
+				t.Errorf("resource wrapper key = %q, want %q", resource.ListWrapperKey, testCase.want)
 			}
-			d := datasourceByKey(t, mustDerive(t, document, testConfig()), "gizmo")
-			if d.ListWrapperKey != testCase.want {
-				t.Errorf("datasource wrapper key = %q, want %q", d.ListWrapperKey, testCase.want)
+			datasource := datasourceByKey(t, mustDerive(t, document, testConfig()), "widget")
+			if datasource.ListWrapperKey != testCase.want {
+				t.Errorf("datasource wrapper key = %q, want %q", datasource.ListWrapperKey, testCase.want)
 			}
 		})
 	}
 }
 
-func TestAttributes_ConditionalValidity(t *testing.T) {
+func TestUnit_Attributes_ConditionalValidity(t *testing.T) {
 	tree := thingTree(t)
 	want := []ConditionalValidity{{Property: "mode", Equals: "standard", Valid: []string{"quantity"}}}
 	if !reflect.DeepEqual(tree.ConditionalValidities, want) {
@@ -330,7 +330,7 @@ func TestAttributes_ConditionalValidity(t *testing.T) {
 	}
 }
 
-func TestAttributes_Dependencies(t *testing.T) {
+func TestUnit_Attributes_Dependencies(t *testing.T) {
 	tree := thingTree(t)
 	want := []Dependency{{Attribute: "ratio", Requires: []string{"quantity"}}}
 	if !reflect.DeepEqual(tree.Dependencies, want) {
@@ -338,7 +338,7 @@ func TestAttributes_Dependencies(t *testing.T) {
 	}
 }
 
-func TestAttributes_MutuallyExclusiveGroups(t *testing.T) {
+func TestUnit_Attributes_MutuallyExclusiveGroups(t *testing.T) {
 	tree := thingTree(t)
 	want := [][]string{{"region", "tier"}}
 	if !reflect.DeepEqual(tree.MutuallyExclusiveGroups, want) {
@@ -346,7 +346,7 @@ func TestAttributes_MutuallyExclusiveGroups(t *testing.T) {
 	}
 }
 
-func TestAttributes_ValidConfigurations(t *testing.T) {
+func TestUnit_Attributes_ValidConfigurations(t *testing.T) {
 	tree := thingTree(t)
 	want := []ValidConfiguration{{
 		Discriminator: "mode",
@@ -360,26 +360,26 @@ func TestAttributes_ValidConfigurations(t *testing.T) {
 	}
 }
 
-func TestAttributes_SilentlyIgnoredOnUpdate(t *testing.T) {
+func TestUnit_Attributes_SilentlyIgnoredOnUpdate(t *testing.T) {
 	if a := attribute(t, thingTree(t), "notes"); !a.SilentlyIgnoredOnUpdate {
 		t.Errorf("x-tfpfgen-ignored-on-update not carried: %+v", a)
 	}
 }
 
-func TestAttributes_WireNamesBecomeSnakeCase(t *testing.T) {
-	a := attribute(t, thingTree(t), "proxy_host")
-	if a.WireName != "proxyHost" {
-		t.Errorf("wire name = %q", a.WireName)
+func TestUnit_Attributes_WireNamesBecomeSnakeCase(t *testing.T) {
+	derived := attribute(t, thingTree(t), "proxy_host")
+	if derived.WireName != "proxyHost" {
+		t.Errorf("wire name = %q", derived.WireName)
 	}
 }
 
 // Document property order is preserved: create-schema properties first in
 // their declared order, response-only ones appended after.
-func TestAttributes_OrderFollowsTheDocument(t *testing.T) {
+func TestUnit_Attributes_OrderFollowsTheDocument(t *testing.T) {
 	tree := thingTree(t)
 	var got []string
-	for _, a := range tree.Attributes {
-		got = append(got, a.Name)
+	for _, candidate := range tree.Attributes {
+		got = append(got, candidate.Name)
 	}
 	want := []string{
 		"name", "mode", "region", "filled", "tier", "proxy_host", "notes", "quantity",
@@ -393,7 +393,7 @@ func TestAttributes_OrderFollowsTheDocument(t *testing.T) {
 
 // When the read schema declares no id, one is synthesized from the item
 // path parameter.
-func TestAttributes_IDSynthesizedFromThePathParameter(t *testing.T) {
+func TestUnit_Attributes_IDSynthesizedFromThePathParameter(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
@@ -427,8 +427,8 @@ components:
       properties:
         text: {type: string}
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "code")
-	id := r.Schema.Attributes[0]
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "code")
+	id := resource.Schema.Attributes[0]
 	if id.Name != "id" || id.ComputedOptionalRequired != Computed {
 		t.Fatalf("first attribute = %+v, want the synthesized computed id", id)
 	}
@@ -442,11 +442,11 @@ components:
 
 // Shapes derivation refuses to guess at: unions, missing types, arrays
 // without a usable element.
-func TestAttributes_RefusedShapes(t *testing.T) {
+func TestUnit_Attributes_RefusedShapes(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
-  /shapes:
+  /widgets:
     post:
       requestBody:
         content:
@@ -457,7 +457,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Shape'}
-  /shapes/{shapeId}:
+  /widgets/{widgetId}:
     get:
       responses:
         "200":
@@ -489,27 +489,27 @@ components:
           items:
             type: object
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "shape")
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "widget")
 	for name, wantReason := range map[string]string{
 		"mystery": "no type",
 		"bare":    "no items",
 		"grid":    `array of "array"`,
 		"blobs":   "free-form",
 	} {
-		a := attribute(t, r.Schema, name)
-		if !a.Unsupported {
-			t.Errorf("%s: derived %q instead of refusing", name, a.Kind)
+		derived := attribute(t, resource.Schema, name)
+		if !derived.Unsupported {
+			t.Errorf("%s: derived %q instead of refusing", name, derived.Kind)
 			continue
 		}
-		if !strings.Contains(a.UnsupportedReason, wantReason) {
-			t.Errorf("%s: reason = %q, want it to mention %q", name, a.UnsupportedReason, wantReason)
+		if !strings.Contains(derived.UnsupportedReason, wantReason) {
+			t.Errorf("%s: reason = %q, want it to mention %q", name, derived.UnsupportedReason, wantReason)
 		}
 	}
 }
 
 // allOf composition folds flat: branch properties combine, requireds
 // union, and reference-site extensions win.
-func TestAttributes_AllOfFoldsFlat(t *testing.T) {
+func TestUnit_Attributes_AllOfFoldsFlat(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
@@ -548,11 +548,11 @@ components:
           properties:
             extra: {type: integer}
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "part")
-	if a := attribute(t, r.Schema, "core"); a.ComputedOptionalRequired != Required {
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "part")
+	if a := attribute(t, resource.Schema, "core"); a.ComputedOptionalRequired != Required {
 		t.Errorf("core = %+v, want the branch's required to hold", a)
 	}
-	if a := attribute(t, r.Schema, "extra"); a.Kind != TypeInt64 {
+	if a := attribute(t, resource.Schema, "extra"); a.Kind != TypeInt64 {
 		t.Errorf("extra = %+v", a)
 	}
 }
@@ -571,17 +571,17 @@ func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 		t.Fatalf("want four attributes, got %d", len(tree.Attributes))
 	}
 	// Prepended, in path order, ahead of everything the body declares.
-	for i, want := range []string{"owner", "repo", "id", "name"} {
-		if tree.Attributes[i].Name != want {
-			t.Fatalf("attribute %d = %q, want %q", i, tree.Attributes[i].Name, want)
+	for index, want := range []string{"owner", "repo", "id", "name"} {
+		if tree.Attributes[index].Name != want {
+			t.Fatalf("attribute %d = %q, want %q", index, tree.Attributes[index].Name, want)
 		}
 	}
-	for _, a := range tree.Attributes[:2] {
-		if a.ComputedOptionalRequired != Required {
-			t.Fatalf("%s must be required, got %s", a.Name, a.ComputedOptionalRequired)
+	for _, candidate := range tree.Attributes[:2] {
+		if candidate.ComputedOptionalRequired != Required {
+			t.Fatalf("%s must be required, got %s", candidate.Name, candidate.ComputedOptionalRequired)
 		}
-		if !a.RequiresReplace {
-			t.Fatalf("%s must force replacement: addressing is not editable", a.Name)
+		if !candidate.RequiresReplace {
+			t.Fatalf("%s must force replacement: addressing is not editable", candidate.Name)
 		}
 	}
 }
@@ -645,7 +645,7 @@ func TestUnit_BuildAttribute_CarriesTheDocumentsDescription(t *testing.T) {
 func TestUnit_BuildTree_CarriesTheObjectsDescription(t *testing.T) {
 	read := &specmodel.Schema{Type: "object", Description: "A rule that raises alerts",
 		Properties: []specmodel.Property{{Name: "id", Schema: &specmodel.Schema{Type: "string"}}}}
-	tree := buildTree(nil, read, nil, false)
+	tree := buildAttributeTree(nil, read, nil, false)
 	if tree.Description != "A rule that raises alerts" {
 		t.Fatalf("the object's prose must reach the tree, got %q", tree.Description)
 	}
@@ -681,7 +681,7 @@ func updateBodySchema() (create, read, update *specmodel.Schema) {
 // no way to change, which is RequiresReplace.
 func TestUnit_BuildTree_UpdateBodyDifferenceForcesReplacement(t *testing.T) {
 	create, read, update := updateBodySchema()
-	tree := buildTree(create, read, update, false)
+	tree := buildAttributeTree(create, read, update, false)
 
 	if a := attribute(t, tree, "region"); !a.RequiresReplace {
 		t.Error("region is absent from the update body, so it must force replacement")
@@ -700,14 +700,14 @@ func TestUnit_BuildTree_UpdateBodyDifferenceForcesReplacement(t *testing.T) {
 // forcing replacement on one the practitioner cannot set would be nonsense.
 func TestUnit_BuildTree_ComputedAttributesNeverForceReplacement(t *testing.T) {
 	create, read, update := updateBodySchema()
-	tree := buildTree(create, read, update, false)
+	tree := buildAttributeTree(create, read, update, false)
 
 	for _, name := range []string{"id", "created_at"} {
-		a := attribute(t, tree, name)
-		if a.ComputedOptionalRequired != Computed {
-			t.Fatalf("%s is %s, want computed — the fixture is wrong", name, a.ComputedOptionalRequired)
+		derived := attribute(t, tree, name)
+		if derived.ComputedOptionalRequired != Computed {
+			t.Fatalf("%s is %s, want computed — the fixture is wrong", name, derived.ComputedOptionalRequired)
 		}
-		if a.RequiresReplace {
+		if derived.RequiresReplace {
 			t.Errorf("%s is computed, so it must not force replacement", name)
 		}
 	}
@@ -721,7 +721,7 @@ func TestUnit_BuildTree_ComputedAttributesNeverForceReplacement(t *testing.T) {
 func TestUnit_BuildTree_AbsentUpdateBodyIsSilence(t *testing.T) {
 	create, read, _ := updateBodySchema()
 
-	tree := buildTree(create, read, nil, false)
+	tree := buildAttributeTree(create, read, nil, false)
 	for _, name := range []string{"name", "region", "description"} {
 		if a := attribute(t, tree, name); a.RequiresReplace {
 			t.Errorf("%s forces replacement with no update body to read; silence is not refusal", name)
@@ -729,7 +729,7 @@ func TestUnit_BuildTree_AbsentUpdateBodyIsSilence(t *testing.T) {
 	}
 
 	// An update body that resolves to nothing is the same silence.
-	empty := buildTree(create, read, &specmodel.Schema{}, false)
+	empty := buildAttributeTree(create, read, &specmodel.Schema{}, false)
 	for _, name := range []string{"name", "region", "description"} {
 		if a := attribute(t, empty, name); a.RequiresReplace {
 			t.Errorf("%s forces replacement against an empty update body", name)
@@ -743,11 +743,11 @@ func TestUnit_BuildTree_AbsentUpdateBodyIsSilence(t *testing.T) {
 func TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects(t *testing.T) {
 	text := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
 	block := func(names ...string) *specmodel.Schema {
-		s := &specmodel.Schema{Type: "object"}
-		for _, n := range names {
-			s.Properties = append(s.Properties, specmodel.Property{Name: n, Schema: text()})
+		schema := &specmodel.Schema{Type: "object"}
+		for _, name := range names {
+			schema.Properties = append(schema.Properties, specmodel.Property{Name: name, Schema: text()})
 		}
-		return s
+		return schema
 	}
 
 	create := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
@@ -757,7 +757,7 @@ func TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects(t *testing.T) 
 		{Name: "server", Schema: block("host")},
 	}}
 
-	tree := buildTree(create, create, update, false)
+	tree := buildAttributeTree(create, create, update, false)
 	server := attribute(t, tree, "server")
 	if server.Nested == nil {
 		t.Fatal("server must derive a nested tree")

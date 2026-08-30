@@ -196,7 +196,9 @@ type Datasource struct {
 	ListWrapperKey string `json:"list_wrapper_key,omitempty"`
 }
 
-// ListResource is a list-only entity: enumerable but not addressable.
+// ListResource is the list capability of a managed resource: terraform
+// matches it to that resource by type name, so it carries the entity's own
+// Names and exists only where the resource does.
 type ListResource struct {
 	Names         Names     `json:"names"`
 	ListOperation Operation `json:"list_operation"`

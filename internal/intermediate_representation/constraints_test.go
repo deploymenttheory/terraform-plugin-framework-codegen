@@ -76,9 +76,9 @@ components:
 // yet; they are what the emitted validators, the sensitivity and the
 // deprecation notice are decided from.
 func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
-	r := resourceByKey(t, mustDerive(t, constrainedSpec, testConfig()), "key")
+	resource := resourceByKey(t, mustDerive(t, constrainedSpec, testConfig()), "key")
 
-	secret := attribute(t, r.Schema, "secret")
+	secret := attribute(t, resource.Schema, "secret")
 	if !secret.WriteOnly {
 		t.Error("WriteOnly not carried")
 	}
@@ -91,11 +91,11 @@ func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
 	assertBound(t, "MinLength", secret.MinLength, 8)
 	assertBound(t, "MaxLength", secret.MaxLength, 64)
 
-	if !attribute(t, r.Schema, "legacy").Deprecated {
+	if !attribute(t, resource.Schema, "legacy").Deprecated {
 		t.Error("Deprecated not carried")
 	}
 
-	weight := attribute(t, r.Schema, "weight")
+	weight := attribute(t, resource.Schema, "weight")
 	if weight.Minimum == nil || *weight.Minimum != 1 {
 		t.Errorf("Minimum = %v", weight.Minimum)
 	}
@@ -103,14 +103,14 @@ func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
 		t.Errorf("Maximum = %v", weight.Maximum)
 	}
 
-	tags := attribute(t, r.Schema, "tags")
+	tags := attribute(t, resource.Schema, "tags")
 	if !tags.UniqueItems {
 		t.Error("UniqueItems not carried")
 	}
 	assertBound(t, "MinItems", tags.MinItems, 1)
 	assertBound(t, "MaxItems", tags.MaxItems, 5)
 
-	plain := attribute(t, r.Schema, "plain")
+	plain := attribute(t, resource.Schema, "plain")
 	if plain.WriteOnly || plain.Deprecated || plain.UniqueItems ||
 		plain.Format != "" || plain.Pattern != "" ||
 		plain.MinLength != nil || plain.MaxLength != nil {
@@ -163,13 +163,13 @@ components:
         plain:
           type: string
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "account")
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "account")
 	for _, name := range []string{"formatted", "write_only", "both"} {
-		if !attribute(t, r.Schema, name).Sensitive {
+		if !attribute(t, resource.Schema, name).Sensitive {
 			t.Errorf("%q is a declared secret and is not marked sensitive", name)
 		}
 	}
-	if attribute(t, r.Schema, "plain").Sensitive {
+	if attribute(t, resource.Schema, "plain").Sensitive {
 		t.Error("an ordinary attribute is marked sensitive")
 	}
 }
@@ -230,23 +230,23 @@ components:
         label: {type: string}
         summary: {type: string, default: "none"}
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "job")
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "job")
 
 	// A false or an empty default is a declaration like any other: the test
 	// is that the document states one, not that the value is truthy.
 	for _, name := range []string{"retries", "enabled", "label"} {
-		if got := attribute(t, r.Schema, name).ComputedOptionalRequired; got != ComputedOptional {
+		if got := attribute(t, resource.Schema, name).ComputedOptionalRequired; got != ComputedOptional {
 			t.Errorf("%q with a declared default = %q, want computed_optional", name, got)
 		}
 	}
 	// note declares no default and the response does not describe it, so
 	// nothing says the server fills it: the one route left to plain Optional.
-	if got := attribute(t, r.Schema, "note").ComputedOptionalRequired; got != Optional {
+	if got := attribute(t, resource.Schema, "note").ComputedOptionalRequired; got != Optional {
 		t.Errorf("%q declares no default and became %q", "note", got)
 	}
 	// A default on the response side says nothing about what happens when a
 	// request omits the field, and summary is not writable at all.
-	if got := attribute(t, r.Schema, "summary").ComputedOptionalRequired; got != Computed {
+	if got := attribute(t, resource.Schema, "summary").ComputedOptionalRequired; got != Computed {
 		t.Errorf("a response-only property with a default = %q, want computed", got)
 	}
 }
@@ -293,10 +293,10 @@ components:
           properties:
             count: {type: integer}
 `
-	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "group")
+	resource := resourceByKey(t, mustDerive(t, spec, testConfig()), "group")
 
 	for _, name := range []string{"count", "lifecycle"} {
-		got := attribute(t, r.Schema, name)
+		got := attribute(t, resource.Schema, name)
 		if !got.Unsupported {
 			t.Errorf("%q is reserved at the root and was emitted anyway", name)
 		}
@@ -304,13 +304,13 @@ components:
 			t.Errorf("%q refused for %q, which does not say why", name, got.UnsupportedReason)
 		}
 	}
-	if attribute(t, r.Schema, "name").Unsupported {
+	if attribute(t, resource.Schema, "name").Unsupported {
 		t.Error("an ordinary root attribute was refused")
 	}
 
 	// The same name nested inside an object is an ordinary field: terraform
 	// reserves it only where a practitioner would write a meta-argument.
-	nested := attribute(t, r.Schema, "nested")
+	nested := attribute(t, resource.Schema, "nested")
 	if nested.Nested == nil {
 		t.Fatalf("nested = %+v", nested)
 	}
@@ -385,15 +385,15 @@ components:
 // derivation can learn that a string is more than a string when the document
 // declares no format.
 func TestUnit_Attribute_CarriesTheDeclaredExample(t *testing.T) {
-	r := resourceByKey(t, mustDerive(t, exampleSpec, testConfig()), "stream")
+	resource := resourceByKey(t, mustDerive(t, exampleSpec, testConfig()), "stream")
 
-	if got := attribute(t, r.Schema, "endpoint_url").Example; got != "https://api.example.otel-collector" {
+	if got := attribute(t, resource.Schema, "endpoint_url").Example; got != "https://api.example.otel-collector" {
 		t.Errorf("Example = %#v, want the one declared on the referenced schema", got)
 	}
-	if got := attribute(t, r.Schema, "retries").Example; got != 300 {
+	if got := attribute(t, resource.Schema, "retries").Example; got != 300 {
 		t.Errorf("Example = %#v, want the declared number", got)
 	}
-	if got := attribute(t, r.Schema, "plain").Example; got != nil {
+	if got := attribute(t, resource.Schema, "plain").Example; got != nil {
 		t.Errorf("a property declaring no example carries %#v", got)
 	}
 }
@@ -455,9 +455,9 @@ components:
 // it the id binds to an accessor no model has, the binding is pruned as
 // addressing, and the settling read addresses the object by an empty string.
 func TestUnit_Attribute_TheIdentifierPropertyNamesTheIdsWire(t *testing.T) {
-	r := resourceByKey(t, mustDerive(t, identifierPropertySpec, testConfig()), "group")
+	resource := resourceByKey(t, mustDerive(t, identifierPropertySpec, testConfig()), "group")
 
-	if id := attribute(t, r.Schema, "id"); id.WireName != "aid" {
+	if id := attribute(t, resource.Schema, "id"); id.WireName != "aid" {
 		t.Errorf("the id attribute reads %q, want the property the response carries", id.WireName)
 	}
 }
@@ -467,9 +467,9 @@ func TestUnit_Attribute_TheIdentifierPropertyNamesTheIdsWire(t *testing.T) {
 // the extension corrects rather than replaces the derivation.
 func TestUnit_Attribute_TheIdWireFallsBackToThePathParameter(t *testing.T) {
 	plain := strings.Replace(identifierPropertySpec, "      x-tfpfgen-identifier-property: aid\n", "", 1)
-	r := resourceByKey(t, mustDerive(t, plain, testConfig()), "group")
+	resource := resourceByKey(t, mustDerive(t, plain, testConfig()), "group")
 
-	if id := attribute(t, r.Schema, "id"); id.WireName != "id" {
+	if id := attribute(t, resource.Schema, "id"); id.WireName != "id" {
 		t.Errorf("the id attribute reads %q, want the path parameter's name", id.WireName)
 	}
 }
