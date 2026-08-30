@@ -86,6 +86,9 @@ func scalarHCL(v Entry) string {
 		}
 		return v.Expression
 	}
+	if v.CollectionNestingDepth() > 1 {
+		return collectionHCL(v)
+	}
 	literal := hclLiteral(v.Scalar)
 	switch v.Kind {
 	case ir.TypeList:
@@ -131,4 +134,21 @@ func hclLiteral(value any) string {
 	default:
 		return strconv.Quote(fmt.Sprintf("%v", v))
 	}
+}
+
+// collectionHCL renders a collection of collections: the leaf literal
+// wrapped once per level, innermost first — a list as a one-member list,
+// and a map as one entry keyed by the attribute's own name at every level,
+// for the same reason a map of scalars takes it.
+func collectionHCL(v Entry) string {
+	rendered := hclLiteral(v.Scalar)
+	levels := v.CollectionLevels()
+	for index := len(levels) - 1; index >= 0; index-- {
+		if levels[index] == ir.TypeMap {
+			rendered = "{ " + hclLiteral(v.Name) + " = " + rendered + " }"
+			continue
+		}
+		rendered = "[" + rendered + "]"
+	}
+	return rendered
 }

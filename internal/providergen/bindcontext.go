@@ -20,10 +20,11 @@ const sdkRelPath = "internal/sdk"
 // packages resolve at the import path the bindings name: the provider
 // module path plus internal/sdk.
 //
-// A repo that already carries a go.mod is its own context: the SDK loads in
-// place, against the committed go.mod and go.sum, and nothing is copied. A
+// A repo that already carries a go.mod and a go.sum is its own context: the
+// SDK loads in place, against the committed pair, and nothing is copied. A
 // repo not yet generated has no go.mod — the first `provider generate` is
-// what writes it — so the SDK is copied into a temporary module harness
+// what writes it — and one whose tree verification has not run has no
+// go.sum, so the SDK is copied into a temporary module harness
 // declaring exactly the module path the bindings expect, and `go mod tidy`
 // resolves the SDK's own imports there before anything type-checks.
 //
@@ -39,8 +40,15 @@ func bindContext(root, module, sdkAbs string) (string, func(), error) {
 				"%s declares module %q but tfpfgen.yaml derives %q; align provider.name and provider.registry_namespace with the repo or regenerate go.mod",
 				goMod, declared, module)
 		}
-		if inPlace, err := filepath.Abs(filepath.Join(root, filepath.FromSlash(sdkRelPath))); err == nil && inPlace == sdkAbs {
-			return sdkAbs, noop, nil
+		// In place needs go.sum as well: a go.mod alone cannot load an SDK
+		// that imports beyond the standard library, and a repo whose tree
+		// verification has not yet run — or was switched off — has none.
+		// Such a repo binds through the harness, which resolves the SDK's
+		// imports for itself.
+		if _, err := os.Stat(filepath.Join(root, "go.sum")); err == nil {
+			if inPlace, err := filepath.Abs(filepath.Join(root, filepath.FromSlash(sdkRelPath))); err == nil && inPlace == sdkAbs {
+				return sdkAbs, noop, nil
+			}
 		}
 	} else if !os.IsNotExist(err) {
 		return "", noop, err
@@ -77,11 +85,19 @@ func bindContext(root, module, sdkAbs string) (string, func(), error) {
 	// all; without it the bind fails on the SDK's own imports. The go tool
 	// is already a hard requirement of binding (go/types loads through it),
 	// so there is no toolchain-less path to preserve.
-	tidy := exec.Command("go", "mod", "tidy")
-	tidy.Dir = harness
-	if out, err := tidy.CombinedOutput(); err != nil {
-		cleanup()
-		return "", noop, fmt.Errorf("resolving the SDK's dependencies in the bind harness (go mod tidy): %v\n%s", err, out)
+	// Tried first against the module cache alone, so an SDK whose imports
+	// are already cached resolves without the network; the proxy is the
+	// second attempt, not the only one.
+	offline := exec.Command("go", "mod", "tidy")
+	offline.Dir = harness
+	offline.Env = append(os.Environ(), "GOFLAGS=-mod=mod", "GOPROXY=off")
+	if _, err := offline.CombinedOutput(); err != nil {
+		tidy := exec.Command("go", "mod", "tidy")
+		tidy.Dir = harness
+		if out, err := tidy.CombinedOutput(); err != nil {
+			cleanup()
+			return "", noop, fmt.Errorf("resolving the SDK's dependencies in the bind harness (go mod tidy): %v\n%s", err, out)
+		}
 	}
 
 	return target, cleanup, nil

@@ -144,6 +144,7 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 			}
 
 			assertDeclaredListWrapper(t, root)
+			assertNestedCollectionsBridge(t, root, dialect)
 
 			rep, err := Verify(context.Background(), opts)
 			if err != nil {
@@ -304,4 +305,88 @@ func runGo(t *testing.T, dir string, args ...string) {
 		}
 	}
 	t.Fatalf("go %s:\n%s", strings.Join(args, " "), out)
+}
+
+// assertNestedCollectionsBridge holds the generated patch-updated resource
+// to the four collections of collections the fixture declares: the schema
+// composes each element type to depth, and the state mapping reads each
+// through the bridge for the carrier the stub SDK has — plain nested Go
+// values under openapi-generator; an untyped node, a slice of bag models
+// and bag models under kiota.
+func assertNestedCollectionsBridge(t *testing.T, root, dialect string) {
+	t.Helper()
+	read := func(parts ...string) string {
+		raw, err := os.ReadFile(filepath.Join(append([]string{root}, parts...)...))
+		if err != nil {
+			t.Fatalf("reading the generated resource: %v", err)
+		}
+		return string(raw)
+	}
+	res := filepath.Join("internal", "services", "resources", "patch_updated_resources", "v1", "patch_updated_resource")
+
+	schema := read(res, "resource.go")
+	for _, want := range []string{
+		`"list_of_lists": schema.ListAttribute{`,
+		`types.ListType{ElemType: types.StringType},`,
+		`"list_of_maps": schema.ListAttribute{`,
+		`types.MapType{ElemType: types.BoolType},`,
+		`"map_of_lists": schema.MapAttribute{`,
+		`types.ListType{ElemType: types.Int64Type},`,
+		`"map_of_maps": schema.MapAttribute{`,
+		`types.MapType{ElemType: types.StringType},`,
+	} {
+		if !strings.Contains(schema, want) {
+			at := strings.Index(schema, `"list_of_lists"`)
+			t.Errorf("the generated schema lacks %s; around list_of_lists:\n%s", want, schema[at:min(at+400, len(schema))])
+		}
+	}
+
+	state := read(res, "state.go")
+	bridges := map[string][]string{
+		"kiota": {
+			"convert.APIToFrameworkNestedCollectionListUntypedNode(ctx, remote.GetListOfLists(), types.ListType{ElemType: types.StringType})",
+			"convert.APIToFrameworkNestedCollectionListAdditionalData(ctx, remote.GetListOfMaps(), types.MapType{ElemType: types.BoolType})",
+			"convert.APIToFrameworkNestedCollectionMapAdditionalData(ctx, remote.GetMapOfLists(), types.ListType{ElemType: types.Int64Type})",
+			"convert.APIToFrameworkNestedCollectionMapAdditionalData(ctx, remote.GetMapOfMaps(), types.MapType{ElemType: types.StringType})",
+		},
+		"openapi-generator": {
+			"convert.APIToFrameworkNestedCollectionList(ctx, remote.GetListOfLists(), types.ListType{ElemType: types.StringType})",
+			"convert.APIToFrameworkNestedCollectionList(ctx, remote.GetListOfMaps(), types.MapType{ElemType: types.BoolType})",
+			"convert.APIToFrameworkNestedCollectionMap(ctx, remote.GetMapOfLists(), types.ListType{ElemType: types.Int64Type})",
+			"convert.APIToFrameworkNestedCollectionMap(ctx, remote.GetMapOfMaps(), types.MapType{ElemType: types.StringType})",
+		},
+	}
+	for _, want := range bridges[dialect] {
+		if !strings.Contains(state, want) {
+			t.Errorf("the generated state mapping lacks %s", want)
+		}
+	}
+
+	maximal, err := filepath.Glob(filepath.Join(root, res, "tests", "terraform", "*", "resource_maximal.tf"))
+	if err != nil || len(maximal) == 0 {
+		t.Fatalf("finding the maximal configuration fixture: %v", err)
+	}
+	configuration := read(strings.TrimPrefix(maximal[0], root+string(filepath.Separator)))
+	for _, want := range []string{
+		`= [["tfpfgen-test-list-of-lists`,
+		`= [{ "list_of_maps" = true }]`,
+		`= { "map_of_lists" = [7] }`,
+		`= { "map_of_maps" = { "map_of_maps" = "tfpfgen-test-map-of-maps`,
+	} {
+		if !strings.Contains(configuration, want) {
+			t.Errorf("the maximal configuration fixture lacks %s:\n%s", want, configuration)
+		}
+	}
+
+	response := read(res, "tests", "responses", "resource_maximal.json")
+	for _, want := range []string{
+		`"listOfLists": [["tfpfgen-test-list-of-lists"]]`,
+		`"listOfMaps": [{"list_of_maps":true}]`,
+		`"mapOfLists": {"map_of_lists":[7]}`,
+		`"mapOfMaps": {"map_of_maps":{"map_of_maps":"tfpfgen-test-map-of-maps"}}`,
+	} {
+		if !strings.Contains(response, want) {
+			t.Errorf("the maximal response fixture lacks %s:\n%s", want, response)
+		}
+	}
 }

@@ -103,9 +103,9 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 			{Name: "x", Schema: &specmodel.Schema{Type: "string"}}}}, false), TypeMap, TypeObject, ""},
 		{"object values with no properties", object(&specmodel.Schema{Type: "object"}, false), "", "", "gives no properties"},
 		{"map values", object(&specmodel.Schema{Type: "object",
-			AdditionalProperties: &specmodel.Schema{Type: "string"}}, false), "", "", "map of map of string"},
+			AdditionalProperties: &specmodel.Schema{Type: "string"}}, false), TypeMap, TypeString, ""},
 		{"array values with no items", object(&specmodel.Schema{Type: "array"}, false), "", "", "no items schema"},
-		{"array values", object(&specmodel.Schema{Type: "array", Items: &specmodel.Schema{Type: "integer"}}, false), "", "", "map of list of int64"},
+		{"array values", object(&specmodel.Schema{Type: "array", Items: &specmodel.Schema{Type: "integer"}}, false), TypeMap, TypeInt64, ""},
 	} {
 		tree := buildAttributeTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
 			{Name: "bag", Schema: testCase.schema},
@@ -480,11 +480,6 @@ components:
         mystery: {}
         bare:
           type: array
-        grid:
-          type: array
-          items:
-            type: array
-            items: {type: string}
         blobs:
           type: array
           items:
@@ -494,7 +489,6 @@ components:
 	for name, wantReason := range map[string]string{
 		"mystery": "no type",
 		"bare":    "no items",
-		"grid":    "list of list of string",
 		"blobs":   "free-form",
 	} {
 		derived := attribute(t, resource.Attributes, name)

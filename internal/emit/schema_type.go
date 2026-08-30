@@ -132,7 +132,31 @@ func frameworkElementType(kind ir.AttributeType) string {
 	if resolved, ok := frameworkElementTypes[kind]; ok {
 		return resolved
 	}
+	// A collection kind is never an element type here: a collection of
+	// collections composes its element through elementTypeExpression, and
+	// spelling one as a string would generate a schema that loads and holds
+	// the wrong thing. Empty does not compile, which is the failure wanted.
+	if kind == ir.TypeList || kind == ir.TypeMap || kind == ir.TypeObject {
+		return ""
+	}
 	return frameworkElementTypes[ir.TypeString]
+}
+
+// elementTypeExpression composes the attr.Type expression of a collection
+// attribute's element to any depth: leaf is the framework type at the
+// bottom, and each level above it, innermost first, wraps the expression in
+// types.ListType or types.MapType.
+func elementTypeExpression(levels []ir.AttributeType, leaf string) string {
+	expression := leaf
+	for index := len(levels) - 1; index >= 0; index-- {
+		switch levels[index] {
+		case ir.TypeList:
+			expression = "types.ListType{ElemType: " + expression + "}"
+		case ir.TypeMap:
+			expression = "types.MapType{ElemType: " + expression + "}"
+		}
+	}
+	return expression
 }
 
 // schemaTypeOf resolves one attribute's record. Nesting outranks kind: a
@@ -141,6 +165,17 @@ func frameworkElementType(kind ir.AttributeType) string {
 // element kind says.
 func schemaTypeOf(n node) schemaType {
 	switch {
+	case n.attribute.CollectionNestingDepth() > 1:
+		// A collection of collections is a plain ListAttribute or
+		// MapAttribute whose element type is composed to depth; the levels
+		// end in the leaf, which frameworkElementType spells.
+		levels := n.attribute.NestedCollectionElementTypes
+		resolved := newSchemaType("ListAttribute", "types.List", "List")
+		if n.attribute.Type == ir.TypeMap {
+			resolved = newSchemaType("MapAttribute", "types.Map", "Map")
+		}
+		resolved.ElementType = elementTypeExpression(levels[:len(levels)-1], frameworkElementType(n.attribute.ElementType))
+		return resolved
 	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeList:
 		return newSchemaType("ListNestedAttribute", "", "List")
 	case n.attribute.NestedAttributes != nil && n.attribute.Type == ir.TypeMap:

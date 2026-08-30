@@ -159,8 +159,8 @@ var explanations = map[string]Explanation{
 		Fix:   "A correction can add the value's fields, or the API vendor can add them to the specification.",
 	},
 	ir.CauseNestedCollectionElement: {
-		Title: "A collection whose elements are themselves collections",
-		Means: "The specification says exactly what this holds: a list or map whose every element is another list or map, such as headers keyed first by domain and then by header name. Terraform can hold that, and this generator cannot build it yet, so the attribute is not there.",
+		Title: "A collection of collections with objects at the bottom",
+		Means: "The specification says exactly what this holds: a list or map whose elements are lists or maps, with an object at the bottom, such as rows of records keyed by column. Terraform can hold that, and this generator cannot build it yet, so the attribute is not there.",
 		Fix:   "Nothing you can change, and nothing is missing from the specification. It is a gap in this generator.",
 	},
 	ir.CauseUnsupportedMapValue: {

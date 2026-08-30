@@ -236,6 +236,8 @@ func tftypesValue(entries []fixtures.Entry, depth int) string {
 // tftype is the tftypes type expression of one fixture value.
 func tftype(v fixtures.Entry) string {
 	switch {
+	case v.CollectionNestingDepth() > 1:
+		return tftypeCollection(v.CollectionLevels(), tftypeScalar(v.ElementType))
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return "tftypes.List{ElementType: " + tftypeObject(v.Nested) + "}"
 	case v.Nested != nil && v.Kind == ir.TypeMap:
@@ -280,6 +282,8 @@ func tftypeScalar(k ir.AttributeType) string {
 // tftypeNewValue renders one fixture value as a tftypes.NewValue call.
 func tftypeNewValue(v fixtures.Entry) string {
 	switch {
+	case v.CollectionNestingDepth() > 1:
+		return tftypeNewCollection(v, v.CollectionLevels())
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{%s})",
 			tftype(v), tftypeNewObject(v.Nested))
@@ -350,4 +354,31 @@ func invocable(nodes []node) []node {
 		kept = append(kept, n)
 	}
 	return kept
+}
+
+// tftypeCollection composes the tftypes type of a collection of collections
+// from its levels, outermost first, down to the leaf type.
+func tftypeCollection(levels []ir.AttributeType, leaf string) string {
+	if len(levels) == 0 {
+		return leaf
+	}
+	if levels[0] == ir.TypeMap {
+		return "tftypes.Map{ElementType: " + tftypeCollection(levels[1:], leaf) + "}"
+	}
+	return "tftypes.List{ElementType: " + tftypeCollection(levels[1:], leaf) + "}"
+}
+
+// tftypeNewCollection renders a collection of collections as one member at
+// every level down to the leaf, a map's one entry keyed by the attribute's
+// own name as a map of scalars is.
+func tftypeNewCollection(v fixtures.Entry, levels []ir.AttributeType) string {
+	leaf := tftypeScalar(v.ElementType)
+	if len(levels) == 0 {
+		return fmt.Sprintf("tftypes.NewValue(%s, %s)", leaf, tftypeScalarLiteral(v.ElementType, v.Scalar))
+	}
+	inner := tftypeNewCollection(v, levels[1:])
+	if levels[0] == ir.TypeMap {
+		return fmt.Sprintf("tftypes.NewValue(%s, map[string]tftypes.Value{%q: %s})", tftypeCollection(levels, leaf), v.Name, inner)
+	}
+	return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{%s})", tftypeCollection(levels, leaf), inner)
 }

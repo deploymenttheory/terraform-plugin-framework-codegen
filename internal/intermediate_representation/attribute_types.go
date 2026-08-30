@@ -237,19 +237,22 @@ func deriveElement(container AttributeType, create, read, update *specmodel.Sche
 // the two cannot disagree: the leaf is the last level, and the levels are
 // carried only where there is more than one.
 //
-// A collection whose element is itself a collection is described in full
-// and then excluded here, because the emitter does not yet compose an
-// element type to depth. The exclusion names every level, so the report
-// says exactly what the document declared.
+// A collection of collections with an object at the bottom is described in
+// full and then excluded here, because the emitter composes an element type
+// to depth only down to a scalar. The exclusion names every level, so the
+// report says exactly what the document declared.
 func setCollectionElement(attribute *Attribute, collection AttributeType, element collectionElement) {
-	if len(element.levels) > 1 {
+	if len(element.levels) > 1 && element.nestedAttributes != nil {
 		spelled := describeCollectionLevels(collection, element.levels)
 		exclude(attribute, Cause{Code: CauseNestedCollectionElement, Subject: spelled},
-			fmt.Sprintf("%s: a collection whose element is itself a collection, which the emitter cannot yet compose", spelled))
+			fmt.Sprintf("%s: a collection of collections with an object at the bottom, which the emitter cannot yet compose", spelled))
 		return
 	}
 	attribute.Type = collection
 	attribute.ElementType = element.levels[len(element.levels)-1]
+	if len(element.levels) > 1 {
+		attribute.NestedCollectionElementTypes = element.levels
+	}
 	attribute.NestedAttributes = element.nestedAttributes
 	attribute.OneOf = element.oneOf
 }

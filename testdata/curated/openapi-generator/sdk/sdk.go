@@ -347,6 +347,10 @@ type PatchUpdatedResource struct {
 	mapOfIntegers       map[string]int64
 	mapOfNumbers        map[string]float64
 	mapOfBooleans       map[string]bool
+	listOfLists         [][]string
+	listOfMaps          []map[string]bool
+	mapOfLists          map[string][]int64
+	mapOfMaps           map[string]map[string]string
 	computedString      string
 }
 
@@ -415,7 +419,18 @@ func (m *PatchUpdatedResource) GetMapOfNumbers() map[string]float64  { return m.
 func (m *PatchUpdatedResource) SetMapOfNumbers(v map[string]float64) { m.mapOfNumbers = v }
 func (m *PatchUpdatedResource) GetMapOfBooleans() map[string]bool    { return m.mapOfBooleans }
 func (m *PatchUpdatedResource) SetMapOfBooleans(v map[string]bool)   { m.mapOfBooleans = v }
-func (m *PatchUpdatedResource) GetComputedString() string            { return m.computedString }
+
+// A collection of collections is a plain nested Go type, exactly as the
+// generator emits [][]string and map[string][]int64.
+func (m *PatchUpdatedResource) GetListOfLists() [][]string                  { return m.listOfLists }
+func (m *PatchUpdatedResource) SetListOfLists(v [][]string)                 { m.listOfLists = v }
+func (m *PatchUpdatedResource) GetListOfMaps() []map[string]bool            { return m.listOfMaps }
+func (m *PatchUpdatedResource) SetListOfMaps(v []map[string]bool)           { m.listOfMaps = v }
+func (m *PatchUpdatedResource) GetMapOfLists() map[string][]int64           { return m.mapOfLists }
+func (m *PatchUpdatedResource) SetMapOfLists(v map[string][]int64)          { m.mapOfLists = v }
+func (m *PatchUpdatedResource) GetMapOfMaps() map[string]map[string]string  { return m.mapOfMaps }
+func (m *PatchUpdatedResource) SetMapOfMaps(v map[string]map[string]string) { m.mapOfMaps = v }
+func (m *PatchUpdatedResource) GetComputedString() string                   { return m.computedString }
 
 // PatchUpdatedResourceNestedObject is the value-typed nested model.
 type PatchUpdatedResourceNestedObject struct {

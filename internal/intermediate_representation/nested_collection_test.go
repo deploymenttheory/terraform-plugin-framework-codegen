@@ -164,33 +164,58 @@ func TestUnit_DeriveElement_ExclusionsNameTheLevelThatCannotBeTyped(t *testing.T
 	}
 }
 
-// TestUnit_DeriveType_ANestedCollectionIsExcludedWithItsLevels proves the
-// attribute a document declares as a collection of collections is excluded
-// under its own cause, the subject spelling every level, rather than under
-// the cause of an element the toolkit cannot type at all.
-func TestUnit_DeriveType_ANestedCollectionIsExcludedWithItsLevels(t *testing.T) {
+// TestUnit_DeriveType_ANestedCollectionCarriesItsLevels proves the attribute
+// a document declares as a collection of collections derives with its outer
+// type, the leaf as its element type, and every level in between, for each
+// of the four two-level shapes.
+func TestUnit_DeriveType_ANestedCollectionCarriesItsLevels(t *testing.T) {
 	tree := buildAttributeTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
 		{Name: "grid", Schema: arrayOf(arrayOf(scalar("string")))},
 		{Name: "headersByDomain", Schema: mapOf(mapOf(scalar("string")))},
-		{Name: "tagsByGroup", Schema: mapOf(arrayOf(scalar("string")))},
-		{Name: "rows", Schema: arrayOf(mapOf(scalar("integer")))},
+		{Name: "tagsByGroup", Schema: mapOf(arrayOf(scalar("integer")))},
+		{Name: "rows", Schema: arrayOf(mapOf(scalar("boolean")))},
+	}}, nil, nil, false)
+	for name, want := range map[string]Attribute{
+		"grid":              {Type: TypeList, ElementType: TypeString, NestedCollectionElementTypes: []AttributeType{TypeList, TypeString}},
+		"headers_by_domain": {Type: TypeMap, ElementType: TypeString, NestedCollectionElementTypes: []AttributeType{TypeMap, TypeString}},
+		"tags_by_group":     {Type: TypeMap, ElementType: TypeInt64, NestedCollectionElementTypes: []AttributeType{TypeList, TypeInt64}},
+		"rows":              {Type: TypeList, ElementType: TypeBool, NestedCollectionElementTypes: []AttributeType{TypeMap, TypeBool}},
+	} {
+		derived := attribute(t, tree, name)
+		if derived.Unsupported {
+			t.Errorf("%s: excluded: %s", name, derived.UnsupportedReason)
+			continue
+		}
+		if derived.Type != want.Type || derived.ElementType != want.ElementType || !reflect.DeepEqual(derived.NestedCollectionElementTypes, want.NestedCollectionElementTypes) {
+			t.Errorf("%s: derived %s of %v (leaf %s), want %s of %v (leaf %s)", name,
+				derived.Type, derived.NestedCollectionElementTypes, derived.ElementType, want.Type, want.NestedCollectionElementTypes, want.ElementType)
+		}
+		if derived.CollectionNestingDepth() != 2 {
+			t.Errorf("%s: depth = %d, want 2", name, derived.CollectionNestingDepth())
+		}
+	}
+}
+
+// TestUnit_DeriveType_ANestedCollectionOfObjectsIsExcludedWithItsLevels
+// holds the one collection of collections the emitter does not compose — an
+// object at the bottom — to its own cause, the subject spelling every level.
+func TestUnit_DeriveType_ANestedCollectionOfObjectsIsExcludedWithItsLevels(t *testing.T) {
+	object := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{{Name: "name", Schema: scalar("string")}}}
+	tree := buildAttributeTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "table", Schema: arrayOf(arrayOf(object))},
+		{Name: "rowsByKey", Schema: mapOf(arrayOf(object))},
 	}}, nil, nil, false)
 	for name, wantSubject := range map[string]string{
-		"grid":              "list of list of string",
-		"headers_by_domain": "map of map of string",
-		"tags_by_group":     "map of list of string",
-		"rows":              "list of map of int64",
+		"table":       "list of list of object",
+		"rows_by_key": "map of list of object",
 	} {
 		derived := attribute(t, tree, name)
 		if !derived.Unsupported || derived.UnsupportedCause.Code != CauseNestedCollectionElement {
 			t.Errorf("%s: derived %q with cause %q, want excluded as %q", name, derived.Type, derived.UnsupportedCause.Code, CauseNestedCollectionElement)
 			continue
 		}
-		if derived.UnsupportedCause.Subject != wantSubject {
-			t.Errorf("%s: subject = %q, want %q", name, derived.UnsupportedCause.Subject, wantSubject)
-		}
-		if !strings.Contains(derived.UnsupportedReason, wantSubject) {
-			t.Errorf("%s: reason = %q, want it to spell %q", name, derived.UnsupportedReason, wantSubject)
+		if derived.UnsupportedCause.Subject != wantSubject || !strings.Contains(derived.UnsupportedReason, "object at the bottom") {
+			t.Errorf("%s: subject = %q, reason = %q", name, derived.UnsupportedCause.Subject, derived.UnsupportedReason)
 		}
 	}
 }
@@ -208,8 +233,8 @@ func TestUnit_Attribute_CollectionNestingDepthCountsTheLevels(t *testing.T) {
 		"map of objects":  {Attribute{Type: TypeMap, ElementType: TypeObject, NestedAttributes: &AttributeTree{}}, 1},
 		"list of lists": {Attribute{Type: TypeList, ElementType: TypeString,
 			NestedCollectionElementTypes: []AttributeType{TypeList, TypeString}}, 2},
-		"map of lists of objects": {Attribute{Type: TypeMap, ElementType: TypeObject, NestedAttributes: &AttributeTree{},
-			NestedCollectionElementTypes: []AttributeType{TypeList, TypeObject}}, 2},
+		"map of lists of lists": {Attribute{Type: TypeMap, ElementType: TypeInt64,
+			NestedCollectionElementTypes: []AttributeType{TypeList, TypeList, TypeInt64}}, 3},
 	} {
 		if got := testCase.attribute.CollectionNestingDepth(); got != testCase.want {
 			t.Errorf("%s: depth = %d, want %d", name, got, testCase.want)
@@ -217,20 +242,26 @@ func TestUnit_Attribute_CollectionNestingDepthCountsTheLevels(t *testing.T) {
 	}
 }
 
-// TestUnit_SetCollectionElement_ElementTypeIsTheLastLevel holds the one
-// level of a collection of scalars or objects to ElementType alone, with
-// no levels carried, and its leaf enum to the attribute's OneOf.
+// TestUnit_SetCollectionElement_ElementTypeIsTheLastLevel holds ElementType
+// to the leaf at any depth, the levels to be carried only past one, and the
+// leaf enum to the attribute's OneOf.
 func TestUnit_SetCollectionElement_ElementTypeIsTheLastLevel(t *testing.T) {
-	var attribute Attribute
-	setCollectionElement(&attribute, TypeMap, collectionElement{levels: []AttributeType{TypeString}, oneOf: []string{"a"}})
-	if attribute.Type != TypeMap || attribute.ElementType != TypeString || attribute.NestedCollectionElementTypes != nil {
-		t.Errorf("a map of strings set %+v", attribute)
+	var flat Attribute
+	setCollectionElement(&flat, TypeMap, collectionElement{levels: []AttributeType{TypeString}, oneOf: []string{"a"}})
+	if flat.Type != TypeMap || flat.ElementType != TypeString || flat.NestedCollectionElementTypes != nil {
+		t.Errorf("a map of strings set %+v", flat)
 	}
-	if !reflect.DeepEqual(attribute.OneOf, []string{"a"}) {
-		t.Errorf("OneOf = %v, want the leaf's set", attribute.OneOf)
+	if !reflect.DeepEqual(flat.OneOf, []string{"a"}) {
+		t.Errorf("OneOf = %v, want the leaf's set", flat.OneOf)
 	}
-	if attribute.CollectionNestingDepth() != 1 {
-		t.Errorf("depth = %d, want 1", attribute.CollectionNestingDepth())
+
+	var deep Attribute
+	setCollectionElement(&deep, TypeList, collectionElement{levels: []AttributeType{TypeMap, TypeInt64}})
+	if deep.Type != TypeList || deep.ElementType != TypeInt64 || !reflect.DeepEqual(deep.NestedCollectionElementTypes, []AttributeType{TypeMap, TypeInt64}) {
+		t.Errorf("a list of maps of integers set %+v", deep)
+	}
+	if deep.CollectionNestingDepth() != 2 {
+		t.Errorf("depth = %d, want 2", deep.CollectionNestingDepth())
 	}
 }
 

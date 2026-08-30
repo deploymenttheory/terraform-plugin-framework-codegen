@@ -163,18 +163,13 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 		})
 	}
 
-	if len(n.attribute.OneOf) > 0 && n.attribute.Type == ir.TypeList && n.attribute.ElementType == ir.TypeString {
+	if len(n.attribute.OneOf) > 0 && (n.attribute.Type == ir.TypeList || n.attribute.Type == ir.TypeMap) && n.attribute.ElementType == ir.TypeString {
 		quoted := make([]string, len(n.attribute.OneOf))
 		for i, v := range n.attribute.OneOf {
 			quoted[i] = strconv.Quote(v)
 		}
-		validators = append(validators, code.CustomValidator{
-			Imports: []code.Import{
-				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"},
-				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"},
-			},
-			SchemaDefinition: fmt.Sprintf("listvalidator.ValueStringsAre(stringvalidator.OneOf(%s))", strings.Join(quoted, ", ")),
-		})
+		validators = append(validators, collectionMemberValidator(n.attribute,
+			fmt.Sprintf("stringvalidator.OneOf(%s)", strings.Join(quoted, ", "))))
 	}
 
 	validators = append(validators, constraintValidators(n)...)
@@ -564,4 +559,33 @@ func entityDescription(tree *ir.AttributeTree, derived string) string {
 		return derived
 	}
 	return derived + " " + terminated(strings.TrimSpace(tree.Description))
+}
+
+// collectionMemberValidator wraps a validator on a collection's string
+// members in one ValueXsAre per level, innermost first: a list of strings
+// takes listvalidator.ValueStringsAre(leaf), and a map of lists of strings
+// mapvalidator.ValueListsAre(listvalidator.ValueStringsAre(leaf)).
+func collectionMemberValidator(attribute ir.Attribute, leaf string) code.CustomValidator {
+	levels := append([]ir.AttributeType{attribute.Type}, attribute.NestedCollectionElementTypes...)
+	if attribute.CollectionNestingDepth() <= 1 {
+		levels = []ir.AttributeType{attribute.Type, attribute.ElementType}
+	}
+	imports := []code.Import{{Path: validatorRoot + "stringvalidator"}}
+	expression := leaf
+	for index := len(levels) - 2; index >= 0; index-- {
+		goPackage := "listvalidator"
+		if levels[index] == ir.TypeMap {
+			goPackage = "mapvalidator"
+		}
+		wrapper := "ValueStringsAre"
+		switch levels[index+1] {
+		case ir.TypeList:
+			wrapper = "ValueListsAre"
+		case ir.TypeMap:
+			wrapper = "ValueMapsAre"
+		}
+		expression = goPackage + "." + wrapper + "(" + expression + ")"
+		imports = append(imports, code.Import{Path: validatorRoot + goPackage})
+	}
+	return code.CustomValidator{Imports: imports, SchemaDefinition: expression}
 }

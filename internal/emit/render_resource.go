@@ -692,7 +692,7 @@ func (e *serviceRenderer) resourceChecks(d *resourceData, spec fixtures.Fixture)
 func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 	var b strings.Builder
 	for _, v := range spec.Entries {
-		if !valueWanted(v, a) || v.Nested != nil || v.Kind == ir.TypeList {
+		if !valueWanted(v, a) || v.Nested != nil || v.Kind == ir.TypeList || v.CollectionNestingDepth() > 1 {
 			continue
 		}
 		switch {

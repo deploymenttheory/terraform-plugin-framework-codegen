@@ -60,9 +60,12 @@ type Entry struct {
 	// speaks.
 	Name string
 	Wire string
-	// Kind and ElementType mirror the attribute's kinds.
-	Kind        ir.AttributeType
-	ElementType ir.AttributeType
+	// Kind and ElementType mirror the attribute's types; ElementType is the
+	// leaf of a collection of collections, whose levels
+	// NestedCollectionElementTypes mirrors.
+	Kind                         ir.AttributeType
+	ElementType                  ir.AttributeType
+	NestedCollectionElementTypes []ir.AttributeType
 	// ComputedOptionalRequired decides which renderings carry the value: configurations
 	// carry writable attributes, responses carry readable ones.
 	ComputedOptionalRequired ir.ComputedOptionalRequired
@@ -380,14 +383,15 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			continue
 		}
 		v := Entry{
-			Name:                     a.Name,
-			Wire:                     a.WireName,
-			Kind:                     a.Type,
-			ElementType:              a.ElementType,
-			ComputedOptionalRequired: a.ComputedOptionalRequired,
-			Normalised:               a.Normalisation != "",
-			Minimum:                  a.Minimum,
-			Maximum:                  a.Maximum,
+			Name:                         a.Name,
+			Wire:                         a.WireName,
+			Kind:                         a.Type,
+			ElementType:                  a.ElementType,
+			NestedCollectionElementTypes: a.NestedCollectionElementTypes,
+			ComputedOptionalRequired:     a.ComputedOptionalRequired,
+			Normalised:                   a.Normalisation != "",
+			Minimum:                      a.Minimum,
+			Maximum:                      a.Maximum,
 		}
 		switch {
 		case a.NestedAttributes != nil:
@@ -621,4 +625,29 @@ func (s Fixture) topLevel(a Form) []Entry {
 		}
 	}
 	return out
+}
+
+// CollectionNestingDepth counts the collection levels wrapping an entry's
+// value, as the attribute's own method does: 0 for a scalar or an object, 1
+// for a list of strings or a map of objects, and the number of levels for a
+// collection of collections.
+func (v Entry) CollectionNestingDepth() int {
+	switch {
+	case v.Kind != ir.TypeList && v.Kind != ir.TypeMap:
+		return 0
+	case len(v.NestedCollectionElementTypes) == 0:
+		return 1
+	default:
+		return len(v.NestedCollectionElementTypes)
+	}
+}
+
+// CollectionLevels is every collection level of an entry, outermost first,
+// without the leaf: the levels a value is wrapped in.
+func (v Entry) CollectionLevels() []ir.AttributeType {
+	if v.CollectionNestingDepth() <= 1 {
+		return []ir.AttributeType{v.Kind}
+	}
+	levels := append([]ir.AttributeType{v.Kind}, v.NestedCollectionElementTypes...)
+	return levels[:len(levels)-1]
 }

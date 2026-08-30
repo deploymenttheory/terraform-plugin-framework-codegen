@@ -10,6 +10,7 @@ package fixtures
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
@@ -187,7 +188,7 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 			// A normalised property keeps the value sent: the provider reads
 			// the stored spelling back as that value, and the stored spelling
 			// is not always one the API takes on a create.
-			if present && v.Nested == nil && v.Kind != ir.TypeList && !reflect.DeepEqual(carried, echoed) && !v.Normalised {
+			if present && v.Nested == nil && v.Kind != ir.TypeList && v.CollectionNestingDepth() <= 1 && !reflect.DeepEqual(carried, echoed) && !v.Normalised {
 				text, isText := echoed.(string)
 				switch {
 				case isText && isMask(text):
@@ -235,6 +236,14 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 // overlayOne sets one entry from the value the body carried, recursing into
 // the nested shapes a body spells as objects and arrays of objects.
 func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[string]bool, at []string, dropped *[]Omission, retained bool) Entry {
+	// A collection of collections carries one leaf: the first member at
+	// every level down, and the derived value where the body carried none.
+	if v.CollectionNestingDepth() > 1 {
+		if leaf, ok := carriedLeaf(carried, v.CollectionLevels()); ok {
+			v.Scalar = leaf
+		}
+		return v
+	}
 	switch nested := carried.(type) {
 	case map[string]any:
 		if v.Nested != nil {
@@ -396,4 +405,33 @@ func referenced(values []Entry, wire, expression string, took *bool) []Entry {
 		out[i].Nested = referenced(out[i].Nested, wire, expression, took)
 	}
 	return out
+}
+
+// carriedLeaf descends a carried collection of collections to its first
+// leaf, level by level: the first member of a list, and the entry under the
+// smallest key of a map, so a regenerated fixture is byte-identical. An
+// empty level, or a value that is not the collection the level declares,
+// leaves no leaf.
+func carriedLeaf(carried any, levels []ir.AttributeType) (any, bool) {
+	if len(levels) == 0 {
+		return carried, carried != nil
+	}
+	switch members := carried.(type) {
+	case []any:
+		if levels[0] != ir.TypeList || len(members) == 0 {
+			return nil, false
+		}
+		return carriedLeaf(members[0], levels[1:])
+	case map[string]any:
+		if levels[0] != ir.TypeMap || len(members) == 0 {
+			return nil, false
+		}
+		keys := make([]string, 0, len(members))
+		for key := range members {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		return carriedLeaf(members[keys[0]], levels[1:])
+	}
+	return nil, false
 }
