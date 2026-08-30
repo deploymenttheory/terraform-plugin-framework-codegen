@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDeriveNames(t *testing.T) {
+func TestUnit_Naming_DeriveNames(t *testing.T) {
 	for _, testCase := range []struct {
 		name           string
 		key            string
@@ -64,7 +64,7 @@ func TestDeriveNames(t *testing.T) {
 
 // The Go spellings uppercase known acronyms whole, and a leading acronym
 // in the camel spelling lowers whole — Go-idiomatic, per the owner ruling.
-func TestAcronymCasing(t *testing.T) {
+func TestUnit_Naming_AcronymCasing(t *testing.T) {
 	for _, testCase := range []struct {
 		key, pascal, camel string
 	}{
@@ -86,8 +86,8 @@ func TestAcronymCasing(t *testing.T) {
 	}
 }
 
-func TestSnakeCase(t *testing.T) {
-	for in, want := range map[string]string{
+func TestUnit_Naming_SnakeCase(t *testing.T) {
+	for input, want := range map[string]string{
 		"filterType": "filter_type",
 		"IPAddress":  "ip_address",
 		"tagId":      "tag_id",
@@ -97,8 +97,8 @@ func TestSnakeCase(t *testing.T) {
 		"already":    "already",
 		"v2Beta":     "v2_beta",
 	} {
-		if got := snakeCase(in); got != want {
-			t.Errorf("snakeCase(%q) = %q, want %q", in, got, want)
+		if got := snakeCase(input); got != want {
+			t.Errorf("snakeCase(%q) = %q, want %q", input, got, want)
 		}
 	}
 }
@@ -126,12 +126,12 @@ func TestUnit_Names_PackageIsNeverAGoKeyword(t *testing.T) {
 		"map", "package", "range", "return", "select", "struct", "switch", "type", "var",
 	}
 	reserved := map[string]bool{}
-	for _, k := range keywords {
-		reserved[k] = true
+	for _, keyword := range keywords {
+		reserved[keyword] = true
 	}
-	for _, k := range keywords {
-		if got := packageName("jamfpro", k); reserved[got] {
-			t.Fatalf("packageName(jamfpro, %q) = %q, which is a reserved word", k, got)
+	for _, keyword := range keywords {
+		if got := packageName("jamfpro", keyword); reserved[got] {
+			t.Fatalf("packageName(jamfpro, %q) = %q, which is a reserved word", keyword, got)
 		}
 	}
 }
@@ -141,7 +141,7 @@ func TestUnit_Names_PackageIsNeverAGoKeyword(t *testing.T) {
 // leading underscore and the reflect layer that decodes a model does not, so
 // a property named _links would reach the schema and then fail to decode.
 func TestUnit_TerraformName_StartsWithALetter(t *testing.T) {
-	for _, c := range []struct{ wire, want string }{
+	for _, example := range []struct{ wire, want string }{
 		{"_links", "links"},
 		{"__internal", "internal"},
 		{"_2fa", "fa"},
@@ -149,8 +149,8 @@ func TestUnit_TerraformName_StartsWithALetter(t *testing.T) {
 		{"createdAt", "created_at"},
 		{"___", "___"},
 	} {
-		if got := TerraformName(c.wire); got != c.want {
-			t.Errorf("TerraformName(%q) = %q, want %q", c.wire, got, c.want)
+		if got := TerraformName(example.wire); got != example.want {
+			t.Errorf("TerraformName(%q) = %q, want %q", example.wire, got, example.want)
 		}
 	}
 }

@@ -6,9 +6,9 @@
 package intermediate_representation
 
 // ensureID guarantees the id attribute every resource and datasource
-// carries: computed, mapped from the response'schema id field when the schema
+// carries: computed, mapped from the response's id field when the schema
 // declares one, otherwise synthesized from the item path parameter.
-func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
+func ensureID(tree *AttributeTree, keyParameter string, keyAttributeType AttributeType) {
 	for index := range tree.Attributes {
 		if tree.Attributes[index].Name == "id" {
 			tree.Attributes[index].ComputedOptionalRequired = Computed
@@ -16,17 +16,17 @@ func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
 			return
 		}
 	}
-	wire := keyParam
-	if wire == "" {
-		wire = "id"
+	wireName := keyParameter
+	if wireName == "" {
+		wireName = "id"
 	}
-	kind := keyType
+	kind := keyAttributeType
 	if kind == "" {
 		kind = TypeString
 	}
 	tree.Attributes = append([]Attribute{{
 		Name:                     "id",
-		WireName:                 wire,
+		WireName:                 wireName,
 		Kind:                     kind,
 		ComputedOptionalRequired: Computed,
 	}}, tree.Attributes...)
@@ -62,26 +62,26 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter, parentEnti
 	// cannot answer the parameter either. Emission refuses the entity by
 	// name, which is a better answer than a renamed attribute nobody asked
 	// for or a schema that does not load.
-	declared := make(map[string]bool, len(tree.Attributes))
+	declaredNames := make(map[string]bool, len(tree.Attributes))
 	for _, attribute := range tree.Attributes {
-		declared[attribute.Name] = true
+		declaredNames[attribute.Name] = true
 	}
 
-	added := make([]Attribute, 0, len(parents))
+	addedAttributes := make([]Attribute, 0, len(parents))
 	for _, parent := range parents {
 		name := snakeCase(parent.Name)
 		if name == "id" && parentEntity != "" {
 			name = parentEntity + "_id"
 		}
-		if declared[name] {
+		if declaredNames[name] {
 			continue
 		}
-		declared[name] = true
+		declaredNames[name] = true
 		kind := parent.Type
 		if kind == "" {
 			kind = TypeString
 		}
-		added = append(added, Attribute{
+		addedAttributes = append(addedAttributes, Attribute{
 			Name:                     name,
 			WireName:                 parent.Name,
 			Kind:                     kind,
@@ -92,10 +92,10 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter, parentEnti
 			RequiresReplace: true,
 		})
 	}
-	if len(added) == 0 {
+	if len(addedAttributes) == 0 {
 		return
 	}
-	tree.Attributes = append(added, tree.Attributes...)
+	tree.Attributes = append(addedAttributes, tree.Attributes...)
 }
 
 // ensureFilterAttributes offers one optional argument per scalar field at the
@@ -114,14 +114,14 @@ func ensureFilterAttributes(tree, item *AttributeTree) {
 	if tree == nil || item == nil {
 		return
 	}
-	declared := make(map[string]bool, len(tree.Attributes))
+	declaredNames := make(map[string]bool, len(tree.Attributes))
 	for _, attribute := range tree.Attributes {
-		declared[attribute.Name] = true
+		declaredNames[attribute.Name] = true
 	}
 
-	added := make([]Attribute, 0, len(item.Attributes))
+	addedAttributes := make([]Attribute, 0, len(item.Attributes))
 	for _, attribute := range item.Attributes {
-		if attribute.Nested != nil || declared[attribute.Name] {
+		if attribute.Nested != nil || declaredNames[attribute.Name] {
 			continue
 		}
 		switch attribute.Kind {
@@ -129,8 +129,8 @@ func ensureFilterAttributes(tree, item *AttributeTree) {
 		default:
 			continue
 		}
-		declared[attribute.Name] = true
-		added = append(added, Attribute{
+		declaredNames[attribute.Name] = true
+		addedAttributes = append(addedAttributes, Attribute{
 			Name:                     attribute.Name,
 			WireName:                 attribute.WireName,
 			Description:              attribute.Description,
@@ -139,7 +139,7 @@ func ensureFilterAttributes(tree, item *AttributeTree) {
 			Filter:                   true,
 		})
 	}
-	tree.Attributes = append(tree.Attributes, added...)
+	tree.Attributes = append(tree.Attributes, addedAttributes...)
 }
 
 // addressingSchema is a collection path's addressing attributes as a tree of
@@ -171,24 +171,24 @@ func parentParameters(parameters []Parameter) []Parameter {
 	return parameters[:len(parameters)-1]
 }
 
-// requireKey turns the lookup key into the datasource'schema single required
+// requireKey turns the lookup key into the datasource's single required
 // argument: the matching attribute becomes required, or a new one is
 // prepended when the response object does not carry the key.
-func requireKey(tree *AttributeTree, keyParam string, keyType AttributeType) {
-	name := snakeCase(keyParam)
+func requireKey(tree *AttributeTree, keyParameter string, keyAttributeType AttributeType) {
+	name := snakeCase(keyParameter)
 	for index := range tree.Attributes {
 		if tree.Attributes[index].Name == name {
 			tree.Attributes[index].ComputedOptionalRequired = Required
 			return
 		}
 	}
-	kind := keyType
+	kind := keyAttributeType
 	if kind == "" {
 		kind = TypeString
 	}
 	tree.Attributes = append([]Attribute{{
 		Name:                     name,
-		WireName:                 keyParam,
+		WireName:                 keyParameter,
 		Kind:                     kind,
 		ComputedOptionalRequired: Required,
 	}}, tree.Attributes...)

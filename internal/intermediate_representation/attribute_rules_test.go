@@ -55,9 +55,9 @@ func TestUnit_BuildTree_MembersOfAServerFilledAttributeAreComputed(t *testing.T)
 		name string
 		cor  ComputedOptionalRequired
 	}{{"title", ComputedOptional}, {"type", ComputedOptional}, {"count", Computed}, {"inner", ComputedOptional}} {
-		for _, m := range members {
-			if m.Name == want.name && m.ComputedOptionalRequired != want.cor {
-				t.Errorf("%s under a server-filled attribute = %s, want %s", m.Name, m.ComputedOptionalRequired, want.cor)
+		for _, member := range members {
+			if member.Name == want.name && member.ComputedOptionalRequired != want.cor {
+				t.Errorf("%s under a server-filled attribute = %s, want %s", member.Name, member.ComputedOptionalRequired, want.cor)
 			}
 		}
 	}

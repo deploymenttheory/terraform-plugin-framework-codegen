@@ -13,9 +13,9 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
-// configExcludedReason is the reason recorded for entities services.exclude
+// configurationExclusionReason is the reason recorded for entities services.exclude
 // drops, distinguishable at a glance from a classification exclusion.
-const configExcludedReason = "excluded by configuration"
+const configurationExclusionReason = "excluded by configuration"
 
 // Derive computes the model from the revised document and the config. It is
 // pure: the same inputs yield the same value every run, byte-for-byte under
@@ -33,7 +33,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		return nil, errors.New("intermediate_representation: provider.name is empty; every terraform type name derives from it")
 	}
 
-	derivation := &operationIndexer{index: indexOperations(document)}
+	indexer := &operationIndexer{index: indexOperations(document)}
 	model := &Model{Provider: Provider{Name: configuration.Provider.Name}}
 
 	excluded := map[string]bool{}
@@ -46,13 +46,13 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 	// Decide inclusion and names first: actions need every kept entity's
 	// key to resolve their parent, and a key collision must be resolved
 	// before any entity is built against an ambiguous name.
-	type kept struct {
+	type keptEntity struct {
 		classification specmodel.Classification
 		names          Names
 	}
-	var keep []kept
-	claimed := map[string]string{} // final key -> the collection path that claimed it
-	family := map[string][]int{}   // pre-disambiguation key -> indices into keep
+	var keptEntities []keptEntity
+	claimed := map[string]string{}              // final key -> the collection path that claimed it
+	entitiesByOriginalKey := map[string][]int{} // pre-disambiguation key -> indices into keptEntities
 	parentKey := map[string]string{}
 	for _, classification := range classifications.Entities {
 		names := deriveNames(configuration.Provider.Name, classification.Key, classification.CollectionPath, classification.Tag)
@@ -63,18 +63,18 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		// in collection-path order takes a mechanically disambiguated key,
 		// and every member of the family carries a co-management note so
 		// the generated schema description says the overlap out loud.
-		if winner, taken := claimed[names.Key]; taken {
+		if claimingPath, taken := claimed[names.Key]; taken {
 			names = names.withKey(configuration.Provider.Name,
-				disambiguateKey(names.Key, classification.CollectionPath, winner, claimed))
+				disambiguateKey(names.Key, classification.CollectionPath, claimingPath, claimed))
 		}
 		claimed[names.Key] = classification.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
-			model.ExcludedByConfiguration = append(model.ExcludedByConfiguration, unsupportedEntity(names, classification.CollectionPath, "", Cause{Code: CauseExcludedByConfiguration}, configExcludedReason))
+			model.ExcludedByConfiguration = append(model.ExcludedByConfiguration, unsupportedEntity(names, classification.CollectionPath, "", Cause{Code: CauseExcludedByConfiguration}, configurationExclusionReason))
 			continue
 		}
 		parentKey[classification.CollectionPath] = names.Key
-		family[original] = append(family[original], len(keep))
-		keep = append(keep, kept{classification: classification, names: names})
+		entitiesByOriginalKey[original] = append(entitiesByOriginalKey[original], len(keptEntities))
+		keptEntities = append(keptEntities, keptEntity{classification: classification, names: names})
 	}
 	for _, excluded := range classifications.Excluded {
 		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath, excluded.Tag)
@@ -85,42 +85,42 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 	// one API surface: every member's note names its siblings, so the
 	// prose lands on both sides of the overlap.
 	notes := map[string]string{}
-	for _, members := range family {
+	for _, members := range entitiesByOriginalKey {
 		if len(members) < 2 {
 			continue
 		}
-		for _, i := range members {
+		for _, member := range members {
 			siblings := make([]string, 0, len(members)-1)
-			for _, j := range members {
-				if j != i {
-					siblings = append(siblings, keep[j].names.TerraformType)
+			for _, other := range members {
+				if other != member {
+					siblings = append(siblings, keptEntities[other].names.TerraformType)
 				}
 			}
 			sort.Strings(siblings)
-			notes[keep[i].names.Key] = coManagementNote(siblings)
+			notes[keptEntities[member].names.Key] = coManagementNote(siblings)
 		}
 	}
 
-	for _, candidate := range keep {
+	for _, candidate := range keptEntities {
 		note := notes[candidate.names.Key]
 		for _, kind := range candidate.classification.Kinds {
 			switch kind {
 			case specmodel.KindResource:
-				resource := derivation.resource(candidate.classification, candidate.names, parentKey)
+				resource := indexer.resource(candidate.classification, candidate.names, parentKey)
 				resource.CoManagementNote = note
 				model.Resources = append(model.Resources, resource)
 			case specmodel.KindDatasource:
-				ds := derivation.datasource(candidate.classification, candidate.names)
-				ds.CoManagementNote = note
-				model.Datasources = append(model.Datasources, ds)
+				datasource := indexer.datasource(candidate.classification, candidate.names)
+				datasource.CoManagementNote = note
+				model.Datasources = append(model.Datasources, datasource)
 			case specmodel.KindListResource:
-				lr := derivation.listResource(candidate.classification, candidate.names)
-				lr.CoManagementNote = note
-				model.ListResources = append(model.ListResources, lr)
+				listResource := indexer.listResource(candidate.classification, candidate.names)
+				listResource.CoManagementNote = note
+				model.ListResources = append(model.ListResources, listResource)
 			case specmodel.KindAction:
-				a := derivation.action(candidate.classification, candidate.names, parentKey)
-				a.CoManagementNote = note
-				model.Actions = append(model.Actions, a)
+				action := indexer.action(candidate.classification, candidate.names, parentKey)
+				action.CoManagementNote = note
+				model.Actions = append(model.Actions, action)
 			}
 		}
 	}
@@ -133,25 +133,25 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 // paths derive the same one. The algorithm is mechanical, never a guess:
 //
 //  1. Split both collection paths into segments.
-//  2. Keep, in path order, every segment of the later path the winning
+//  2. Keep, in path order, every segment of the later path the claiming
 //     path does not also contain — the distinguishing segments.
 //  3. Render a distinguishing parameter segment "{name}" as "by_" plus
 //     the name snake_cased, and a distinguishing literal segment as
 //     itself snake_cased.
 //  4. Append the renderings to the colliding key, underscore-joined:
-//     "/tags/{id}/assign" against the winner "/tags/assign" turns
+//     "/tags/{id}/assign" against the claiming path "/tags/assign" turns
 //     "tags_assign" into "tags_assign_by_id".
 //  5. Should the result still be claimed, or should no segment
 //     distinguish the paths, an ordinal _2, _3 … appends until the key
 //     is free.
-func disambiguateKey(key, laterPath, winnerPath string, claimed map[string]string) string {
-	winner := map[string]bool{}
-	for _, segment := range pathSegments(winnerPath) {
-		winner[segment] = true
+func disambiguateKey(key, laterPath, claimingPath string, claimed map[string]string) string {
+	claimingSegments := map[string]bool{}
+	for _, segment := range pathSegments(claimingPath) {
+		claimingSegments[segment] = true
 	}
 	parts := []string{key}
 	for _, segment := range pathSegments(laterPath) {
-		if winner[segment] {
+		if claimingSegments[segment] {
 			continue
 		}
 		if strings.HasPrefix(segment, "{") {
@@ -164,8 +164,8 @@ func disambiguateKey(key, laterPath, winnerPath string, claimed map[string]strin
 	if _, taken := claimed[candidate]; !taken && candidate != key {
 		return candidate
 	}
-	for n := 2; ; n++ {
-		next := fmt.Sprintf("%s_%d", candidate, n)
+	for ordinal := 2; ; ordinal++ {
+		next := fmt.Sprintf("%s_%d", candidate, ordinal)
 		if _, taken := claimed[next]; !taken {
 			return next
 		}
@@ -186,16 +186,22 @@ func pathSegments(path string) []string {
 // sortModel fixes every slice's order by entity key, so document order and
 // classification order can never leak into the model's shape.
 func sortModel(model *Model) {
-	sort.Slice(model.Resources, func(i, j int) bool { return model.Resources[i].Names.Key < model.Resources[j].Names.Key })
-	sort.Slice(model.Datasources, func(i, j int) bool { return model.Datasources[i].Names.Key < model.Datasources[j].Names.Key })
-	sort.Slice(model.ListResources, func(i, j int) bool { return model.ListResources[i].Names.Key < model.ListResources[j].Names.Key })
-	sort.Slice(model.Actions, func(i, j int) bool { return model.Actions[i].Names.Key < model.Actions[j].Names.Key })
+	sort.Slice(model.Resources, func(first, second int) bool {
+		return model.Resources[first].Names.Key < model.Resources[second].Names.Key
+	})
+	sort.Slice(model.Datasources, func(first, second int) bool {
+		return model.Datasources[first].Names.Key < model.Datasources[second].Names.Key
+	})
+	sort.Slice(model.ListResources, func(first, second int) bool {
+		return model.ListResources[first].Names.Key < model.ListResources[second].Names.Key
+	})
+	sort.Slice(model.Actions, func(first, second int) bool { return model.Actions[first].Names.Key < model.Actions[second].Names.Key })
 	for _, excluded := range [][]UnsupportedEntity{model.ExcludedByConfiguration, model.ExcludedByClassification} {
-		sort.Slice(excluded, func(i, j int) bool {
-			if excluded[i].Key != excluded[j].Key {
-				return excluded[i].Key < excluded[j].Key
+		sort.Slice(excluded, func(first, second int) bool {
+			if excluded[first].Key != excluded[second].Key {
+				return excluded[first].Key < excluded[second].Key
 			}
-			return excluded[i].Reason < excluded[j].Reason
+			return excluded[first].Reason < excluded[second].Reason
 		})
 	}
 }
@@ -209,9 +215,9 @@ type operationIndexer struct {
 // classification's operation reference finds its full operation back.
 func indexOperations(document *specmodel.Document) map[string]*specmodel.Operation {
 	index := map[string]*specmodel.Operation{}
-	for pi := range document.Paths {
-		for oi := range document.Paths[pi].Operations {
-			operation := &document.Paths[pi].Operations[oi]
+	for pathIndex := range document.Paths {
+		for operationIndex := range document.Paths[pathIndex].Operations {
+			operation := &document.Paths[pathIndex].Operations[operationIndex]
 			index[operation.Path+" "+operation.Method] = operation
 		}
 	}
@@ -220,28 +226,28 @@ func indexOperations(document *specmodel.Document) map[string]*specmodel.Operati
 
 // full resolves a classification operation reference to the document's
 // operation, nil for a nil reference.
-func (derivation *operationIndexer) full(reference *specmodel.OperationReference) *specmodel.Operation {
+func (indexer *operationIndexer) resolveOperation(reference *specmodel.OperationReference) *specmodel.Operation {
 	if reference == nil {
 		return nil
 	}
-	return derivation.index[reference.Path+" "+reference.Method]
+	return indexer.index[reference.Path+" "+reference.Method]
 }
 
 // operation renders one operation reference into the dialect-neutral form binders
 // key on, nil for a nil reference.
-func (derivation *operationIndexer) operation(reference *specmodel.OperationReference, kind OperationKind) *Operation {
+func (indexer *operationIndexer) operation(reference *specmodel.OperationReference, kind OperationKind) *Operation {
 	if reference == nil {
 		return nil
 	}
-	full := derivation.full(reference)
+	resolved := indexer.resolveOperation(reference)
 	return &Operation{
 		Kind:            kind,
 		Method:          reference.Method,
 		PathTemplate:    reference.Path,
 		OperationID:     reference.OperationID,
-		PathParameters:  pathParameters(reference.Path, full),
-		QueryParameters: requiredQueryParameters(full),
-		SuccessCode:     successCode(full),
+		PathParameters:  pathParameters(reference.Path, resolved),
+		QueryParameters: requiredQueryParameters(resolved),
+		SuccessCode:     successCode(resolved),
 	}
 }
 
@@ -271,7 +277,7 @@ func requiredQueryParameters(operation *specmodel.Operation) []QueryParameter {
 		if value == nil {
 			continue
 		}
-		kind := scalarKind(declared.Schema)
+		kind := scalarType(declared.Schema)
 		if kind == "" {
 			kind = TypeString
 		}
@@ -280,20 +286,20 @@ func requiredQueryParameters(operation *specmodel.Operation) []QueryParameter {
 	return out
 }
 
-func (derivation *operationIndexer) resource(classification specmodel.Classification, names Names, parentKey map[string]string) Resource {
+func (indexer *operationIndexer) resource(classification specmodel.Classification, names Names, parentKey map[string]string) Resource {
 	parentEntity := enclosingEntity(classification.CollectionPath, parentKey)
-	createFull, readFull := derivation.full(classification.Create), derivation.full(classification.Read)
-	updateFull, deleteFull := derivation.full(classification.Update), derivation.full(classification.Delete)
+	resolvedCreate, resolvedRead := indexer.resolveOperation(classification.Create), indexer.resolveOperation(classification.Read)
+	resolvedUpdate, resolvedDelete := indexer.resolveOperation(classification.Update), indexer.resolveOperation(classification.Delete)
 
 	var createBody, readBody, updateBody *specmodel.Schema
-	if createFull != nil {
-		createBody = createFull.RequestBody
+	if resolvedCreate != nil {
+		createBody = resolvedCreate.RequestBody
 	}
-	if readFull != nil {
-		readBody = readFull.SuccessSchema()
+	if resolvedRead != nil {
+		readBody = resolvedRead.SuccessSchema()
 	}
-	if updateFull != nil {
-		updateBody = updateFull.RequestBody
+	if resolvedUpdate != nil {
+		updateBody = resolvedUpdate.RequestBody
 	}
 	// A singleton has no create body; what the practitioner may set is what
 	// the update accepts. Taking the write side from there is what keeps its
@@ -302,27 +308,27 @@ func (derivation *operationIndexer) resource(classification specmodel.Classifica
 	// It also makes the create-minus-update difference empty by
 	// construction, which is right: an entity whose only write is the update
 	// has nothing the update refuses.
-	if classification.Singleton && updateFull != nil {
-		createBody = updateFull.RequestBody
+	if classification.Singleton && resolvedUpdate != nil {
+		createBody = resolvedUpdate.RequestBody
 	}
-	tree := buildTree(createBody, readBody, updateBody, classification.MissingUpdate)
-	keyParam, keyType := itemKeyParameter(classification.ItemPath, readFull)
+	tree := buildAttributeTree(createBody, readBody, updateBody, classification.MissingUpdate)
+	keyParameter, keyAttributeType := itemKeyParameter(classification.ItemPath, resolvedRead)
 	// A singleton is not keyed: its path names no item, so its trailing
 	// parameter addresses the parent it sits under, not the object.
 	if classification.Singleton {
-		keyParam, keyType = "", ""
+		keyParameter, keyAttributeType = "", ""
 	}
 	// The audit may have found that the response spells this identifier
 	// differently from the path parameter that addresses it. Where it has,
 	// that name is the one the response can actually be read through.
-	if readFull != nil {
-		if named, ok := readFull.Extensions.IdentifierProperty(); ok {
-			keyParam = named
+	if resolvedRead != nil {
+		if named, ok := resolvedRead.Extensions.IdentifierProperty(); ok {
+			keyParameter = named
 		}
 	}
-	ensureID(tree, keyParam, keyType)
+	ensureID(tree, keyParameter, keyAttributeType)
 	refuseReservedRootNames(tree)
-	readOperation := derivation.operation(classification.Read, OperationRead)
+	readOperation := indexer.operation(classification.Read, OperationRead)
 	if readOperation != nil {
 		parents := parentParameters(readOperation.PathParameters)
 		if classification.Singleton {
@@ -334,36 +340,36 @@ func (derivation *operationIndexer) resource(classification specmodel.Classifica
 	updateStyle := ""
 	if classification.Update != nil {
 		updateStyle = UpdateStylePatchMerge
-		if updateFull != nil {
-			if s, ok := updateFull.Extensions.UpdateStyle(); ok {
-				updateStyle = s
+		if resolvedUpdate != nil {
+			if declaredStyle, ok := resolvedUpdate.Extensions.UpdateStyle(); ok {
+				updateStyle = declaredStyle
 			}
 		}
 	}
 
 	deleteNotFoundOK := false
-	if deleteFull != nil {
-		deleteNotFoundOK, _ = deleteFull.Extensions.DeleteNotFoundOK()
+	if resolvedDelete != nil {
+		deleteNotFoundOK, _ = resolvedDelete.Extensions.DeleteNotFoundOK()
 	}
 
 	return Resource{
 		Names: names,
 		Operations: Operations{
-			Create: derivation.operation(classification.Create, OperationCreate),
-			Read:   derivation.operation(classification.Read, OperationRead),
-			Update: derivation.operation(classification.Update, OperationUpdate),
-			Delete: derivation.operation(classification.Delete, OperationDelete),
-			List:   derivation.operation(classification.List, OperationList),
+			Create: indexer.operation(classification.Create, OperationCreate),
+			Read:   indexer.operation(classification.Read, OperationRead),
+			Update: indexer.operation(classification.Update, OperationUpdate),
+			Delete: indexer.operation(classification.Delete, OperationDelete),
+			List:   indexer.operation(classification.List, OperationList),
 		},
 		Schema:              tree,
 		MissingUpdate:       classification.MissingUpdate,
 		Singleton:           classification.Singleton,
 		ParentEntity:        parentEntity,
 		UpdateStyle:         updateStyle,
-		EventualConsistency: maxEventualConsistency(createFull, readFull, updateFull, deleteFull),
+		EventualConsistency: maxEventualConsistency(resolvedCreate, resolvedRead, resolvedUpdate, resolvedDelete),
 		DeleteNotFoundOK:    deleteNotFoundOK,
 		Timeouts:            defaultTimeouts(),
-		ListWrapperKey:      listWrapperKey(derivation.full(classification.List)),
+		ListWrapperKey:      listWrapperKey(indexer.resolveOperation(classification.List)),
 	}
 }
 
@@ -389,12 +395,12 @@ func listWrapperKey(list *specmodel.Operation) string {
 		}
 		return ""
 	}
-	flattened := flatten(list.SuccessSchema())
-	if flattened.declaredType == "array" {
+	resolved := resolveSchema(list.SuccessSchema())
+	if resolved.declaredType == "array" {
 		return ""
 	}
-	for _, property := range flattened.properties {
-		if flatten(property.Schema).declaredType == "array" {
+	for _, property := range resolved.properties {
+		if resolveSchema(property.Schema).declaredType == "array" {
 			return property.Name
 		}
 	}
@@ -425,47 +431,47 @@ func listElementSchema(list *specmodel.Operation) *specmodel.Schema {
 		return nil
 	}
 	body := list.SuccessSchema()
-	flattened := flatten(body)
-	if flattened.declaredType == "array" {
-		return flattened.items
+	resolved := resolveSchema(body)
+	if resolved.declaredType == "array" {
+		return resolved.items
 	}
 
 	key := listWrapperKey(list)
 	if key == "" {
 		return body
 	}
-	for _, property := range flattened.properties {
+	for _, property := range resolved.properties {
 		if property.Name != key {
 			continue
 		}
-		if items := flatten(property.Schema).items; items != nil {
+		if items := resolveSchema(property.Schema).items; items != nil {
 			return items
 		}
 	}
 	return body
 }
 
-func (derivation *operationIndexer) datasource(classification specmodel.Classification, names Names) Datasource {
-	readFull := derivation.full(classification.Read)
+func (indexer *operationIndexer) datasource(classification specmodel.Classification, names Names) Datasource {
+	resolvedRead := indexer.resolveOperation(classification.Read)
 	var readBody *specmodel.Schema
-	if readFull != nil {
-		readBody = readFull.SuccessSchema()
+	if resolvedRead != nil {
+		readBody = resolvedRead.SuccessSchema()
 	}
 	// An entity the API only enumerates has no read to describe one object,
 	// so the collection's own element describes it instead. That is the same
 	// schema a list resource reads, and the only account of the shape the
 	// document offers.
 	if readBody == nil {
-		readBody = listElementSchema(derivation.full(classification.List))
+		readBody = listElementSchema(indexer.resolveOperation(classification.List))
 	}
-	itemTree := buildTree(nil, readBody, nil, false)
-	keyParam, keyType := itemKeyParameter(classification.ItemPath, readFull)
-	ensureID(itemTree, keyParam, keyType)
+	itemTree := buildAttributeTree(nil, readBody, nil, false)
+	keyParameter, keyAttributeType := itemKeyParameter(classification.ItemPath, resolvedRead)
+	ensureID(itemTree, keyParameter, keyAttributeType)
 
 	if classification.LookupByKey {
-		requireKey(itemTree, keyParam, keyType)
+		requireKey(itemTree, keyParameter, keyAttributeType)
 		refuseReservedRootNames(itemTree)
-		readOperation := derivation.operation(classification.Read, OperationRead)
+		readOperation := indexer.operation(classification.Read, OperationRead)
 		if readOperation != nil {
 			ensureParentParameters(itemTree, parentParameters(readOperation.PathParameters), "")
 		}
@@ -474,7 +480,7 @@ func (derivation *operationIndexer) datasource(classification specmodel.Classifi
 			Operations:   Operations{Read: readOperation},
 			Schema:       itemTree,
 			LookupByKey:  true,
-			KeyParameter: keyParam,
+			KeyParameter: keyParameter,
 		}
 	}
 
@@ -482,7 +488,7 @@ func (derivation *operationIndexer) datasource(classification specmodel.Classifi
 	// objects come back, items carries them. A datasource whose only
 	// argument is the collection itself makes the caller address results by
 	// position, so the filters are what makes it usable.
-	listOperation := derivation.operation(classification.List, OperationList)
+	listOperation := indexer.operation(classification.List, OperationList)
 	companionTree := &AttributeTree{}
 	// A collection path carries no item key, so every one of its path
 	// parameters is a parent the caller has to supply. Ahead of the filters,
@@ -500,19 +506,19 @@ func (derivation *operationIndexer) datasource(classification specmodel.Classifi
 
 	return Datasource{
 		Names:          names,
-		Operations:     Operations{Read: derivation.operation(classification.Read, OperationRead), List: listOperation},
+		Operations:     Operations{Read: indexer.operation(classification.Read, OperationRead), List: listOperation},
 		Schema:         companionTree,
-		ListWrapperKey: listWrapperKey(derivation.full(classification.List)),
+		ListWrapperKey: listWrapperKey(indexer.resolveOperation(classification.List)),
 	}
 }
 
 // listResource derives the list capability of a managed resource: terraform
 // matches it to that resource by type name, so it carries the entity's own
 // Names and exists only where the resource does.
-func (derivation *operationIndexer) listResource(classification specmodel.Classification, names Names) ListResource {
-	listFull := derivation.full(classification.List)
-	element := listElementSchema(listFull)
-	listOperation := *derivation.operation(classification.List, OperationList)
+func (indexer *operationIndexer) listResource(classification specmodel.Classification, names Names) ListResource {
+	resolvedList := indexer.resolveOperation(classification.List)
+	element := listElementSchema(resolvedList)
+	listOperation := *indexer.operation(classification.List, OperationList)
 	addressing := addressingSchema(listOperation.PathParameters)
 	refuseReservedRootNames(addressing)
 
@@ -525,29 +531,29 @@ func (derivation *operationIndexer) listResource(classification specmodel.Classi
 	// Without this the element kept only the document's own spelling, and an
 	// API that does not happen to call its key "id" published no identity at
 	// all — which refused the entity outright, for a difference in wording.
-	tree := buildTree(nil, element, nil, false)
-	keyParam, keyType := itemKeyParameter(classification.ItemPath, derivation.full(classification.Read))
-	ensureID(tree, keyParam, keyType)
+	tree := buildAttributeTree(nil, element, nil, false)
+	keyParameter, keyAttributeType := itemKeyParameter(classification.ItemPath, indexer.resolveOperation(classification.Read))
+	ensureID(tree, keyParameter, keyAttributeType)
 
 	return ListResource{
 		Names:            names,
 		ListOperation:    listOperation,
 		Schema:           tree,
 		AddressingSchema: addressing,
-		ListWrapperKey:   listWrapperKey(listFull),
+		ListWrapperKey:   listWrapperKey(resolvedList),
 	}
 }
 
-func (derivation *operationIndexer) action(classification specmodel.Classification, names Names, parentKey map[string]string) Action {
-	createFull := derivation.full(classification.Create)
+func (indexer *operationIndexer) action(classification specmodel.Classification, names Names, parentKey map[string]string) Action {
+	resolvedCreate := indexer.resolveOperation(classification.Create)
 	var request *AttributeTree
-	if createFull != nil && createFull.RequestBody != nil {
-		request = buildTree(createFull.RequestBody, nil, nil, false)
+	if resolvedCreate != nil && resolvedCreate.RequestBody != nil {
+		request = buildAttributeTree(resolvedCreate.RequestBody, nil, nil, false)
 		refuseReservedRootNames(request)
 	}
 	return Action{
 		Names:           names,
-		InvokeOperation: *derivation.operation(classification.Create, OperationInvoke),
+		InvokeOperation: *indexer.operation(classification.Create, OperationInvoke),
 		RequestSchema:   request,
 		ParentEntity:    enclosingEntity(classification.CollectionPath, parentKey),
 	}
@@ -581,18 +587,18 @@ func pathParameters(pathTemplate string, operation *specmodel.Operation) []Param
 		return nil
 	}
 	out := make([]Parameter, 0, len(matches))
-	for _, model := range matches {
-		property := Parameter{Name: model[1], Type: TypeString}
+	for _, match := range matches {
+		parameter := Parameter{Name: match[1], Type: TypeString}
 		if operation != nil {
 			for _, declared := range operation.Parameters {
-				if declared.In == "path" && declared.Name == model[1] {
-					if candidate := scalarKind(declared.Schema); candidate != "" {
-						property.Type = candidate
+				if declared.In == "path" && declared.Name == match[1] {
+					if candidate := scalarType(declared.Schema); candidate != "" {
+						parameter.Type = candidate
 					}
 				}
 			}
 		}
-		out = append(out, property)
+		out = append(out, parameter)
 	}
 	return out
 }
@@ -607,9 +613,9 @@ func itemKeyParameter(itemPath string, read *specmodel.Operation) (string, Attri
 	name := matches[len(matches)-1][1]
 	kind := TypeString
 	if read != nil {
-		for _, property := range read.Parameters {
-			if property.In == "path" && property.Name == name {
-				if candidate := scalarKind(property.Schema); candidate != "" {
+		for _, parameter := range read.Parameters {
+			if parameter.In == "path" && parameter.Name == name {
+				if candidate := scalarType(parameter.Schema); candidate != "" {
 					kind = candidate
 				}
 			}
@@ -618,10 +624,10 @@ func itemKeyParameter(itemPath string, read *specmodel.Operation) (string, Attri
 	return name, kind
 }
 
-// scalarKind maps a scalar schema type onto an attribute kind, empty for
+// scalarType maps a scalar schema type onto an attribute type, empty for
 // anything else.
-func scalarKind(s *specmodel.Schema) AttributeType {
-	switch flatten(s).declaredType {
+func scalarType(schema *specmodel.Schema) AttributeType {
+	switch resolveSchema(schema).declaredType {
 	case "string":
 		return TypeString
 	case "boolean":
@@ -640,10 +646,10 @@ func successCode(operation *specmodel.Operation) int {
 	if operation == nil {
 		return 0
 	}
-	for _, resource := range operation.Responses {
-		if strings.HasPrefix(resource.Status, "2") {
-			if n, err := strconv.Atoi(resource.Status); err == nil {
-				return n
+	for _, response := range operation.Responses {
+		if strings.HasPrefix(response.Status, "2") {
+			if status, err := strconv.Atoi(response.Status); err == nil {
+				return status
 			}
 		}
 	}
@@ -654,14 +660,14 @@ func successCode(operation *specmodel.Operation) int {
 // across the lifecycle: whichever operation observed the worst lag governs
 // how long generated code must be prepared to wait.
 func maxEventualConsistency(operations ...*specmodel.Operation) time.Duration {
-	var max time.Duration
+	var longest time.Duration
 	for _, operation := range operations {
 		if operation == nil {
 			continue
 		}
-		if derivation, ok := operation.Extensions.ReadAfterWrite(); ok && derivation > max {
-			max = derivation
+		if declaredDelay, ok := operation.Extensions.ReadAfterWrite(); ok && declaredDelay > longest {
+			longest = declaredDelay
 		}
 	}
-	return max
+	return longest
 }

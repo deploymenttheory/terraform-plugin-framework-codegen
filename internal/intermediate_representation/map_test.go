@@ -17,7 +17,7 @@ func TestUnit_DeriveMapType_AMapOfObjectsCarriesItsNestedTree(t *testing.T) {
 		{Name: "colour", Schema: &specmodel.Schema{Type: "string"}},
 		{Name: "size", Schema: &specmodel.Schema{Type: "integer"}},
 	}}
-	tree := buildTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+	tree := buildAttributeTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
 		{Name: "labels", Schema: &specmodel.Schema{Type: "object", AdditionalProperties: value}},
 	}}, nil, nil, false)
 

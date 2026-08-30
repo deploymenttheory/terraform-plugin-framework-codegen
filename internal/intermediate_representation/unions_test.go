@@ -13,11 +13,11 @@ import (
 // still refused by name.
 func TestUnit_ResolveUnion_CollapsesScalarBranches(t *testing.T) {
 	scalar := func(kinds ...string) *specmodel.Schema {
-		u := &specmodel.Schema{}
-		for _, k := range kinds {
-			u.OneOf = append(u.OneOf, &specmodel.Schema{Type: k})
+		union := &specmodel.Schema{}
+		for _, keyword := range kinds {
+			union.OneOf = append(union.OneOf, &specmodel.Schema{Type: keyword})
 		}
-		return u
+		return union
 	}
 
 	for _, testCase := range []struct {
@@ -39,7 +39,7 @@ func TestUnit_ResolveUnion_CollapsesScalarBranches(t *testing.T) {
 			{Type: "object", Properties: []specmodel.Property{{Name: "x", Schema: &specmodel.Schema{Type: "string"}}}},
 		}}, "", "writable position"},
 	} {
-		tree := buildTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		tree := buildAttributeTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
 			{Name: "field", Schema: testCase.schema},
 		}}, nil, nil, false)
 		got := attribute(t, tree, "field")
@@ -102,7 +102,7 @@ components:
 func TestUnit_DeriveUnion_ReadOnlyYieldsAnAttributePerVariant(t *testing.T) {
 	// Read side only: nothing writes the union, which is the case the
 	// generated datasources and list elements are made of.
-	tree := buildTree(nil, mustLoad(t, unionSpec).Schemas["thing"], nil, false)
+	tree := buildAttributeTree(nil, mustLoad(t, unionSpec).Schemas["thing"], nil, false)
 
 	owner := attribute(t, tree, "owner")
 	if owner.Unsupported {
@@ -119,14 +119,14 @@ func TestUnit_DeriveUnion_ReadOnlyYieldsAnAttributePerVariant(t *testing.T) {
 		{"simple_user", "simple-user", "login"},
 		{"enterprise", "Enterprise", "slug"},
 	} {
-		v := attribute(t, owner.Nested, want.name)
-		if v.WireName != want.wire {
-			t.Errorf("%s wire name = %q, want %q", want.name, v.WireName, want.wire)
+		variant := attribute(t, owner.Nested, want.name)
+		if variant.WireName != want.wire {
+			t.Errorf("%s wire name = %q, want %q", want.name, variant.WireName, want.wire)
 		}
-		if v.Kind != TypeObject || v.ComputedOptionalRequired != Computed {
-			t.Errorf("%s = %+v, want a computed object", want.name, v)
+		if variant.Kind != TypeObject || variant.ComputedOptionalRequired != Computed {
+			t.Errorf("%s = %+v, want a computed object", want.name, variant)
 		}
-		if a := attribute(t, v.Nested, want.field); a.Kind != TypeString {
+		if a := attribute(t, variant.Nested, want.field); a.Kind != TypeString {
 			t.Errorf("%s does not carry its branch's own %s: %+v", want.name, want.field, a)
 		}
 	}
@@ -136,7 +136,7 @@ func TestUnit_DeriveUnion_ReadOnlyYieldsAnAttributePerVariant(t *testing.T) {
 // a union is a schema that cannot hold what the API returns. The refusal says
 // how many branches are anonymous so the document can be corrected.
 func TestUnit_DeriveUnion_AnAnonymousBranchRefusesTheWholeUnion(t *testing.T) {
-	tree := buildTree(nil, mustLoad(t, unionSpec).Schemas["thing"], nil, false)
+	tree := buildAttributeTree(nil, mustLoad(t, unionSpec).Schemas["thing"], nil, false)
 
 	payload := attribute(t, tree, "payload")
 	if !payload.Unsupported {

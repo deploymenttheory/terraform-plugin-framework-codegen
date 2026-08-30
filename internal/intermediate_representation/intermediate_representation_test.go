@@ -11,11 +11,11 @@ import (
 // fixture exercises exactly what generation will read.
 func mustLoad(t *testing.T, document string) *specmodel.Document {
 	t.Helper()
-	d, err := specmodel.Load([]byte(document))
+	datasource, err := specmodel.Load([]byte(document))
 	if err != nil {
 		t.Fatalf("loading the fixture: %v", err)
 	}
-	return d
+	return datasource
 }
 
 // testConfig is the minimal config Derive needs, built directly rather
@@ -30,11 +30,11 @@ func testConfig(exclude ...string) *config.Config {
 // mustDerive derives or ends the test.
 func mustDerive(t *testing.T, document string, configuration *config.Config) *Model {
 	t.Helper()
-	m, err := Derive(mustLoad(t, document), configuration)
+	model, err := Derive(mustLoad(t, document), configuration)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
-	return m
+	return model
 }
 
 // attribute finds a tree attribute by terraform name, or ends the test.
@@ -43,14 +43,14 @@ func attribute(t *testing.T, tree *AttributeTree, name string) Attribute {
 	if tree == nil {
 		t.Fatalf("no tree to find %q in", name)
 	}
-	for _, a := range tree.Attributes {
-		if a.Name == name {
-			return a
+	for _, candidate := range tree.Attributes {
+		if candidate.Name == name {
+			return candidate
 		}
 	}
 	names := make([]string, 0, len(tree.Attributes))
-	for _, a := range tree.Attributes {
-		names = append(names, a.Name)
+	for _, candidate := range tree.Attributes {
+		names = append(names, candidate.Name)
 	}
 	t.Fatalf("no attribute %q in tree; have %v", name, names)
 	return Attribute{}
@@ -59,9 +59,9 @@ func attribute(t *testing.T, tree *AttributeTree, name string) Attribute {
 // resourceByKey finds a model resource, or ends the test.
 func resourceByKey(t *testing.T, m *Model, key string) Resource {
 	t.Helper()
-	for _, r := range m.Resources {
-		if r.Names.Key == key {
-			return r
+	for _, resource := range m.Resources {
+		if resource.Names.Key == key {
+			return resource
 		}
 	}
 	t.Fatalf("no resource %q in the model", key)
@@ -71,9 +71,9 @@ func resourceByKey(t *testing.T, m *Model, key string) Resource {
 // listResourceByKey finds a model list resource, or ends the test.
 func listResourceByKey(t *testing.T, m *Model, key string) ListResource {
 	t.Helper()
-	for _, lr := range m.ListResources {
-		if lr.Names.Key == key {
-			return lr
+	for _, listResource := range m.ListResources {
+		if listResource.Names.Key == key {
+			return listResource
 		}
 	}
 	t.Fatalf("no list resource %q in the model", key)
@@ -83,9 +83,9 @@ func listResourceByKey(t *testing.T, m *Model, key string) ListResource {
 // datasourceByKey finds a model datasource, or ends the test.
 func datasourceByKey(t *testing.T, m *Model, key string) Datasource {
 	t.Helper()
-	for _, d := range m.Datasources {
-		if d.Names.Key == key {
-			return d
+	for _, datasource := range m.Datasources {
+		if datasource.Names.Key == key {
+			return datasource
 		}
 	}
 	t.Fatalf("no datasource %q in the model", key)
