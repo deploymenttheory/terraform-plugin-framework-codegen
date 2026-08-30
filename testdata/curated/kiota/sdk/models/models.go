@@ -4,7 +4,11 @@
 // enumeration with its Parse companion.
 package models
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/microsoft/kiota-abstractions-go/serialization"
+)
 
 // PatchUpdatedResourceEnumString is the generated enumeration for the patchUpdatedResource enumString.
 type PatchUpdatedResourceEnumString int
@@ -51,6 +55,10 @@ type PatchUpdatedResourceable interface {
 	GetMapOfIntegers() PatchUpdatedResource_mapOfIntegersable
 	GetMapOfNumbers() PatchUpdatedResource_mapOfNumbersable
 	GetMapOfBooleans() PatchUpdatedResource_mapOfBooleansable
+	GetListOfLists() serialization.UntypedNodeable
+	GetListOfMaps() []PatchUpdatedResource_listOfMapsable
+	GetMapOfLists() PatchUpdatedResource_mapOfListsable
+	GetMapOfMaps() PatchUpdatedResource_mapOfMapsable
 	GetComputedString() *string
 }
 
@@ -71,6 +79,10 @@ type PatchUpdatedResource struct {
 	mapOfIntegers       PatchUpdatedResource_mapOfIntegersable
 	mapOfNumbers        PatchUpdatedResource_mapOfNumbersable
 	mapOfBooleans       PatchUpdatedResource_mapOfBooleansable
+	listOfLists         serialization.UntypedNodeable
+	listOfMaps          []PatchUpdatedResource_listOfMapsable
+	mapOfLists          PatchUpdatedResource_mapOfListsable
+	mapOfMaps           PatchUpdatedResource_mapOfMapsable
 	computedString      *string
 }
 
@@ -593,3 +605,109 @@ func (m *PatchUpdatedResource_mapOfBooleans) GetAdditionalData() map[string]any 
 func (m *PatchUpdatedResource_mapOfBooleans) SetAdditionalData(v map[string]any) {
 	m.additionalData = v
 }
+
+// A collection of collections generates three ways, none of them a Go map
+// or slice of a Go type. A list of lists is an untyped node: kiota declares
+// no element type at all and hands the parsed tree over as-is. A list of
+// maps is a slice of bag models, one per element. A map of lists or of maps
+// is one bag model whose values are the parsed arrays or objects.
+
+// GetListOfLists reads the untyped node.
+func (m *PatchUpdatedResource) GetListOfLists() serialization.UntypedNodeable { return m.listOfLists }
+
+// SetListOfLists writes the untyped node.
+func (m *PatchUpdatedResource) SetListOfLists(v serialization.UntypedNodeable) { m.listOfLists = v }
+
+// GetListOfMaps reads the slice of bags.
+func (m *PatchUpdatedResource) GetListOfMaps() []PatchUpdatedResource_listOfMapsable {
+	return m.listOfMaps
+}
+
+// SetListOfMaps writes the slice of bags.
+func (m *PatchUpdatedResource) SetListOfMaps(v []PatchUpdatedResource_listOfMapsable) {
+	m.listOfMaps = v
+}
+
+// GetMapOfLists reads the bag.
+func (m *PatchUpdatedResource) GetMapOfLists() PatchUpdatedResource_mapOfListsable {
+	return m.mapOfLists
+}
+
+// SetMapOfLists writes the bag.
+func (m *PatchUpdatedResource) SetMapOfLists(v PatchUpdatedResource_mapOfListsable) {
+	m.mapOfLists = v
+}
+
+// GetMapOfMaps reads the bag.
+func (m *PatchUpdatedResource) GetMapOfMaps() PatchUpdatedResource_mapOfMapsable { return m.mapOfMaps }
+
+// SetMapOfMaps writes the bag.
+func (m *PatchUpdatedResource) SetMapOfMaps(v PatchUpdatedResource_mapOfMapsable) { m.mapOfMaps = v }
+
+// PatchUpdatedResource_listOfMapsable is one element of the listOfMaps
+// slice. The generated interface embeds AdditionalDataHolder, so it reads
+// and writes the bag.
+type PatchUpdatedResource_listOfMapsable interface {
+	GetAdditionalData() map[string]any
+	SetAdditionalData(map[string]any)
+}
+
+// PatchUpdatedResource_listOfMaps is the concrete listOfMaps element.
+type PatchUpdatedResource_listOfMaps struct {
+	additionalData map[string]any
+}
+
+// NewPatchUpdatedResource_listOfMaps constructs a settable PatchUpdatedResource_listOfMaps.
+func NewPatchUpdatedResource_listOfMaps() *PatchUpdatedResource_listOfMaps {
+	return &PatchUpdatedResource_listOfMaps{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *PatchUpdatedResource_listOfMaps) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *PatchUpdatedResource_listOfMaps) SetAdditionalData(v map[string]any) { m.additionalData = v }
+
+// PatchUpdatedResource_mapOfListsable is the read side of the mapOfLists bag.
+type PatchUpdatedResource_mapOfListsable interface {
+	GetAdditionalData() map[string]any
+	SetAdditionalData(map[string]any)
+}
+
+// PatchUpdatedResource_mapOfLists is the concrete mapOfLists bag.
+type PatchUpdatedResource_mapOfLists struct {
+	additionalData map[string]any
+}
+
+// NewPatchUpdatedResource_mapOfLists constructs a settable PatchUpdatedResource_mapOfLists.
+func NewPatchUpdatedResource_mapOfLists() *PatchUpdatedResource_mapOfLists {
+	return &PatchUpdatedResource_mapOfLists{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *PatchUpdatedResource_mapOfLists) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *PatchUpdatedResource_mapOfLists) SetAdditionalData(v map[string]any) { m.additionalData = v }
+
+// PatchUpdatedResource_mapOfMapsable is the read side of the mapOfMaps bag.
+type PatchUpdatedResource_mapOfMapsable interface {
+	GetAdditionalData() map[string]any
+	SetAdditionalData(map[string]any)
+}
+
+// PatchUpdatedResource_mapOfMaps is the concrete mapOfMaps bag.
+type PatchUpdatedResource_mapOfMaps struct {
+	additionalData map[string]any
+}
+
+// NewPatchUpdatedResource_mapOfMaps constructs a settable PatchUpdatedResource_mapOfMaps.
+func NewPatchUpdatedResource_mapOfMaps() *PatchUpdatedResource_mapOfMaps {
+	return &PatchUpdatedResource_mapOfMaps{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *PatchUpdatedResource_mapOfMaps) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *PatchUpdatedResource_mapOfMaps) SetAdditionalData(v map[string]any) { m.additionalData = v }

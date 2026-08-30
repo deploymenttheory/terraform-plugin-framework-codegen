@@ -301,6 +301,34 @@ components:
           additionalProperties:
             type: boolean
           description: A map whose values are booleans.
+        listOfLists:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+          description: A list whose elements are lists of strings.
+        listOfMaps:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: boolean
+          description: A list whose elements are maps of booleans.
+        mapOfLists:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: integer
+          description: A map whose values are lists of integers.
+        mapOfMaps:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+          description: A map whose values are maps of strings.
         mapOfNestedObjects:
           type: object
           additionalProperties:

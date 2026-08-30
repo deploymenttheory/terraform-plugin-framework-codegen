@@ -66,6 +66,9 @@ func constructLines(namer *modelNamer, path string, nodes []node, source, destin
 		} else if strings.HasSuffix(n.fb.Access.ConvertSet, "MapAdditionalData") {
 			lines, err = constructAdditionalDataMap(n, source, destination, attrPath, indent)
 			usesFmt = true
+		} else if strings.HasSuffix(n.fb.Access.ConvertSet, "SliceAdditionalData") {
+			lines, err = constructAdditionalDataSlice(n, source, destination, attrPath, indent)
+			usesFmt = true
 		} else {
 			lines, nestedUsesFmt, err = constructScalar(n, source, destination, attrPath, indent)
 			usesFmt = usesFmt || nestedUsesFmt
@@ -159,6 +162,13 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, source, destin
 		fn, err := readConvert(n.fb)
 		if err != nil {
 			return "", err
+		}
+		// A collection of collections is read through one bridge that takes
+		// the whole value and the element type composed to depth.
+		if n.attribute.CollectionNestingDepth() > 1 {
+			fmt.Fprintf(&b, "%s%s.%s = convert.%s(ctx, %s.%s(), %s)\n",
+				indent, destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get, schemaTypeOf(n).ElementType)
+			continue
 		}
 		// A root string the API stores in a spelling of its own reads back
 		// as the configured value where the answer is that spelling: the
@@ -586,4 +596,20 @@ func addPlanImports(set *importSet, plans ...finalisedAPIRequest) {
 			set.add("", set.module+"/internal/services/common/convert")
 		}
 	}
+}
+
+// constructAdditionalDataSlice renders the write of a list of maps the SDK
+// carries as a slice of models, each holding one map in its additionalData
+// bag: one call, handed the model's constructor as a closure that answers
+// the model interface, because Go will not pass a constructor returning the
+// concrete type where the setter's element type is the interface.
+func constructAdditionalDataSlice(n node, source, destination, attrPath, indent string) (string, error) {
+	plan, err := writeConvert(n.fb)
+	if err != nil {
+		return "", err
+	}
+	field := source + "." + ir.GoName(n.attribute.Name)
+	construct := fmt.Sprintf("func() %s { return %s }", n.fb.NestedModel, n.fb.NestedConstructor)
+	call := fmt.Sprintf("convert.%s(ctx, %s, %s, %s.%s)", plan.fn, field, construct, destination, n.fb.Access.Set)
+	return fmt.Sprintf("%sif err := %s; err != nil {\n%s\t%s\n%s}\n", indent, call, indent, errReturn(attrPath), indent), nil
 }

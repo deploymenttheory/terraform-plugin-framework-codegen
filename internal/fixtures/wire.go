@@ -39,6 +39,8 @@ func wireLevel(values []Entry, a Form) map[string]any {
 // wireOne renders one value in wire shape.
 func wireOne(v Entry, a Form) any {
 	switch {
+	case v.CollectionNestingDepth() > 1:
+		return collectionValue(v)
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return []any{wireLevel(selected(v.Nested, a), a)}
 	case v.Nested != nil && v.Kind == ir.TypeMap:
@@ -76,6 +78,8 @@ func writeWireObject(b *strings.Builder, values []Entry, a Form, depth int) {
 // writeWireValue writes one attribute's value.
 func writeWireValue(b *strings.Builder, v Entry, a Form, depth int) {
 	switch {
+	case v.CollectionNestingDepth() > 1:
+		b.WriteString(jsonScalar(collectionValue(v)))
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		b.WriteString("[\n" + strings.Repeat("  ", depth+1))
 		writeWireObject(b, selected(v.Nested, a), a, depth+1)
@@ -105,4 +109,20 @@ func jsonScalar(value any) string {
 		return "null"
 	}
 	return string(out)
+}
+
+// collectionValue is the wire value of a collection of collections: the
+// leaf wrapped once per level, innermost first, a list as a one-member
+// slice and a map as one entry keyed by the attribute's own name.
+func collectionValue(v Entry) any {
+	var value any = v.Scalar
+	levels := v.CollectionLevels()
+	for index := len(levels) - 1; index >= 0; index-- {
+		if levels[index] == ir.TypeMap {
+			value = map[string]any{v.Name: value}
+			continue
+		}
+		value = []any{value}
+	}
+	return value
 }
