@@ -47,23 +47,31 @@ type Moduleable interface {
 	GetBerth() ModuleBerthable
 	GetHatches() []ModuleHatchable
 	GetPorts() map[string]ModulePortable
+	GetMapOfStrings() Module_mapOfStringsable
+	GetMapOfIntegers() Module_mapOfIntegersable
+	GetMapOfNumbers() Module_mapOfNumbersable
+	GetMapOfBooleans() Module_mapOfBooleansable
 	GetStatus() *string
 }
 
 // Module is the concrete model the constructor yields.
 type Module struct {
-	id         *string
-	name       *string
-	kind       *ModuleKind
-	serial     *string
-	occupied   *bool
-	berthCount *int32
-	massRatio  *float64
-	tags       []string
-	berth      ModuleBerthable
-	hatches    []ModuleHatchable
-	ports      map[string]ModulePortable
-	status     *string
+	ports         map[string]ModulePortable
+	id            *string
+	name          *string
+	kind          *ModuleKind
+	serial        *string
+	occupied      *bool
+	berthCount    *int32
+	massRatio     *float64
+	tags          []string
+	berth         ModuleBerthable
+	hatches       []ModuleHatchable
+	mapOfStrings  Module_mapOfStringsable
+	mapOfIntegers Module_mapOfIntegersable
+	mapOfNumbers  Module_mapOfNumbersable
+	mapOfBooleans Module_mapOfBooleansable
+	status        *string
 }
 
 // NewModule constructs a settable Module.
@@ -131,6 +139,30 @@ func (m *Module) GetPorts() map[string]ModulePortable { return m.ports }
 
 // SetPorts writes the nested map.
 func (m *Module) SetPorts(v map[string]ModulePortable) { m.ports = v }
+
+// GetMapOfStrings reads the map-shaped object.
+func (m *Module) GetMapOfStrings() Module_mapOfStringsable { return m.mapOfStrings }
+
+// SetMapOfStrings writes the map-shaped object.
+func (m *Module) SetMapOfStrings(v Module_mapOfStringsable) { m.mapOfStrings = v }
+
+// GetMapOfIntegers reads the map-shaped object.
+func (m *Module) GetMapOfIntegers() Module_mapOfIntegersable { return m.mapOfIntegers }
+
+// SetMapOfIntegers writes the map-shaped object.
+func (m *Module) SetMapOfIntegers(v Module_mapOfIntegersable) { m.mapOfIntegers = v }
+
+// GetMapOfNumbers reads the map-shaped object.
+func (m *Module) GetMapOfNumbers() Module_mapOfNumbersable { return m.mapOfNumbers }
+
+// SetMapOfNumbers writes the map-shaped object.
+func (m *Module) SetMapOfNumbers(v Module_mapOfNumbersable) { m.mapOfNumbers = v }
+
+// GetMapOfBooleans reads the map-shaped object.
+func (m *Module) GetMapOfBooleans() Module_mapOfBooleansable { return m.mapOfBooleans }
+
+// SetMapOfBooleans writes the map-shaped object.
+func (m *Module) SetMapOfBooleans(v Module_mapOfBooleansable) { m.mapOfBooleans = v }
 
 // GetStatus reads the server's assessment.
 func (m *Module) GetStatus() *string { return m.status }
@@ -421,3 +453,93 @@ type TransitCollectionResponse struct {
 
 // GetValue reads the elements.
 func (m *TransitCollectionResponse) GetValue() []Transitable { return m.value }
+
+// kiota emits no typed accessor for additionalProperties. A map-shaped
+// object generates as a model of its own whose only content is an untyped
+// bag, one model per property, named for the property it came from — so
+// these four carry map[string]string, map[string]int64, map[string]float64
+// and map[string]bool with no Go type saying so.
+
+// Module_mapOfStringsable is the read side of the mapOfStrings bag.
+type Module_mapOfStringsable interface {
+	GetAdditionalData() map[string]any
+}
+
+// Module_mapOfStrings is the concrete mapOfStrings bag.
+type Module_mapOfStrings struct {
+	additionalData map[string]any
+}
+
+// NewModule_mapOfStrings constructs a settable Module_mapOfStrings.
+func NewModule_mapOfStrings() *Module_mapOfStrings {
+	return &Module_mapOfStrings{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *Module_mapOfStrings) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *Module_mapOfStrings) SetAdditionalData(v map[string]any) { m.additionalData = v }
+
+// Module_mapOfIntegersable is the read side of the mapOfIntegers bag.
+type Module_mapOfIntegersable interface {
+	GetAdditionalData() map[string]any
+}
+
+// Module_mapOfIntegers is the concrete mapOfIntegers bag.
+type Module_mapOfIntegers struct {
+	additionalData map[string]any
+}
+
+// NewModule_mapOfIntegers constructs a settable Module_mapOfIntegers.
+func NewModule_mapOfIntegers() *Module_mapOfIntegers {
+	return &Module_mapOfIntegers{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *Module_mapOfIntegers) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *Module_mapOfIntegers) SetAdditionalData(v map[string]any) { m.additionalData = v }
+
+// Module_mapOfNumbersable is the read side of the mapOfNumbers bag.
+type Module_mapOfNumbersable interface {
+	GetAdditionalData() map[string]any
+}
+
+// Module_mapOfNumbers is the concrete mapOfNumbers bag.
+type Module_mapOfNumbers struct {
+	additionalData map[string]any
+}
+
+// NewModule_mapOfNumbers constructs a settable Module_mapOfNumbers.
+func NewModule_mapOfNumbers() *Module_mapOfNumbers {
+	return &Module_mapOfNumbers{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *Module_mapOfNumbers) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *Module_mapOfNumbers) SetAdditionalData(v map[string]any) { m.additionalData = v }
+
+// Module_mapOfBooleansable is the read side of the mapOfBooleans bag.
+type Module_mapOfBooleansable interface {
+	GetAdditionalData() map[string]any
+}
+
+// Module_mapOfBooleans is the concrete mapOfBooleans bag.
+type Module_mapOfBooleans struct {
+	additionalData map[string]any
+}
+
+// NewModule_mapOfBooleans constructs a settable Module_mapOfBooleans.
+func NewModule_mapOfBooleans() *Module_mapOfBooleans {
+	return &Module_mapOfBooleans{additionalData: map[string]any{}}
+}
+
+// GetAdditionalData reads the bag.
+func (m *Module_mapOfBooleans) GetAdditionalData() map[string]any { return m.additionalData }
+
+// SetAdditionalData writes the bag.
+func (m *Module_mapOfBooleans) SetAdditionalData(v map[string]any) { m.additionalData = v }

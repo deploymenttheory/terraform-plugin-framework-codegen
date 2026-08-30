@@ -97,14 +97,20 @@ func renderProviderCore(fsys fs.FS, pc ProviderCore) ([]File, error) {
 }
 
 // selects says whether this context emits the named template. Dialect
-// pairs follow one naming rule: a base name ending in _kiota.go.tmpl or
-// _openapigenerator.go.tmpl belongs to that backend alone.
+// pairs follow one naming rule: a base name ending in _kiota or
+// _openapigenerator, before its Go suffix, belongs to that backend alone.
+//
+// The Go suffix is stripped before the check so a dialect file's test goes
+// where the file it tests goes. A test named for one backend cannot compile
+// against the other, which emits neither the file nor its symbols.
 func (pc ProviderCore) selects(base string) bool {
 	name := strings.TrimSuffix(base, ".tmpl")
+	name = strings.TrimSuffix(name, "_test.go")
+	name = strings.TrimSuffix(name, ".go")
 	switch {
-	case strings.HasSuffix(name, "_kiota.go"):
+	case strings.HasSuffix(name, "_kiota"):
 		return pc.BackendKiota
-	case strings.HasSuffix(name, "_openapigenerator.go"):
+	case strings.HasSuffix(name, "_openapigenerator"):
 		return pc.BackendOpenAPIGenerator
 	default:
 		return true

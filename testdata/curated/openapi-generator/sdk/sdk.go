@@ -303,18 +303,22 @@ func NewModuleKindFromValue(v string) (*ModuleKind, error) {
 
 // Module is the flat model; getters deref, setters take values.
 type Module struct {
-	id         string
-	name       string
-	kind       ModuleKind
-	serial     string
-	occupied   bool
-	berthCount int32
-	massRatio  float64
-	tags       []string
-	berth      ModuleBerth
-	hatches    []ModuleHatch
-	ports      map[string]ModulePort
-	status     string
+	ports         map[string]ModulePort
+	id            string
+	name          string
+	kind          ModuleKind
+	serial        string
+	occupied      bool
+	berthCount    int32
+	massRatio     float64
+	tags          []string
+	berth         ModuleBerth
+	hatches       []ModuleHatch
+	mapOfStrings  map[string]string
+	mapOfIntegers map[string]int64
+	mapOfNumbers  map[string]float64
+	mapOfBooleans map[string]bool
+	status        string
 }
 
 // NewModuleWithDefaults stands in for the generated constructor.
@@ -340,9 +344,19 @@ func (m *Module) SetBerth(v ModuleBerth)     { m.berth = v }
 func (m *Module) GetHatches() []ModuleHatch  { return m.hatches }
 func (m *Module) SetHatches(v []ModuleHatch) { m.hatches = v }
 
-func (m *Module) GetPorts() map[string]ModulePort  { return m.ports }
-func (m *Module) SetPorts(v map[string]ModulePort) { m.ports = v }
-func (m *Module) GetStatus() string                { return m.status }
+// The generator carries additionalProperties as a real Go map, so these
+// four need no bag and no runtime assertion.
+func (m *Module) GetPorts() map[string]ModulePort      { return m.ports }
+func (m *Module) SetPorts(v map[string]ModulePort)     { m.ports = v }
+func (m *Module) GetMapOfStrings() map[string]string   { return m.mapOfStrings }
+func (m *Module) SetMapOfStrings(v map[string]string)  { m.mapOfStrings = v }
+func (m *Module) GetMapOfIntegers() map[string]int64   { return m.mapOfIntegers }
+func (m *Module) SetMapOfIntegers(v map[string]int64)  { m.mapOfIntegers = v }
+func (m *Module) GetMapOfNumbers() map[string]float64  { return m.mapOfNumbers }
+func (m *Module) SetMapOfNumbers(v map[string]float64) { m.mapOfNumbers = v }
+func (m *Module) GetMapOfBooleans() map[string]bool    { return m.mapOfBooleans }
+func (m *Module) SetMapOfBooleans(v map[string]bool)   { m.mapOfBooleans = v }
+func (m *Module) GetStatus() string                    { return m.status }
 
 // ModuleBerth is the value-typed nested model.
 type ModuleBerth struct {
