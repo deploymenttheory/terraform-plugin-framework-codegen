@@ -23,7 +23,7 @@ var allCauses = []string{
 	specmodel.CausePartialLifecycle,
 	ir.CauseUndeclaredType, ir.CauseUnsupportedType, ir.CauseWritableUnion,
 	ir.CauseUnnamedUnionBranch, ir.CauseEmptyUnion, ir.CauseUntypedAdditionalProperties,
-	ir.CauseObjectWithoutPropertiesOrAdditionalProperties, ir.CauseMapOfObjects, ir.CauseMapOfMaps, ir.CauseUnsupportedMapValue,
+	ir.CauseObjectWithoutPropertiesOrAdditionalProperties, ir.CauseMapOfObjects, ir.CauseNestedCollectionElement, ir.CauseUnsupportedMapValue,
 	ir.CauseItemlessArray, ir.CauseFreeFormArrayElement, ir.CauseUnsupportedArrayElement,
 	ir.CauseReservedRootName,
 	sdkbind.CauseNoAccessor, sdkbind.CauseNoSetter, sdkbind.CauseNotAnAccessor,
