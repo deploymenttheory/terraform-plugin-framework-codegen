@@ -146,15 +146,8 @@ func APIToFrameworkStringMapAdditionalData(carrier additionalDataCarrier) types.
 	}
 	elements := make(map[string]attr.Value, len(values))
 	for k, v := range values {
-		// A parsed response carries its additional data as pointers; a
-		// model assembled in process carries values. Both are the string.
-		switch typed := v.(type) {
-		case string:
-			elements[k] = types.StringValue(typed)
-		case *string:
-			if typed != nil {
-				elements[k] = types.StringValue(*typed)
-			}
+		if text, ok := bagString(v); ok {
+			elements[k] = types.StringValue(text)
 		}
 	}
 	return types.MapValueMust(types.StringType, elements)
@@ -193,13 +186,8 @@ func APIToFrameworkBoolMapAdditionalData(carrier additionalDataCarrier) types.Ma
 	}
 	elements := make(map[string]attr.Value, len(values))
 	for k, v := range values {
-		switch typed := v.(type) {
-		case bool:
-			elements[k] = types.BoolValue(typed)
-		case *bool:
-			if typed != nil {
-				elements[k] = types.BoolValue(*typed)
-			}
+		if flag, ok := bagBool(v); ok {
+			elements[k] = types.BoolValue(flag)
 		}
 	}
 	return types.MapValueMust(types.BoolType, elements)
@@ -366,6 +354,34 @@ func FrameworkToAPIEnumSlice[T any](ctx context.Context, value types.List, parse
 // arrive from tokens the decoder had already typed.
 //
 // Reading only one of those forms is why a numeric map read back empty.
+
+// bagString reads one bag value as a string. A parsed response carries its
+// additional data as pointers; a model assembled in process carries values.
+// Both are the string.
+func bagString(v any) (string, bool) {
+	switch typed := v.(type) {
+	case string:
+		return typed, true
+	case *string:
+		if typed != nil {
+			return *typed, true
+		}
+	}
+	return "", false
+}
+
+// bagBool reads one bag value as a bool, in either form a bag carries it.
+func bagBool(v any) (bool, bool) {
+	switch typed := v.(type) {
+	case bool:
+		return typed, true
+	case *bool:
+		if typed != nil {
+			return *typed, true
+		}
+	}
+	return false, false
+}
 
 // bagInt64 reads one bag value as an int64. A float that is not a whole
 // number is not an int64, so it is skipped rather than truncated.

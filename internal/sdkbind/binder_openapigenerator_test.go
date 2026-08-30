@@ -181,3 +181,22 @@ func TestInfoFor(t *testing.T) {
 		t.Error("InfoFor accepted an unsupported backend")
 	}
 }
+
+// TestUnit_Binder_OpenAPIGeneratorDraftsANestedCollection proves the
+// openapi-generator binder drafts a collection of collections as the plain
+// nested Go type the generator emits, with the nested-collection conversion
+// pair.
+func TestUnit_Binder_OpenAPIGeneratorDraftsANestedCollection(t *testing.T) {
+	rows := ir.Attribute{Name: "rows", WireName: "rows", Type: ir.TypeList, ElementType: ir.TypeBool,
+		NestedCollectionElementTypes: []ir.AttributeType{ir.TypeMap, ir.TypeBool}, ComputedOptionalRequired: ir.Optional}
+	fa := openAPIGeneratorBinder{}.access(rows, accessReadWrite)
+	if fa.SDKType != "[]map[string]bool" || fa.ConvertGet != "FromNestedCollectionSlice" || fa.ConvertSet != "ToNestedCollectionSlice" {
+		t.Errorf("drafted %+v", fa)
+	}
+	groups := ir.Attribute{Name: "groups", WireName: "groups", Type: ir.TypeMap, ElementType: ir.TypeString,
+		NestedCollectionElementTypes: []ir.AttributeType{ir.TypeList, ir.TypeString}, ComputedOptionalRequired: ir.Optional}
+	fa = openAPIGeneratorBinder{}.access(groups, accessReadOnly)
+	if fa.SDKType != "map[string][]string" || fa.ConvertGet != "FromNestedCollectionMap" || fa.ConvertSet != "" {
+		t.Errorf("drafted %+v", fa)
+	}
+}

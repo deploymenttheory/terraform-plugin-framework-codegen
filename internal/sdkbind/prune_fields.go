@@ -277,12 +277,18 @@ func nestedModelOf(t types.Type) (*types.Named, refusal) {
 	current := t
 	// A collection's model is its element's: a list carries the model in
 	// its element type and a map in its value type, and the nested fields
-	// are resolved against that either way.
-	switch collection := current.Underlying().(type) {
-	case *types.Slice:
-		current = collection.Elem()
-	case *types.Map:
-		current = collection.Elem()
+	// are resolved against that either way — through every level, for a
+	// collection of collections whose objects sit at the bottom.
+	for {
+		switch collection := current.Underlying().(type) {
+		case *types.Slice:
+			current = collection.Elem()
+			continue
+		case *types.Map:
+			current = collection.Elem()
+			continue
+		}
+		break
 	}
 	if pointer, ok := current.(*types.Pointer); ok {
 		current = pointer.Elem()
@@ -330,6 +336,11 @@ func (p *pruner) writeModelFromNamed(named *types.Named) (model, constructor str
 // companions, and slices of both. Anything else names itself in the
 // reason.
 func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
+	// A collection of collections is settled as one value against every
+	// level the document declares, whatever carries it.
+	if len(fb.NestedCollectionElementTypes) > 1 {
+		return p.settleCollection(fb, t)
+	}
 	fa := &fb.Access
 	settle := func(sdkType, get, set, parse string) {
 		fa.SDKType = sdkType
@@ -383,20 +394,11 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) refusal {
 	// conversion asserts each value's type at runtime.
 	if fb.Type == ir.TypeMap {
 		if named, ok := t.(*types.Named); ok {
-			if _, hasGet := methodOn(named, "GetAdditionalData"); hasGet {
+			if carriesAdditionalData(named) {
 				title := exportedName(string(fb.ElementType))
-				// The write model is only resolved for a field that is
-				// written: construction is what needs it, and a read-only
-				// field has no constructor to name.
-				if fa.Set != "" {
-					model, constructor, why := p.writeModelFromNamed(named)
-					if why.refused() {
-						return why
-					}
-					fb.NestedWriteModel, fb.NestedConstructor = model, constructor
+				if why := p.settleBag(fb, named, t); why.refused() {
+					return why
 				}
-				fb.NestedModel = qualifiedName(named)
-				fa.NestedNilable = nilableType(t)
 				settle(shortType(t), "From"+title+"MapAdditionalData", "To"+title+"MapAdditionalData", "")
 				return refusal{}
 			}

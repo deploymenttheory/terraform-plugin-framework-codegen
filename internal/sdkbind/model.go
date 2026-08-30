@@ -297,6 +297,10 @@ type FieldBinding struct {
 	// re-deriving it.
 	Type        ir.AttributeType `json:"type,omitempty"`
 	ElementType ir.AttributeType `json:"elementType,omitempty"`
+	// NestedCollectionElementTypes mirrors the attribute's levels beneath a
+	// collection whose element is itself a collection, outermost first and
+	// ending in the leaf; nil at one level.
+	NestedCollectionElementTypes []ir.AttributeType `json:"nestedCollectionElementTypes,omitempty"`
 	// Access is the rendered accessor and conversion set.
 	Access FieldAccess `json:"access"`
 	// NestedModel is the SDK type one nested object is read as;
