@@ -121,12 +121,22 @@ func (openAPIGeneratorBinder) access(a ir.Attribute, mode accessMode) FieldAcces
 	case ir.TypeFloat64:
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "float64", "FromFloat64", "ToFloat64"
 	case ir.TypeList:
+		if a.CollectionNestingDepth() > 1 && a.NestedAttributes == nil {
+			fa.SDKType = "[]" + nestedCollectionGoType(a.NestedCollectionElementTypes[:len(a.NestedCollectionElementTypes)-1], goTypeOf(a.ElementType))
+			fa.ConvertGet, fa.ConvertSet = nestedCollectionShorthand(ir.TypeList)
+			break
+		}
 		if a.NestedAttributes == nil {
 			fa.SDKType = "[]" + goTypeOf(a.ElementType)
 			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeMap:
+		if a.CollectionNestingDepth() > 1 && a.NestedAttributes == nil {
+			fa.SDKType = "map[string]" + nestedCollectionGoType(a.NestedCollectionElementTypes[:len(a.NestedCollectionElementTypes)-1], goTypeOf(a.ElementType))
+			fa.ConvertGet, fa.ConvertSet = nestedCollectionShorthand(ir.TypeMap)
+			break
+		}
 		if a.NestedAttributes == nil {
 			fa.SDKType = "map[string]" + goTypeOf(a.ElementType)
 			shape := exportedName(string(a.ElementType)) + "Map"

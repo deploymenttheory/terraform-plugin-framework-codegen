@@ -231,3 +231,26 @@ func TestUnit_Binder_AWriteOnlyRootLeavesItsComputedMembersOut(t *testing.T) {
 		t.Errorf("a sibling of the write-only root lost its getter: %+v", got[1])
 	}
 }
+
+// TestUnit_Binder_KiotaDraftsANestedCollection proves the kiota binder drafts
+// a collection of collections as one plain value with the nested-collection
+// conversion pair, and carries the levels for pruning to settle against the
+// carrier the SDK actually has.
+func TestUnit_Binder_KiotaDraftsANestedCollection(t *testing.T) {
+	grid := ir.Attribute{Name: "grid", WireName: "grid", Type: ir.TypeList, ElementType: ir.TypeString,
+		NestedCollectionElementTypes: []ir.AttributeType{ir.TypeList, ir.TypeString}, ComputedOptionalRequired: ir.Optional}
+	fa := kiotaBinder{}.access(grid, accessReadWrite)
+	if fa.SDKType != "[][]string" || fa.ConvertGet != "FromNestedCollectionSlice" || fa.ConvertSet != "ToNestedCollectionSlice" {
+		t.Errorf("drafted %+v", fa)
+	}
+	headers := ir.Attribute{Name: "headers", WireName: "headers", Type: ir.TypeMap, ElementType: ir.TypeInt64,
+		NestedCollectionElementTypes: []ir.AttributeType{ir.TypeMap, ir.TypeInt64}, ComputedOptionalRequired: ir.Optional}
+	fa = kiotaBinder{}.access(headers, accessReadWrite)
+	if fa.SDKType != "map[string]map[string]int64" || fa.ConvertGet != "FromNestedCollectionMap" {
+		t.Errorf("drafted %+v", fa)
+	}
+	bound := fieldBindings(kiotaBinder{}, &ir.AttributeTree{Attributes: []ir.Attribute{grid}}, accessReadWrite)
+	if len(bound) != 1 || len(bound[0].NestedCollectionElementTypes) != 2 {
+		t.Errorf("the levels did not travel onto the binding: %+v", bound)
+	}
+}

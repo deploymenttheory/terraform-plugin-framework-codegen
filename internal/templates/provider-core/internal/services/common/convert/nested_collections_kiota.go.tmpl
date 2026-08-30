@@ -1,0 +1,322 @@
+{{ template "header" . }}
+
+package convert
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/microsoft/kiota-abstractions-go/serialization"
+)
+
+// additionalDataSetter is any kiota model that takes its undeclared values
+// as an additionalData bag, which is how a map-shaped element is written.
+type additionalDataSetter interface {
+	SetAdditionalData(map[string]any)
+}
+
+// APIToFrameworkNestedCollectionMapAdditionalData reads a map whose values
+// are lists or maps out of a kiota model's additionalData bag, nil to null.
+// elementType is the map's element type as the schema declares it, and the
+// bag is walked against it: a parsed response carries a JSON array as
+// []any, an object as map[string]any and a scalar as a pointer, and each
+// level is checked against the type the schema expects there. A map entry
+// of the wrong shape is skipped alone, so one stray value does not lose the
+// whole map.
+func APIToFrameworkNestedCollectionMapAdditionalData(_ context.Context, carrier additionalDataCarrier, elementType attr.Type) types.Map {
+	if isNilValue(carrier) {
+		return types.MapNull(elementType)
+	}
+	bag := carrier.GetAdditionalData()
+	if bag == nil {
+		return types.MapNull(elementType)
+	}
+	mapped, _ := frameworkValueFromBag(bag, types.MapType{ElemType: elementType})
+	return mapped.(types.Map)
+}
+
+// FrameworkToAPINestedCollectionMapAdditionalData decodes the plan's map to
+// depth and hands the values to a model's additionalData setter, unless the
+// value is null or unknown. The bag holds plain Go values — []any,
+// map[string]any and value-typed scalars — which kiota's serialisation
+// writer marshals as JSON.
+func FrameworkToAPINestedCollectionMapAdditionalData(_ context.Context, value types.Map, setter func(map[string]any)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	bag, _ := bagValueFromFramework(value).(map[string]any)
+	setter(bag)
+	return nil
+}
+
+// APIToFrameworkNestedCollectionListAdditionalData reads a list of maps,
+// which kiota carries as a slice of models each holding one map in its
+// additionalData bag, nil to null. A nil model or a nil bag is a null
+// element: dropping it would move every later element, which a list cannot
+// afford where a map can skip an entry.
+func APIToFrameworkNestedCollectionListAdditionalData[T additionalDataCarrier](_ context.Context, carriers []T, elementType attr.Type) types.List {
+	if carriers == nil {
+		return types.ListNull(elementType)
+	}
+	elements := make([]attr.Value, len(carriers))
+	for index, carrier := range carriers {
+		elements[index] = nullOf(elementType)
+		if isNilValue(carrier) {
+			continue
+		}
+		bag := carrier.GetAdditionalData()
+		if bag == nil {
+			continue
+		}
+		if element, ok := frameworkValueFromBag(bag, elementType); ok {
+			elements[index] = element
+		}
+	}
+	return types.ListValueMust(elementType, elements)
+}
+
+// FrameworkToAPINestedCollectionListAdditionalData builds one model per
+// list element, each carrying its map in its additionalData bag, and hands
+// the slice to the setter, unless the value is null or unknown. construct
+// yields an empty model, because Go cannot pass a constructor returning the
+// concrete type where one returning the interface is expected.
+func FrameworkToAPINestedCollectionListAdditionalData[T additionalDataSetter](_ context.Context, value types.List, construct func() T, setter func([]T)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	members := value.Elements()
+	models := make([]T, 0, len(members))
+	for _, member := range members {
+		model := construct()
+		if bag, ok := bagValueFromFramework(member).(map[string]any); ok {
+			model.SetAdditionalData(bag)
+		}
+		models = append(models, model)
+	}
+	setter(models)
+	return nil
+}
+
+// APIToFrameworkNestedCollectionListUntypedNode reads a list of lists out of
+// the untyped node kiota carries it as, nil to null. The node is unwrapped
+// to plain values and then walked against the schema's element type like a
+// bag; a node that is not an array holds nothing the list can carry, so it
+// reads as null.
+func APIToFrameworkNestedCollectionListUntypedNode(_ context.Context, node serialization.UntypedNodeable, elementType attr.Type) types.List {
+	if isNilValue(node) {
+		return types.ListNull(elementType)
+	}
+	list, ok := frameworkValueFromBag(anyFromUntypedNode(node), types.ListType{ElemType: elementType})
+	if !ok {
+		return types.ListNull(elementType)
+	}
+	return list.(types.List)
+}
+
+// FrameworkToAPINestedCollectionListUntypedNode wraps the plan's list to
+// depth in kiota's untyped nodes and hands the node to the setter, unless
+// the value is null or unknown.
+func FrameworkToAPINestedCollectionListUntypedNode(_ context.Context, value types.List, setter func(serialization.UntypedNodeable)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	setter(untypedNodeFromAny(bagValueFromFramework(value)))
+	return nil
+}
+
+// frameworkValueFromBag reads one bag value as the framework type the
+// schema declares at that level, recursing through lists and maps to the
+// scalar leaves. nil is the typed null. A map entry of the wrong shape is
+// skipped; a list element of the wrong shape becomes the typed null, so the
+// elements after it keep their positions. A type this catalog does not
+// carry answers false.
+func frameworkValueFromBag(value any, attrType attr.Type) (attr.Value, bool) {
+	switch typed := attrType.(type) {
+	case types.ListType:
+		if value == nil {
+			return types.ListNull(typed.ElemType), true
+		}
+		members, ok := value.([]any)
+		if !ok {
+			return nil, false
+		}
+		elements := make([]attr.Value, len(members))
+		for index, member := range members {
+			element, ok := frameworkValueFromBag(member, typed.ElemType)
+			if !ok {
+				element = nullOf(typed.ElemType)
+			}
+			elements[index] = element
+		}
+		return types.ListValueMust(typed.ElemType, elements), true
+	case types.MapType:
+		if value == nil {
+			return types.MapNull(typed.ElemType), true
+		}
+		entries, ok := value.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		elements := make(map[string]attr.Value, len(entries))
+		for key, entry := range entries {
+			if element, ok := frameworkValueFromBag(entry, typed.ElemType); ok {
+				elements[key] = element
+			}
+		}
+		return types.MapValueMust(typed.ElemType, elements), true
+	}
+	switch {
+	case attrType.Equal(types.StringType):
+		if value == nil {
+			return types.StringNull(), true
+		}
+		if text, ok := bagString(value); ok {
+			return types.StringValue(text), true
+		}
+	case attrType.Equal(types.BoolType):
+		if value == nil {
+			return types.BoolNull(), true
+		}
+		if flag, ok := bagBool(value); ok {
+			return types.BoolValue(flag), true
+		}
+	case attrType.Equal(types.Int64Type):
+		if value == nil {
+			return types.Int64Null(), true
+		}
+		if whole, ok := bagInt64(value); ok {
+			return types.Int64Value(whole), true
+		}
+	case attrType.Equal(types.Float64Type):
+		if value == nil {
+			return types.Float64Null(), true
+		}
+		if number, ok := bagFloat64(value); ok {
+			return types.Float64Value(number), true
+		}
+	}
+	return nil, false
+}
+
+// nullOf is the null value of one framework type this catalog carries, nil
+// for any other.
+func nullOf(attrType attr.Type) attr.Value {
+	switch typed := attrType.(type) {
+	case types.ListType:
+		return types.ListNull(typed.ElemType)
+	case types.MapType:
+		return types.MapNull(typed.ElemType)
+	}
+	switch {
+	case attrType.Equal(types.StringType):
+		return types.StringNull()
+	case attrType.Equal(types.BoolType):
+		return types.BoolNull()
+	case attrType.Equal(types.Int64Type):
+		return types.Int64Null()
+	case attrType.Equal(types.Float64Type):
+		return types.Float64Null()
+	}
+	return nil
+}
+
+// bagValueFromFramework writes one framework value as the plain Go value a
+// bag carries: a list as []any, a map as map[string]any, a scalar as its
+// value, and null or unknown as nil. Value-typed leaves keep a model
+// assembled in process readable by frameworkValueFromBag, and marshal to
+// JSON the same as the pointers a parsed response carries.
+func bagValueFromFramework(value attr.Value) any {
+	if value == nil || value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	switch typed := value.(type) {
+	case types.List:
+		members := typed.Elements()
+		out := make([]any, len(members))
+		for index, member := range members {
+			out[index] = bagValueFromFramework(member)
+		}
+		return out
+	case types.Map:
+		entries := typed.Elements()
+		out := make(map[string]any, len(entries))
+		for key, entry := range entries {
+			out[key] = bagValueFromFramework(entry)
+		}
+		return out
+	case types.String:
+		return typed.ValueString()
+	case types.Bool:
+		return typed.ValueBool()
+	case types.Int64:
+		return typed.ValueInt64()
+	case types.Float64:
+		return typed.ValueFloat64()
+	}
+	return nil
+}
+
+// anyFromUntypedNode unwraps kiota's untyped node into the plain values a
+// bag carries: an array to []any, an object to map[string]any, a scalar to
+// the pointer its node holds, and null or an unknown node kind to nil.
+func anyFromUntypedNode(node serialization.UntypedNodeable) any {
+	switch typed := node.(type) {
+	case *serialization.UntypedArray:
+		members := typed.GetValue()
+		out := make([]any, len(members))
+		for index, member := range members {
+			out[index] = anyFromUntypedNode(member)
+		}
+		return out
+	case *serialization.UntypedObject:
+		entries := typed.GetValue()
+		out := make(map[string]any, len(entries))
+		for key, entry := range entries {
+			out[key] = anyFromUntypedNode(entry)
+		}
+		return out
+	case *serialization.UntypedString:
+		return typed.GetValue()
+	case *serialization.UntypedBoolean:
+		return typed.GetValue()
+	case *serialization.UntypedDouble:
+		return typed.GetValue()
+	case *serialization.UntypedFloat:
+		return typed.GetValue()
+	case *serialization.UntypedInteger:
+		return typed.GetValue()
+	case *serialization.UntypedLong:
+		return typed.GetValue()
+	}
+	return nil
+}
+
+// untypedNodeFromAny wraps plain bag values in kiota's untyped nodes, the
+// reverse of anyFromUntypedNode: nil and anything the catalog does not
+// carry become the null node.
+func untypedNodeFromAny(value any) serialization.UntypedNodeable {
+	switch typed := value.(type) {
+	case []any:
+		members := make([]serialization.UntypedNodeable, len(typed))
+		for index, member := range typed {
+			members[index] = untypedNodeFromAny(member)
+		}
+		return serialization.NewUntypedArray(members)
+	case map[string]any:
+		entries := make(map[string]serialization.UntypedNodeable, len(typed))
+		for key, entry := range typed {
+			entries[key] = untypedNodeFromAny(entry)
+		}
+		return serialization.NewUntypedObject(entries)
+	case string:
+		return serialization.NewUntypedString(typed)
+	case bool:
+		return serialization.NewUntypedBoolean(typed)
+	case int64:
+		return serialization.NewUntypedLong(typed)
+	case float64:
+		return serialization.NewUntypedDouble(typed)
+	}
+	return serialization.NewUntypedNull()
+}

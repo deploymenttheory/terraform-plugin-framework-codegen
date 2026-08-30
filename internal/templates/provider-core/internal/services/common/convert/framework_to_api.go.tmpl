@@ -340,3 +340,34 @@ func FrameworkToAPIFloat64List(ctx context.Context, value types.List, setter fun
 func PointerTo[T any](value T) *T {
 	return &value
 }
+
+// FrameworkToAPINestedCollectionList decodes a list whose elements are
+// themselves collections into the plain Go value the setter takes —
+// [][]string, []map[string]int64 and deeper — unless the value is null or
+// unknown. The setter's parameter type says what to build, so one helper
+// serves every depth.
+func FrameworkToAPINestedCollectionList[T any](ctx context.Context, value types.List, setter func(T)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var target T
+	if diags := value.ElementsAs(ctx, &target, false); diags.HasError() {
+		return fmt.Errorf("reading a nested list from the plan: %v", diags.Errors())
+	}
+	setter(target)
+	return nil
+}
+
+// FrameworkToAPINestedCollectionMap is FrameworkToAPINestedCollectionList
+// for a map: map[string][]string, map[string]map[string]bool and deeper.
+func FrameworkToAPINestedCollectionMap[T any](ctx context.Context, value types.Map, setter func(T)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var target T
+	if diags := value.ElementsAs(ctx, &target, false); diags.HasError() {
+		return fmt.Errorf("reading a nested map from the plan: %v", diags.Errors())
+	}
+	setter(target)
+	return nil
+}

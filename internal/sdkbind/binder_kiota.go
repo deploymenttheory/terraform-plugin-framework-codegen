@@ -124,12 +124,22 @@ func (kiotaBinder) access(a ir.Attribute, mode accessMode) FieldAccess {
 	case ir.TypeFloat64:
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "*float64", "FromPtrFloat64", "ToPtrFloat64"
 	case ir.TypeList:
+		if a.CollectionNestingDepth() > 1 && a.NestedAttributes == nil {
+			fa.SDKType = "[]" + nestedCollectionGoType(a.NestedCollectionElementTypes[:len(a.NestedCollectionElementTypes)-1], goTypeOf(a.ElementType))
+			fa.ConvertGet, fa.ConvertSet = nestedCollectionShorthand(ir.TypeList)
+			break
+		}
 		if a.NestedAttributes == nil {
 			fa.SDKType = "[]" + strings.TrimPrefix(goTypeOf(a.ElementType), "*")
 			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeMap:
+		if a.CollectionNestingDepth() > 1 && a.NestedAttributes == nil {
+			fa.SDKType = "map[string]" + nestedCollectionGoType(a.NestedCollectionElementTypes[:len(a.NestedCollectionElementTypes)-1], goTypeOf(a.ElementType))
+			fa.ConvertGet, fa.ConvertSet = nestedCollectionShorthand(ir.TypeMap)
+			break
+		}
 		if a.NestedAttributes == nil {
 			fa.SDKType = "map[string]" + strings.TrimPrefix(goTypeOf(a.ElementType), "*")
 			shape := exportedName(string(a.ElementType)) + "Map"

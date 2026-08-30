@@ -148,7 +148,8 @@ func boundFields(d dialect, t *ir.AttributeTree, mode accessMode, underWriteOnly
 		fb := FieldBinding{
 			Attr: a.Name, Wire: a.WireName,
 			Type: a.Type, ElementType: a.ElementType,
-			Access: d.access(a, mode),
+			NestedCollectionElementTypes: a.NestedCollectionElementTypes,
+			Access:                       d.access(a, mode),
 		}
 		// A property the document declares write-only is never read back,
 		// whatever the response model offers: an API that declares one
@@ -277,4 +278,32 @@ func pathSegments(pathTemplate string) []string {
 		}
 	}
 	return out
+}
+
+// nestedCollectionGoType spells the Go type a plain SDK carries a collection
+// of collections as, one level at a time down to the leaf: a map of lists
+// of strings is map[string][]string. The leaf is spelled the way the
+// dialect spells a scalar element, which is what leaf names.
+func nestedCollectionGoType(levels []ir.AttributeType, leaf string) string {
+	if len(levels) == 0 {
+		return leaf
+	}
+	switch levels[0] {
+	case ir.TypeList:
+		return "[]" + nestedCollectionGoType(levels[1:], leaf)
+	case ir.TypeMap:
+		return "map[string]" + nestedCollectionGoType(levels[1:], leaf)
+	default:
+		return leaf
+	}
+}
+
+// nestedCollectionShorthand names the conversion pair a collection of
+// collections is bridged through: one helper per direction takes the whole
+// value and the framework element type, whatever the depth.
+func nestedCollectionShorthand(collection ir.AttributeType) (get, set string) {
+	if collection == ir.TypeMap {
+		return "FromNestedCollectionMap", "ToNestedCollectionMap"
+	}
+	return "FromNestedCollectionSlice", "ToNestedCollectionSlice"
 }

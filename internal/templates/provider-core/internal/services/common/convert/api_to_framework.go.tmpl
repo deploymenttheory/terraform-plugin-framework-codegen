@@ -13,7 +13,10 @@
 package convert
 
 import (
+	"context"
 	"encoding/base64"
+	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -322,4 +325,51 @@ func APIToFrameworkFloat64List(values []float64) types.List {
 		elements[i] = types.Float64Value(v)
 	}
 	return types.ListValueMust(types.Float64Type, elements)
+}
+
+// APIToFrameworkNestedCollectionList reads a collection of collections the
+// SDK carries as plain Go values — [][]string, []map[string]int64 and
+// deeper — into a list whose element type spells every level. The
+// framework's own reflection walks the value; nil, at any depth, is null.
+// elementType is the list's element type as the schema declares it.
+func APIToFrameworkNestedCollectionList(ctx context.Context, values any, elementType attr.Type) types.List {
+	if isNilValue(values) {
+		return types.ListNull(elementType)
+	}
+	list, diags := types.ListValueFrom(ctx, elementType, values)
+	if diags.HasError() {
+		// The binder checked every level of the SDK type against the
+		// schema before this was emitted, so a value the framework cannot
+		// walk is a generator defect rather than data.
+		panic(fmt.Sprintf("a nested list the SDK carries as %T does not fit %s: %v", values, elementType, diags.Errors()))
+	}
+	return list
+}
+
+// APIToFrameworkNestedCollectionMap is APIToFrameworkNestedCollectionList
+// for a map: map[string][]string, map[string]map[string]bool and deeper.
+func APIToFrameworkNestedCollectionMap(ctx context.Context, values any, elementType attr.Type) types.Map {
+	if isNilValue(values) {
+		return types.MapNull(elementType)
+	}
+	mapped, diags := types.MapValueFrom(ctx, elementType, values)
+	if diags.HasError() {
+		panic(fmt.Sprintf("a nested map the SDK carries as %T does not fit %s: %v", values, elementType, diags.Errors()))
+	}
+	return mapped
+}
+
+// isNilValue reports a nil the type system hides: an interface holding a
+// nil slice, map or pointer is not == nil, and the SDK answers exactly that
+// for an absent collection.
+func isNilValue(value any) bool {
+	if value == nil {
+		return true
+	}
+	reflected := reflect.ValueOf(value)
+	switch reflected.Kind() {
+	case reflect.Slice, reflect.Map, reflect.Pointer, reflect.Interface:
+		return reflected.IsNil()
+	}
+	return false
 }

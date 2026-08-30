@@ -1,0 +1,166 @@
+{{ template "header" . }}
+
+package convert
+
+import (
+	"context"
+	"reflect"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/microsoft/kiota-abstractions-go/serialization"
+)
+
+// nestedBag stands in for a kiota model that carries a map-shaped element:
+// its only content is the additionalData bag, read and written.
+type nestedBag struct{ data map[string]any }
+
+func (b *nestedBag) GetAdditionalData() map[string]any  { return b.data }
+func (b *nestedBag) SetAdditionalData(v map[string]any) { b.data = v }
+
+var (
+	listOfStrings = types.ListType{ElemType: types.StringType}
+	mapOfStrings  = types.MapType{ElemType: types.StringType}
+	listOfInt64s  = types.ListType{ElemType: types.Int64Type}
+)
+
+// TestUnit_NestedCollectionAdditionalData_EveryFormAParsedValueArrivesIn
+// reads a map of lists out of a bag holding what the deserialiser leaves
+// there: arrays as []any, scalars as pointers, and every number as a
+// float64 — a whole one for an integer leaf.
+func TestUnit_NestedCollectionAdditionalData_EveryFormAParsedValueArrivesIn(t *testing.T) {
+	one, two := "one", "two"
+	seven := 7.0
+	carrier := &nestedBag{data: map[string]any{
+		"names":   []any{&one, &two},
+		"numbers": []any{&seven, int64(8)},
+	}}
+
+	names := APIToFrameworkNestedCollectionMapAdditionalData(context.Background(), carrier, listOfStrings)
+	if got := names.Elements()["names"].(types.List).Elements(); len(got) != 2 || got[1].(types.String).ValueString() != "two" {
+		t.Errorf("names read back as %v", got)
+	}
+	numbers := APIToFrameworkNestedCollectionMapAdditionalData(context.Background(), carrier, listOfInt64s)
+	if got := numbers.Elements()["numbers"].(types.List).Elements(); len(got) != 2 || got[0].(types.Int64).ValueInt64() != 7 || got[1].(types.Int64).ValueInt64() != 8 {
+		t.Errorf("numbers read back as %v", got)
+	}
+}
+
+// TestUnit_NestedCollectionAdditionalData_AStrayEntryIsSkippedAndAStrayElementIsNull
+// holds the two rules the walk applies to a value of the wrong shape: a map
+// loses the one entry, a list keeps the position and nulls it.
+func TestUnit_NestedCollectionAdditionalData_AStrayEntryIsSkippedAndAStrayElementIsNull(t *testing.T) {
+	carrier := &nestedBag{data: map[string]any{
+		"good":  []any{"a", nil, 3.5, "b"},
+		"stray": "not a list",
+	}}
+	got := APIToFrameworkNestedCollectionMapAdditionalData(context.Background(), carrier, listOfStrings)
+	if _, present := got.Elements()["stray"]; present {
+		t.Errorf("a stray entry survived: %v", got)
+	}
+	members := got.Elements()["good"].(types.List).Elements()
+	if len(members) != 4 || !members[1].IsNull() || !members[2].IsNull() || members[3].(types.String).ValueString() != "b" {
+		t.Errorf("a list with stray elements read back as %v, want nulls in place", members)
+	}
+}
+
+// TestUnit_NestedCollectionAdditionalData_RoundTripsThroughTheBag writes a
+// map of maps into a bag and reads it back unchanged, in the value-typed
+// form a model assembled in process carries.
+func TestUnit_NestedCollectionAdditionalData_RoundTripsThroughTheBag(t *testing.T) {
+	inner := types.MapValueMust(types.StringType, map[string]attr.Value{"k": types.StringValue("v")})
+	value := types.MapValueMust(mapOfStrings, map[string]attr.Value{"outer": inner})
+
+	carrier := &nestedBag{}
+	if err := FrameworkToAPINestedCollectionMapAdditionalData(context.Background(), value, carrier.SetAdditionalData); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(carrier.data, map[string]any{"outer": map[string]any{"k": "v"}}) {
+		t.Errorf("the bag holds %#v", carrier.data)
+	}
+	back := APIToFrameworkNestedCollectionMapAdditionalData(context.Background(), carrier, mapOfStrings)
+	if !back.Equal(value) {
+		t.Errorf("read back %v, want %v", back, value)
+	}
+}
+
+// TestUnit_NestedCollectionAdditionalData_AnAbsentBagIsNullNotEmpty holds a
+// nil carrier and a nil bag to null, and a null plan value to no setter
+// call.
+func TestUnit_NestedCollectionAdditionalData_AnAbsentBagIsNullNotEmpty(t *testing.T) {
+	if got := APIToFrameworkNestedCollectionMapAdditionalData(context.Background(), (*nestedBag)(nil), listOfStrings); !got.IsNull() {
+		t.Errorf("a nil carrier read as %v", got)
+	}
+	if got := APIToFrameworkNestedCollectionMapAdditionalData(context.Background(), &nestedBag{}, listOfStrings); !got.IsNull() {
+		t.Errorf("a nil bag read as %v", got)
+	}
+	called := false
+	if err := FrameworkToAPINestedCollectionMapAdditionalData(context.Background(), types.MapNull(listOfStrings), func(map[string]any) { called = true }); err != nil || called {
+		t.Errorf("a null map reached the setter (err %v)", err)
+	}
+}
+
+// TestUnit_NestedCollectionListAdditionalData_ConstructsOneBagPerElement
+// writes a list of maps as one model per element and reads it back, with a
+// nil model reading as a null element.
+func TestUnit_NestedCollectionListAdditionalData_ConstructsOneBagPerElement(t *testing.T) {
+	first := types.MapValueMust(types.StringType, map[string]attr.Value{"a": types.StringValue("1")})
+	second := types.MapValueMust(types.StringType, map[string]attr.Value{"b": types.StringValue("2")})
+	value := types.ListValueMust(mapOfStrings, []attr.Value{first, second})
+
+	var models []*nestedBag
+	err := FrameworkToAPINestedCollectionListAdditionalData(context.Background(), value,
+		func() *nestedBag { return &nestedBag{} }, func(built []*nestedBag) { models = built })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != 2 || models[1].data["b"] != "2" {
+		t.Fatalf("built %d models: %#v", len(models), models)
+	}
+
+	back := APIToFrameworkNestedCollectionListAdditionalData(context.Background(), append(models, nil), mapOfStrings)
+	members := back.Elements()
+	if len(members) != 3 || !members[0].Equal(first) || !members[2].IsNull() {
+		t.Errorf("read back %v", members)
+	}
+	if got := APIToFrameworkNestedCollectionListAdditionalData(context.Background(), []*nestedBag(nil), mapOfStrings); !got.IsNull() {
+		t.Errorf("a nil slice read as %v", got)
+	}
+}
+
+// TestUnit_NestedCollectionUntypedNode_RoundTrips writes a list of lists
+// into kiota's untyped nodes and reads it back, and holds a node that is
+// not an array to null.
+func TestUnit_NestedCollectionUntypedNode_RoundTrips(t *testing.T) {
+	row := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("x"), types.StringValue("y")})
+	value := types.ListValueMust(listOfStrings, []attr.Value{row})
+
+	var node serialization.UntypedNodeable
+	if err := FrameworkToAPINestedCollectionListUntypedNode(context.Background(), value, func(n serialization.UntypedNodeable) { node = n }); err != nil {
+		t.Fatal(err)
+	}
+	outer, ok := node.(*serialization.UntypedArray)
+	if !ok || len(outer.GetValue()) != 1 {
+		t.Fatalf("wrote %#v, want one array in an array", node)
+	}
+	back := APIToFrameworkNestedCollectionListUntypedNode(context.Background(), node, listOfStrings)
+	if !back.Equal(value) {
+		t.Errorf("read back %v, want %v", back, value)
+	}
+
+	parsed := serialization.NewUntypedArray([]serialization.UntypedNodeable{
+		serialization.NewUntypedArray([]serialization.UntypedNodeable{serialization.NewUntypedLong(7), serialization.NewUntypedNull()}),
+	})
+	numbers := APIToFrameworkNestedCollectionListUntypedNode(context.Background(), parsed, listOfInt64s)
+	inner := numbers.Elements()[0].(types.List).Elements()
+	if len(inner) != 2 || inner[0].(types.Int64).ValueInt64() != 7 || !inner[1].IsNull() {
+		t.Errorf("a parsed node read back as %v", inner)
+	}
+	if got := APIToFrameworkNestedCollectionListUntypedNode(context.Background(), serialization.NewUntypedString("not a list"), listOfStrings); !got.IsNull() {
+		t.Errorf("a scalar node read as %v", got)
+	}
+	if got := APIToFrameworkNestedCollectionListUntypedNode(context.Background(), nil, listOfStrings); !got.IsNull() {
+		t.Errorf("a nil node read as %v", got)
+	}
+}

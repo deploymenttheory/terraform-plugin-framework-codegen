@@ -1,0 +1,96 @@
+{{ template "header" . }}
+
+package convert
+
+import (
+	"context"
+	"reflect"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// TestUnit_NestedCollection_RoundTripsPlainValues holds the plain bridges to
+// the values an SDK carries as nested Go types, in each direction and for
+// each pairing of list and map.
+func TestUnit_NestedCollection_RoundTripsPlainValues(t *testing.T) {
+	ctx := context.Background()
+	listOfStrings := types.ListType{ElemType: types.StringType}
+	mapOfInt64s := types.MapType{ElemType: types.Int64Type}
+
+	grid := APIToFrameworkNestedCollectionList(ctx, [][]string{[]string{"a", "b"}, []string{}}, listOfStrings)
+	var gridBack [][]string
+	if err := FrameworkToAPINestedCollectionList(ctx, grid, func(v [][]string) { gridBack = v }); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(gridBack, [][]string{[]string{"a", "b"}, []string{}}) {
+		t.Errorf("a list of lists came back as %#v", gridBack)
+	}
+
+	rows := APIToFrameworkNestedCollectionList(ctx, []map[string]int64{map[string]int64{"n": 1}}, mapOfInt64s)
+	var rowsBack []map[string]int64
+	if err := FrameworkToAPINestedCollectionList(ctx, rows, func(v []map[string]int64) { rowsBack = v }); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(rowsBack, []map[string]int64{map[string]int64{"n": 1}}) {
+		t.Errorf("a list of maps came back as %#v", rowsBack)
+	}
+
+	groups := APIToFrameworkNestedCollectionMap(ctx, map[string][]string{"g": {"x"}}, listOfStrings)
+	var groupsBack map[string][]string
+	if err := FrameworkToAPINestedCollectionMap(ctx, groups, func(v map[string][]string) { groupsBack = v }); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(groupsBack, map[string][]string{"g": {"x"}}) {
+		t.Errorf("a map of lists came back as %#v", groupsBack)
+	}
+
+	headers := APIToFrameworkNestedCollectionMap(ctx, map[string]map[string]int64{"d": {"h": 2}}, mapOfInt64s)
+	var headersBack map[string]map[string]int64
+	if err := FrameworkToAPINestedCollectionMap(ctx, headers, func(v map[string]map[string]int64) { headersBack = v }); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(headersBack, map[string]map[string]int64{"d": {"h": 2}}) {
+		t.Errorf("a map of maps came back as %#v", headersBack)
+	}
+}
+
+// TestUnit_NestedCollection_NilIsNullAndEmptyIsEmpty holds the plain
+// bridges to the rule every collection bridge follows: an absent value is
+// null, and a present empty one is empty. A null plan value never reaches
+// the setter.
+func TestUnit_NestedCollection_NilIsNullAndEmptyIsEmpty(t *testing.T) {
+	ctx := context.Background()
+	listOfStrings := types.ListType{ElemType: types.StringType}
+
+	if got := APIToFrameworkNestedCollectionList(ctx, [][]string(nil), listOfStrings); !got.IsNull() {
+		t.Errorf("a nil slice read as %v", got)
+	}
+	if got := APIToFrameworkNestedCollectionList(ctx, nil, listOfStrings); !got.IsNull() {
+		t.Errorf("a nil interface read as %v", got)
+	}
+	if got := APIToFrameworkNestedCollectionList(ctx, [][]string{}, listOfStrings); got.IsNull() || len(got.Elements()) != 0 {
+		t.Errorf("an empty slice read as %v", got)
+	}
+	if got := APIToFrameworkNestedCollectionMap(ctx, map[string][]string(nil), listOfStrings); !got.IsNull() {
+		t.Errorf("a nil map read as %v", got)
+	}
+	if got := APIToFrameworkNestedCollectionMap(ctx, map[string][]string{}, listOfStrings); got.IsNull() || len(got.Elements()) != 0 {
+		t.Errorf("an empty map read as %v", got)
+	}
+
+	called := false
+	if err := FrameworkToAPINestedCollectionList(ctx, types.ListNull(listOfStrings), func([][]string) { called = true }); err != nil || called {
+		t.Errorf("a null list reached the setter (err %v)", err)
+	}
+	if err := FrameworkToAPINestedCollectionMap(ctx, types.MapUnknown(listOfStrings), func(map[string][]string) { called = true }); err != nil || called {
+		t.Errorf("an unknown map reached the setter (err %v)", err)
+	}
+
+	empty := types.ListValueMust(listOfStrings, []attr.Value{})
+	var emptyBack [][]string
+	if err := FrameworkToAPINestedCollectionList(ctx, empty, func(v [][]string) { emptyBack = v }); err != nil || emptyBack == nil || len(emptyBack) != 0 {
+		t.Errorf("an empty plan list came back as %#v (err %v)", emptyBack, err)
+	}
+}
