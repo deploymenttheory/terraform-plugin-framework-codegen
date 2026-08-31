@@ -76,7 +76,12 @@ type resourceData struct {
 	ConstructBody       string
 	// The update's own request body, when the API declares one the create's
 	// cannot serve.
-	HasUpdateBody             bool
+	HasUpdateBody bool
+	// CreateBuildsUpdateBody marks a create that must build the update's
+	// body: a singleton creates by writing through its update call, and
+	// where the update declares a body of its own, that call takes that
+	// body.
+	CreateBuildsUpdateBody    bool
 	UpdateConstructReturnType string
 	UpdateWriteConstructor    string
 	UpdateConstructBody       string
@@ -402,6 +407,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	createCall := rb.Create
 	if d.Singleton {
 		createCall = rb.Update
+		d.CreateBuildsUpdateBody = d.HasUpdateBody
 	}
 
 	d.CreateMapsResponse = createCall.ResponseType != "" && createCall.ResponseType == rb.ReadModel

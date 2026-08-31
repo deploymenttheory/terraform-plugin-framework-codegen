@@ -31,7 +31,11 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 	}
 	defer cancel()
 
+{{- if .CreateBuildsUpdateBody }}
+	body, constructErr := constructUpdate(ctx, &data)
+{{- else }}
 	body, constructErr := constructResource(ctx, &data, true)
+{{- end }}
 	if constructErr != nil {
 		resp.Diagnostics.AddError("Cannot build the create request", constructErr.Error())
 		return

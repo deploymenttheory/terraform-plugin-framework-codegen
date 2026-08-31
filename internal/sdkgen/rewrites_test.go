@@ -81,6 +81,7 @@ func TestUnit_Sdkgen_ADocumentNeedingNoRewritingReportsZero(t *testing.T) {
 		"byte-array collections": rewrites.ByteArrayCollectionsWidened,
 		"unions":                 rewrites.UnionsReduced,
 		"error content":          rewrites.ErrorContentDropped,
+		"request-body enums":     rewrites.RequestBodyEnumsExtracted,
 	} {
 		if r.Count != 0 || len(r.Sites) != 0 {
 			t.Errorf("%s = %+v, want no changes and no sites", name, r)
@@ -118,6 +119,7 @@ func TestUnit_Sdkgen_RewritesReadInTheOrderTheyAreApplied(t *testing.T) {
 		ByteArrayCollectionsWidened: Rewrite{Count: 1},
 		UnionsReduced:               Rewrite{Count: 7},
 		ErrorContentDropped:         Rewrite{Count: 2},
+		RequestBodyEnumsExtracted:   Rewrite{Count: 4},
 	}.String()
 
 	for _, want := range []string{
@@ -126,6 +128,7 @@ func TestUnit_Sdkgen_RewritesReadInTheOrderTheyAreApplied(t *testing.T) {
 		"1 byte-array collections widened",
 		"7 unions reduced",
 		"2 error responses stripped of content",
+		"4 request-body enums extracted",
 	} {
 		if !strings.Contains(rendered, want) {
 			t.Errorf("rendering omits %q: %s", want, rendered)

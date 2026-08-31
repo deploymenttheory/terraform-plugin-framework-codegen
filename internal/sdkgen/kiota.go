@@ -95,7 +95,7 @@ func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, config
 	if err := os.Remove(filepath.Join(outDir, ".kiota.log")); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	return nil
+	return refuseUnreferencedRequestBodyEnums(outDir)
 }
 
 // Normalize scrubs kiota-lock.json. The lock's kiotaVersion and
