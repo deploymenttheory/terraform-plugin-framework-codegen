@@ -325,6 +325,15 @@ func assertNestedCollectionsBridge(t *testing.T, root, dialect string) {
 	res := filepath.Join("internal", "services", "resources", "patch_updated_resources", "v1", "patch_updated_resource")
 
 	schema := read(res, "resource.go")
+	// The document declares _links on the read schema; revision leaves it
+	// out as apiMechanics.navigationLinks, so neither the revised document
+	// nor the generated schema carries it.
+	if revised := read("spec", "revised.yaml"); strings.Contains(revised, "_links") {
+		t.Errorf("the revised document still declares _links")
+	}
+	if strings.Contains(schema, `"links"`) {
+		t.Errorf("the generated schema declares links, the API's own link to itself")
+	}
 	for _, want := range []string{
 		`"list_of_lists": schema.ListAttribute{`,
 		`types.ListType{ElemType: types.StringType},`,

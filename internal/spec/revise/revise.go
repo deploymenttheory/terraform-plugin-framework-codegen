@@ -45,6 +45,9 @@ type Result struct {
 	// Applied lists the accepted correction files in application order;
 	// empty when the revised spec is the upstream document unchanged.
 	Applied []string
+	// APIMechanicsRemoved lists every property left out of the revised
+	// document as an API mechanic, in document order.
+	APIMechanicsRemoved []APIMechanicRemoval
 	// OutputPath is where the revised document was written.
 	OutputPath string
 }
@@ -83,7 +86,12 @@ func WriteRevision(dir string) (Result, error) {
 		return Result{}, err
 	}
 
-	res := Result{Lock: lock, OutputPath: filepath.Join(dir, OutputName)}
+	revised, mechanics, err := removeAPIMechanics(revised)
+	if err != nil {
+		return Result{}, err
+	}
+
+	res := Result{Lock: lock, OutputPath: filepath.Join(dir, OutputName), APIMechanicsRemoved: mechanics}
 	if err := os.WriteFile(res.OutputPath, revised, 0o600); err != nil {
 		return Result{}, fmt.Errorf("writing the revised document: %w", err)
 	}
