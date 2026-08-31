@@ -76,6 +76,13 @@ func TestUnit_Naming_AcronymCasing(t *testing.T) {
 		{"oauth_client", "OAuthClient", "oauthClient"},
 		{"dns_record_ip", "DNSRecordIP", "dnsRecordIP"},
 		{"plain_name", "PlainName", "plainName"},
+		{"macos_version", "MacOSVersion", "macosVersion"},
+		{"ios", "IOS", "ios"},
+		{"ios_details", "IOSDetails", "iosDetails"},
+		{"oauth2_settings", "OAuth2Settings", "oauth2Settings"},
+		{"github_apps", "GitHubApps", "githubApps"},
+		{"itunes_store", "ITunesStore", "itunesStore"},
+		{"cloud_idp_common", "CloudIdPCommon", "cloudIdPCommon"},
 	} {
 		if got := pascalCase(testCase.key); got != testCase.pascal {
 			t.Errorf("pascalCase(%q) = %q, want %q", testCase.key, got, testCase.pascal)
@@ -88,14 +95,27 @@ func TestUnit_Naming_AcronymCasing(t *testing.T) {
 
 func TestUnit_Naming_SnakeCase(t *testing.T) {
 	for input, want := range map[string]string{
-		"filterType": "filter_type",
-		"IPAddress":  "ip_address",
-		"tagId":      "tag_id",
-		"HTMLBody":   "html_body",
-		"kebab-case": "kebab_case",
-		"dotted.key": "dotted_key",
-		"already":    "already",
-		"v2Beta":     "v2_beta",
+		"filterType":               "filter_type",
+		"IPAddress":                "ip_address",
+		"tagId":                    "tag_id",
+		"HTMLBody":                 "html_body",
+		"kebab-case":               "kebab_case",
+		"dotted.key":               "dotted_key",
+		"already":                  "already",
+		"v2Beta":                   "v2_beta",
+		"oAuth":                    "oauth",
+		"oAuth2":                   "oauth2",
+		"OAuthTokenRequest":        "oauth_token_request",
+		"cloudIdPCommon":           "cloud_idp_common",
+		"iOS":                      "ios",
+		"macOSVersion":             "macos_version",
+		"iTunesStoreAccountActive": "itunes_store_account_active",
+		"enabledForGitHubApps":     "enabled_for_github_apps",
+		"watchOSUpdate":            "watchos_update",
+		"visionOS":                 "visionos",
+		"idPage":                   "id_page",
+		"RadiOS":                   "radi_os",
+		"macos-policy":             "macos_policy",
 	} {
 		if got := snakeCase(input); got != want {
 			t.Errorf("snakeCase(%q) = %q, want %q", input, got, want)

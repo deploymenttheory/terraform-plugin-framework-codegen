@@ -35,50 +35,62 @@ type Names struct {
 	Tag string `json:"tag,omitempty"`
 }
 
-// acronyms is the closed set of initialisms Go spellings uppercase whole,
-// keyed by their snake_case form, sorted. This table is owner-owned:
-// additions go through the repository owner, never in passing.
+// acronyms is the closed set of spellings Go identifiers carry whole,
+// keyed by their snake_case form, sorted: initialisms uppercased whole, and
+// the reserved technology and brand spellings in the vendor's own casing.
+// This table is owner-owned: additions go through the repository owner,
+// never in passing.
 var acronyms = map[string]string{
-	"acl":   "ACL",
-	"api":   "API",
-	"arn":   "ARN",
-	"cidr":  "CIDR",
-	"cli":   "CLI",
-	"cpu":   "CPU",
-	"css":   "CSS",
-	"dns":   "DNS",
-	"ftp":   "FTP",
-	"gpu":   "GPU",
-	"html":  "HTML",
-	"http":  "HTTP",
-	"https": "HTTPS",
-	"id":    "ID",
-	"ip":    "IP",
-	"json":  "JSON",
-	"jwt":   "JWT",
-	"lan":   "LAN",
-	"mac":   "MAC",
-	"oauth": "OAuth",
-	"os":    "OS",
-	"ram":   "RAM",
-	"rps":   "RPS",
-	"sdk":   "SDK",
-	"sha":   "SHA",
-	"smtp":  "SMTP",
-	"sql":   "SQL",
-	"ssh":   "SSH",
-	"ssl":   "SSL",
-	"tcp":   "TCP",
-	"tls":   "TLS",
-	"udp":   "UDP",
-	"ui":    "UI",
-	"uri":   "URI",
-	"url":   "URL",
-	"uuid":  "UUID",
-	"vpn":   "VPN",
-	"wan":   "WAN",
-	"xml":   "XML",
-	"yaml":  "YAML",
+	"acl":      "ACL",
+	"api":      "API",
+	"arn":      "ARN",
+	"cidr":     "CIDR",
+	"cli":      "CLI",
+	"cpu":      "CPU",
+	"css":      "CSS",
+	"dns":      "DNS",
+	"ftp":      "FTP",
+	"github":   "GitHub",
+	"gpu":      "GPU",
+	"html":     "HTML",
+	"http":     "HTTP",
+	"https":    "HTTPS",
+	"id":       "ID",
+	"idp":      "IdP",
+	"ios":      "IOS",
+	"ip":       "IP",
+	"ipados":   "IPadOS",
+	"itunes":   "ITunes",
+	"json":     "JSON",
+	"jwt":      "JWT",
+	"lan":      "LAN",
+	"mac":      "MAC",
+	"macos":    "MacOS",
+	"oauth":    "OAuth",
+	"oauth2":   "OAuth2",
+	"os":       "OS",
+	"ram":      "RAM",
+	"rps":      "RPS",
+	"sdk":      "SDK",
+	"sha":      "SHA",
+	"smtp":     "SMTP",
+	"sql":      "SQL",
+	"ssh":      "SSH",
+	"ssl":      "SSL",
+	"tcp":      "TCP",
+	"tls":      "TLS",
+	"tvos":     "TvOS",
+	"udp":      "UDP",
+	"ui":       "UI",
+	"uri":      "URI",
+	"url":      "URL",
+	"uuid":     "UUID",
+	"visionos": "VisionOS",
+	"vpn":      "VPN",
+	"wan":      "WAN",
+	"watchos":  "WatchOS",
+	"xml":      "XML",
+	"yaml":     "YAML",
 }
 
 // versionSegment matches a leading API version path segment such as "v7".
@@ -209,13 +221,77 @@ func camelCase(key string) string {
 	return parts[0] + pascalCase(strings.Join(parts[1:], "_"))
 }
 
+// reservedSpellings are the wire spellings the ecosystem writes as one
+// run, which the letter-boundary walk in snakeCase would split: a
+// technology term such as OAuth or iOS, and a brand such as iTunes. Keyed
+// by the exact casing a wire uses; the value is the one-word snake form.
+// Owner-owned like the acronym table, and each member's Go spelling lives
+// there: additions go through the repository owner, never in passing.
+var reservedSpellings = struct {
+	technology map[string]string
+	brands     map[string]string
+}{
+	technology: map[string]string{
+		"OAuth": "oauth", "oAuth": "oauth",
+		"OAuth2": "oauth2", "oAuth2": "oauth2",
+		"IdP": "idp",
+		"iOS": "ios", "iPadOS": "ipados", "macOS": "macos",
+		"tvOS": "tvos", "watchOS": "watchos", "visionOS": "visionos",
+	},
+	brands: map[string]string{
+		"iTunes": "itunes", "GitHub": "github",
+	},
+}
+
+// reservedSpellingAt answers the longest reserved run starting at index and
+// its snake form, when one matches there. A spelling matches case-exactly
+// and only between word boundaries: an uppercase-led spelling may follow a
+// lowercase letter or a digit — that joint is what identifies it — while a
+// lowercase-led one only starts a word; and no spelling ends against a
+// lowercase letter. The guards keep iOS out of RadiOS and IdP out of
+// idPage.
+func reservedSpellingAt(runes []rune, index int) (length int, snaked string, found bool) {
+	for _, spellings := range []map[string]string{reservedSpellings.technology, reservedSpellings.brands} {
+		for spelling, snake := range spellings {
+			token := []rune(spelling)
+			if len(token) <= length || index+len(token) > len(runes) || string(runes[index:index+len(token)]) != spelling {
+				continue
+			}
+			if index > 0 {
+				previous := runes[index-1]
+				separator := previous == '-' || previous == '.' || previous == ' ' || previous == '_'
+				joint := (unicode.IsLower(previous) || unicode.IsDigit(previous)) && unicode.IsUpper(token[0])
+				if !separator && !joint {
+					continue
+				}
+			}
+			if end := index + len(token); end < len(runes) && unicode.IsLower(runes[end]) {
+				continue
+			}
+			length, snaked, found = len(token), snake, true
+		}
+	}
+	return length, snaked, found
+}
+
 // snakeCase turns a wire property name — camelCase, PascalCase, kebab-case
 // or dotted — into the terraform attribute spelling. Acronym runs keep
-// their shape: "IPAddress" becomes "ip_address", not "i_p_address".
+// their shape: "IPAddress" becomes "ip_address", not "i_p_address". A
+// reserved spelling keeps its run whole: "oAuth" becomes "oauth", never
+// "o_auth".
 func snakeCase(wireName string) string {
 	var builder strings.Builder
 	runes := []rune(wireName)
-	for index, character := range runes {
+	for index := 0; index < len(runes); {
+		if length, snaked, found := reservedSpellingAt(runes, index); found {
+			if out := builder.String(); out != "" && !strings.HasSuffix(out, "_") {
+				builder.WriteRune('_')
+			}
+			builder.WriteString(snaked)
+			index += length
+			continue
+		}
+		character := runes[index]
 		switch {
 		case character == '-' || character == '.' || character == ' ':
 			builder.WriteRune('_')
@@ -227,6 +303,7 @@ func snakeCase(wireName string) string {
 		default:
 			builder.WriteRune(character)
 		}
+		index++
 	}
 	return leadWithALetter(builder.String())
 }
