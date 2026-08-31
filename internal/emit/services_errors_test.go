@@ -718,3 +718,72 @@ func TestUnit_Schema_RendersMarkdownDescription(t *testing.T) {
 		}
 	}
 }
+
+func TestUnit_RenderServices_ASingletonCreateBuildsTheUpdateBody(t *testing.T) {
+	// A singleton creates by writing through its update call, so where the
+	// update declares a body of its own, the create must build that body:
+	// the create's own body is a different generated type the update call
+	// does not accept.
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	r := &m.Resources[0]
+	r.Singleton = true
+	rb := b.Resources[r.Names.Key]
+	rb.UpdateWriteModel = "models.HttpServer"
+	rb.UpdateWriteConstructor = "models.NewHttpServer()"
+	rb.UpdateFields = httpServerFields()
+
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("a singleton with an update body must render: %v", err)
+	}
+
+	var crud string
+	for _, f := range out.Files {
+		if strings.Contains(f.Path, "/resources/") && strings.HasSuffix(f.Path, "http_server/crud.go") {
+			crud = string(f.Content)
+		}
+	}
+	if crud == "" {
+		t.Fatal("the singleton must emit crud.go")
+	}
+	createSection := crud[strings.Index(crud, "func (r *"):strings.Index(crud, "// Read ")]
+	if !strings.Contains(createSection, "constructUpdate(ctx, &data)") {
+		t.Fatalf("the singleton create must build the update body its call takes:\n%s", createSection)
+	}
+	if strings.Contains(createSection, "constructResource(") {
+		t.Fatalf("the singleton create must not build the create body its call cannot take:\n%s", createSection)
+	}
+}
+
+func TestUnit_RenderServices_AKeyedResourceCreateKeepsItsOwnBody(t *testing.T) {
+	// The update body serves the update alone on an ordinary resource: its
+	// create call takes the create body.
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	rb := b.Resources[m.Resources[0].Names.Key]
+	rb.UpdateWriteModel = "models.HttpServer"
+	rb.UpdateWriteConstructor = "models.NewHttpServer()"
+	rb.UpdateFields = httpServerFields()
+
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	var crud string
+	for _, f := range out.Files {
+		if strings.Contains(f.Path, "/resources/") && strings.HasSuffix(f.Path, "http_server/crud.go") {
+			crud = string(f.Content)
+		}
+	}
+	if crud == "" {
+		t.Fatal("the resource must emit crud.go")
+	}
+	createSection := crud[strings.Index(crud, "func (r *"):strings.Index(crud, "// Read ")]
+	if !strings.Contains(createSection, "constructResource(ctx, &data, true)") {
+		t.Fatalf("the create must keep its own body:\n%s", createSection)
+	}
+}

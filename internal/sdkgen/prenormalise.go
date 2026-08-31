@@ -17,7 +17,7 @@ import (
 // document on disk never changes — and the same input always yields the same
 // bytes.
 //
-// Five passes, then block style.
+// Six passes, then block style.
 //
 // Schema defaults are stripped: a generated model constructor stamps every
 // declared default onto the model it builds, so a defaulted field the
@@ -49,6 +49,14 @@ import (
 // when no success response offers one, which asks a server for the single
 // representation it produces only when refusing.
 //
+// An inline enum declared under a request body is extracted to a named
+// component schema, and a $ref left where it stood: kiota, given two
+// operations whose bodies declare same-named inline enums, drops the
+// property from every request model — the enum types are still emitted,
+// orphaned — and prints no warning. A named component generates one
+// shared type that every referencing body carries, so the property
+// survives.
+//
 // Every pass accepts zero hits: a document without the shapes needs no
 // rewriting, which is not an error.
 func Prenormalise(revised []byte) (out []byte, rewrites Rewrites, err error) {
@@ -66,6 +74,7 @@ func Prenormalise(revised []byte) (out []byte, rewrites Rewrites, err error) {
 	widenByteArrayCollections(top, &rewrites.ByteArrayCollectionsWidened)
 	reduceUnions(top, &rewrites.UnionsReduced)
 	dropUnacceptableErrorContent(top, &rewrites.ErrorContentDropped)
+	extractRequestBodyEnums(top, &rewrites.RequestBodyEnumsExtracted)
 
 	yamlwalk.ForceBlockStyle(&root)
 
@@ -76,7 +85,7 @@ func Prenormalise(revised []byte) (out []byte, rewrites Rewrites, err error) {
 	return out, rewrites, nil
 }
 
-// Rewrites counts what each of the five rewrites changed, one field per
+// Rewrites counts what each of the six rewrites changed, one field per
 // rewrite in the order Prenormalise applies them. Every count is reported
 // because a rewrite that found nothing is a different fact from one that was
 // never measured, and the pre-normalised document is never committed — these
@@ -98,6 +107,10 @@ type Rewrites struct {
 	// ErrorContentDropped is the error responses inlined without their
 	// content.
 	ErrorContentDropped Rewrite
+	// RequestBodyEnumsExtracted is the inline request-body enum schemas
+	// moved to named component schemas and referenced from where they
+	// stood.
+	RequestBodyEnumsExtracted Rewrite
 }
 
 // Rewrite is one rewrite's tally: how many changes it made, and where.
@@ -136,9 +149,11 @@ func (r Rewrites) String() string {
 	return fmt.Sprintf(
 		"%d schema defaults stripped, %d anonymous allOf collapsed, "+
 			"%d byte-array collections widened, %d unions reduced, "+
-			"%d error responses stripped of content",
+			"%d error responses stripped of content, "+
+			"%d request-body enums extracted",
 		r.SchemaDefaultsStripped.Count, r.AnonymousAllOfsCollapsed.Count,
-		r.ByteArrayCollectionsWidened.Count, r.UnionsReduced.Count, r.ErrorContentDropped.Count)
+		r.ByteArrayCollectionsWidened.Count, r.UnionsReduced.Count, r.ErrorContentDropped.Count,
+		r.RequestBodyEnumsExtracted.Count)
 }
 
 // eachComponentSchema calls fn for every component schema, named the way the
