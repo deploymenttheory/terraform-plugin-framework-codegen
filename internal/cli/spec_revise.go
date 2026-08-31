@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/spf13/cobra"
 
@@ -50,6 +51,8 @@ func newSpecReviseCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			printAPIMechanics(out, res.APIMechanicsRemoved)
 
 			if len(res.Applied) == 0 {
 				fmt.Fprintf(out, "wrote %s: no corrections; the revised spec is the upstream document (sha256 %s)\n",
@@ -131,4 +134,37 @@ func describeNote(n revise.Note) string {
 		at += "." + n.Attribute
 	}
 	return fmt.Sprintf("%s (%s)", at, n.Kind)
+}
+
+// printAPIMechanics says what revision left out of the document as API
+// mechanics, one line per mechanic: the fields describe the API rather
+// than the resource, so a reader looking for a property that never became
+// an attribute finds the answer here rather than in a diff.
+func printAPIMechanics(out io.Writer, removed []revise.APIMechanicRemoval) {
+	if len(removed) == 0 {
+		return
+	}
+	counts := map[string]map[string]int{}
+	for _, r := range removed {
+		if counts[r.Mechanic] == nil {
+			counts[r.Mechanic] = map[string]int{}
+		}
+		counts[r.Mechanic][r.Property]++
+	}
+	mechanics := make([]string, 0, len(counts))
+	for mechanic := range counts {
+		mechanics = append(mechanics, mechanic)
+	}
+	sort.Strings(mechanics)
+	for _, mechanic := range mechanics {
+		properties := make([]string, 0, len(counts[mechanic]))
+		for property := range counts[mechanic] {
+			properties = append(properties, property)
+		}
+		sort.Strings(properties)
+		for _, property := range properties {
+			fmt.Fprintf(out, "left out %q at %d sites (apiMechanics.%s): it is the API describing itself, not the resource\n",
+				property, counts[mechanic][property], mechanic)
+		}
+	}
 }

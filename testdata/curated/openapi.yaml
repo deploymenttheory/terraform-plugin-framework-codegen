@@ -387,6 +387,16 @@ components:
               type: string
               readOnly: true
               description: A string only the API sets.
+            _links:
+              type: object
+              readOnly: true
+              description: The API's own link to this resource.
+              properties:
+                self:
+                  type: object
+                  properties:
+                    href:
+                      type: string
     CustomActionRequest:
       type: object
       required:

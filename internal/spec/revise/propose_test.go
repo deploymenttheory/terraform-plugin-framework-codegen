@@ -486,3 +486,33 @@ func TestUnit_Propose_MarkerSurvivesAPinMove(t *testing.T) {
 		t.Errorf("Stale = %+v; a suppressed observation is not reported stale", p.Stale)
 	}
 }
+
+// TestUnit_Propose_AnAPIMechanicIsNeverProposed holds the proposer to the
+// API mechanics catalogue: an undocumentedFieldInSpec observation of _links
+// is real on the wire and still compiles to no proposal, because revision
+// leaves the property out of the document.
+func TestUnit_Propose_AnAPIMechanicIsNeverProposed(t *testing.T) {
+	t.Parallel()
+	root, specDir, lock := pinnedTree(t)
+	commitObs(t, root, confirmedObs("_links", observe.KindUndocumentedFieldInSpec, "object", nil, lock.SHA256))
+
+	p, err := Propose(specDir)
+	if err != nil {
+		t.Fatalf("Propose: %v", err)
+	}
+	if len(p.Proposed) != 0 {
+		t.Fatalf("Proposed = %+v; an API mechanic must never be proposed", p.Proposed)
+	}
+	found := false
+	for _, note := range p.AlreadyStated {
+		if strings.Contains(note.Reason, "apiMechanics.navigationLinks") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("AlreadyStated = %+v, want the catalogue named as the reason", p.AlreadyStated)
+	}
+	if files := proposedFiles(t, specDir); len(files) != 0 {
+		t.Errorf("proposed/ holds %v for an API mechanic", files)
+	}
+}

@@ -384,6 +384,11 @@ func (c *compiler) undocumentedField(loc *locator, cls specmodel.Classification,
 	if o.Attribute == "" {
 		return unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind))
 	}
+	// An API mechanic is real on the wire and still does not belong in the
+	// document: revision would remove the property this would add.
+	if mechanic, isMechanic := apiMechanicOf(o.Attribute); isMechanic {
+		return stated(fmt.Sprintf("%q is the API describing itself (apiMechanics.%s); revision leaves it out of the document, so there is nothing to add", o.Attribute, mechanic))
+	}
 	if _, _, found := c.property(loc, cls, o); found {
 		return stated("the document already declares the property")
 	}
